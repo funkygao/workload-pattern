@@ -22,13 +22,11 @@ Languages： English | [中文](README.zh-cn.md)
 ```
 (deckSize, handSize, requestIdentifier) -> int[handSize]
                                               |
-                                         ProviderDiscovery
+                                         Service Discovery
                                               |
-                                          LoadBalance
+                                          SLB(random/roundrobin/leastconn/...)
                                               |
-                                              | (random/roundrobin/leastconn/...)
-                                              |
-                                         target provider
+                                         target server node
 ```
 
 ## Overload Control
