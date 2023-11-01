@@ -1,0 +1,34 @@
+HTTP -> nginx -> Tomcat
+nginx: {
+  Shuffle Sharding
+}
+Tomcat: {
+  style.multiple: true
+}
+HTTP: {
+  shape: person
+}
+RPCconsumer -> RPCprovider
+RPCprovider: {
+  style.multiple: true
+}
+RPCconsumer: {
+  Shuffle Sharding
+}
+ThreadPool: {
+  shape: queue
+  Overload Control: {
+    shape: text
+  }
+}
+Tomcat -> ThreadPool
+RPCprovider -> ThreadPool
+ThreadPool -> AppService
+AppService -> DownstreamRPC
+AppService -> DB
+AppService -> MQ
+AppService -> LocalAsyncTask
+LocalAsyncTask -> TaskThreadPool
+TaskThreadPool: {
+  shape: queue
+}

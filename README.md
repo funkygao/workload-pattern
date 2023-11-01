@@ -13,6 +13,10 @@ Languages： English | [中文](README.zh-cn.md)
 
 ----
 
+## Overview
+
+![](assets/bigpicture.svg)
+
 ## Shuffle Sharding
 
 ## Overload Control
