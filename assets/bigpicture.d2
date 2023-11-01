@@ -16,15 +16,15 @@ Provider: {
 Consumer: {
   Shuffle Sharding
 }
-SharedThreadPool: {
+ThreadPool: {
   shape: queue
   Overload Control: {
     shape: text
   }
 }
-Tomcat -> SharedThreadPool
-Provider -> SharedThreadPool
-SharedThreadPool -> AppService: inner-process
+Tomcat -> ThreadPool
+Provider -> ThreadPool
+ThreadPool -> AppService: inner-process
 AppService -> Downstream: RPC
 AppService -> DB
 AppService -> MQ: produce
