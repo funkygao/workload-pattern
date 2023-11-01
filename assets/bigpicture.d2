@@ -1,18 +1,19 @@
-HTTP -> nginx -> Tomcat
+User -> nginx: HTTP
+nginx -> Tomcat: HTTP
 nginx: {
   Shuffle Sharding
 }
 Tomcat: {
   style.multiple: true
 }
-HTTP: {
+User: {
   shape: person
 }
-RPCconsumer -> RPCprovider
-RPCprovider: {
+Consumer -> Provider: RPC
+Provider: {
   style.multiple: true
 }
-RPCconsumer: {
+Consumer: {
   Shuffle Sharding
 }
 ThreadPool: {
@@ -22,13 +23,20 @@ ThreadPool: {
   }
 }
 Tomcat -> ThreadPool
-RPCprovider -> ThreadPool
-ThreadPool -> AppService
-AppService -> DownstreamRPC
+Provider -> ThreadPool
+ThreadPool -> AppService: inner-process
+AppService -> Downstream: RPC
 AppService -> DB
-AppService -> MQ
-AppService -> LocalAsyncTask
-LocalAsyncTask -> TaskThreadPool
-TaskThreadPool: {
+AppService -> MQ: produce
+AppService -> TransactioanlAsyncTask
+TransactioanlAsyncTask -> AsyncTaskThreadPool
+AsyncTaskThreadPool: {
   shape: queue
 }
+
+MQ -> Instant Queue: re-preduce
+Instant Queue: {
+  shape: queue
+  style.multiple: true
+}
+Instant Queue -> Listener
