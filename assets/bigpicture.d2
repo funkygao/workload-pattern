@@ -16,20 +16,20 @@ Provider: {
 Consumer: {
   Shuffle Sharding
 }
-ThreadPool: {
+SharedThreadPool: {
   shape: queue
   Overload Control: {
     shape: text
   }
 }
-Tomcat -> ThreadPool
-Provider -> ThreadPool
-ThreadPool -> AppService: inner-process
+Tomcat -> SharedThreadPool
+Provider -> SharedThreadPool
+SharedThreadPool -> AppService: inner-process
 AppService -> Downstream: RPC
 AppService -> DB
 AppService -> MQ: produce
-AppService -> TransactioanlAsyncTask
-TransactioanlAsyncTask -> AsyncTaskThreadPool
+AppService -> TrxAsyncTask
+TrxAsyncTask -> AsyncTaskThreadPool: queuing time
 AsyncTaskThreadPool: {
   shape: queue
 }
@@ -40,3 +40,5 @@ Instant Queue: {
   style.multiple: true
 }
 Instant Queue -> Listener
+
+# https://play.d2lang.com/?script=fFJRTsMwDP33KXyBcYB8II3xARITHSsHiFpvi9ic4CRjCPXuyB3tuqrjL37v2X5-7Xskwdk98tbxyeBTWRbQvhUs_aGyaYga_AHE9S5vNnvC9c5K7XgLDXRSpVt7d931BpNkggZ01Z9AzzYYSKJnaGDhOebD2Ugh_uhqVb4VC7hU_wzu2m-b2wnZuvB-f7X_M1MmQHw9kuy9rXHhOUkn6mUaLCA2_ZVtNP3I3uMIvjyVmIewJjm6igw6ZpJZEF9RjHBhVPfov_SfJns4BzBiH0bAcmUwiK9zRSOmlNM8fnNV2vgBw6J10xUDvxPYRFoNwHKlI545JssJVwobFJoFodbHiJkI_MZ3vGrUHS8uJmIS-A0AAP__&theme=1&sketch=1&
