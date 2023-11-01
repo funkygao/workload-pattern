@@ -34,7 +34,7 @@ RequestPriority ----------> deny/accept
 
 - fine grained request priority based
 - respect user expected SLO under recursive microservice environment
-- best effortly minimize resource waster under overload
+- best effortly minimize resource waste under overload
 
 ## Instant Queue
 
