@@ -21,13 +21,23 @@ Languages： English | [中文](README.zh-cn.md)
 
 ```
 (deckSize, handSize, requestIdentifier) -> int[handSize]
+                                              |
+                                         ProviderDiscovery
+                                              |
+                                          LoadBalance
+                                              |
+                                              | (random/roundrobin/leastconn/...)
+                                              |
+                                         target provider
 ```
 
 ## Overload Control
 
 ```
                 overloaded
-RequestPriority ----------> deny/accept
+RequestPriority ----------> deny/accept -> run
+                                            |
+                recordQueuingTime <---------+
 ```
 
 ### Features
