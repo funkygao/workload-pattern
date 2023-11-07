@@ -1,8 +1,8 @@
-<h1 align="center">Service Pattern</h1>
+<h1 align="center">Worload Pattern</h1>
 
 <div align="center">
 
-Service patterns in distributed environment.
+Workload patterns in distributed environment.
 
 </div>
 
@@ -13,30 +13,11 @@ Languages： English | [中文](README.zh-cn.md)
 
 ----
 
-## Overview
+## Patterns
 
-![](assets/bigpicture.svg)
+### Shuffle Sharding
 
-## Shuffle Sharding
-
-```
-(deckSize, handSize, requestIdentifier) -> int[handSize]
-                                              |
-                                         Service Discovery
-                                              |
-                                          SLB(random/roundrobin/leastconn/...)
-                                              |
-                                         target server node
-```
-
-## Overload Control
-
-```
-                overloaded
-RequestPriority ----------> deny/accept -> run
-                                            |
-                recordQueuingTime <---------+
-```
+### Overload Control
 
 ### Features
 
@@ -44,12 +25,3 @@ RequestPriority ----------> deny/accept -> run
 - respect user expected SLO under recursive microservice environment
 - best effortly minimize resource waste under overload
 
-## Instant Queue
-
-```
-                +- complete message set MQ topic
-                |
-busness event --+- instant message subset MQ topicA
-                |
-                +- instant message subset MQ topicB
-```
