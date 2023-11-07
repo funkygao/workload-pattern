@@ -1,4 +1,4 @@
-<h1 align="center">Worload Pattern</h1>
+<h1 align="center">Workload Pattern</h1>
 
 <div align="center">
 
