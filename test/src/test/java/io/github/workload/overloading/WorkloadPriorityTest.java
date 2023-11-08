@@ -3,6 +3,7 @@ package io.github.workload.overloading;
 import com.google.gson.Gson;
 import org.junit.jupiter.api.Test;
 
+import java.io.Serializable;
 import java.util.Random;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -32,6 +33,8 @@ class WorkloadPriorityTest {
     void P() {
         WorkloadPriority p1 = WorkloadPriority.of(5, 3);
         WorkloadPriority p2 = WorkloadPriority.of(8, 10);
+        // 它被传递，因此需要序列化
+        assertTrue(p1 instanceof Serializable);
         assertEquals(1283, p1.P());
         assertEquals(2048 + 10, p2.P());
     }
