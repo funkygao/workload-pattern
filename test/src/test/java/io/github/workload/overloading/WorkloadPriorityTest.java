@@ -79,4 +79,35 @@ class WorkloadPriorityTest {
         }
     }
 
+    @Test
+    void ofRandom() {
+        WorkloadPriority priority = WorkloadPriority.ofRandom(2, "34_2323".hashCode());
+        assertEquals(2, priority.B());
+        assertEquals(100, priority.U());
+        priority = WorkloadPriority.ofRandom(5, 0);
+        assertEquals(5, priority.B());
+        assertEquals(0, priority.U());
+        priority = WorkloadPriority.ofRandom(9, -1);
+        assertEquals(9, priority.B());
+        assertEquals(7, priority.U());
+        priority = WorkloadPriority.ofRandom(10, Integer.MIN_VALUE);
+        assertEquals(0, priority.U());
+        priority = WorkloadPriority.ofRandom(10, Integer.MAX_VALUE);
+        assertEquals(7, priority.U());
+
+        priority = WorkloadPriority.ofRandom(0, 1);
+        assertEquals(0, priority.B());
+        priority = WorkloadPriority.ofRandom("listBooks".hashCode(), 5);
+        assertEquals(1, priority.B());
+        priority = WorkloadPriority.ofRandom("getBook".hashCode(), 5);
+        assertEquals(0, priority.B());
+        priority = WorkloadPriority.ofRandom(-10, 1);
+        assertEquals(125, priority.B());
+        priority = WorkloadPriority.ofRandom(Integer.MAX_VALUE, 1);
+        assertEquals(7, priority.B());
+        priority = WorkloadPriority.ofRandom(Integer.MIN_VALUE, 1);
+        assertEquals(0, priority.B());
+        assertEquals(1, priority.U());
+    }
+
 }

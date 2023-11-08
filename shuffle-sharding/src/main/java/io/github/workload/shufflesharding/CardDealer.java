@@ -24,6 +24,7 @@ import java.util.function.IntConsumer;
  * @see <a href="https://grafana.com/docs/mimir/latest/configure/configure-shuffle-sharding/">Grafana Ingester/Query-frontend/Store-gateway/Compactor/Alertmanager</a>
  * @see <a href="https://github.com/grafana/dskit/blob/main/ring/ring.go#L676">Grafana的底层实现</a>
  * @see <a href="https://github.com/kubernetes/enhancements/blob/master/keps/sig-api-machinery/1040-priority-and-fairness/README.md">APF Design</a>
+ * @see <a href="https://cloud.redhat.com/blog/surviving-the-api-storm-with-api-priority-fairness">APF配置</a>
  */
 public class CardDealer {
     /**

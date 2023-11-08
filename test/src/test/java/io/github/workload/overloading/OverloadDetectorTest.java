@@ -1,12 +1,10 @@
 package io.github.workload.overloading;
 
-import org.junit.jupiter.api.RepeatedTest;
 import org.junit.jupiter.api.Test;
 
 import java.util.concurrent.ConcurrentSkipListMap;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class OverloadDetectorTest {
 
@@ -24,6 +22,17 @@ class OverloadDetectorTest {
     }
 
     @Test
+    void avgQueuingTimeMs() {
+        OverloadDetector detector = new OverloadDetector(100);
+        for (int i = 0; i < 400; i++) {
+            detector.admit(WorkloadPriority.ofLowestPriority());
+            detector.addWaitingNs(8000_000); // 8ms
+        }
+        assertEquals(8, detector.avgQueuingTimeMs());
+
+    }
+
+    @Test
     void nanoTime() {
         long lastNs = System.nanoTime();
         for (int i = 0; i < 100; i++) {
@@ -31,13 +40,6 @@ class OverloadDetectorTest {
             System.out.println((nowNs - lastNs) / 1000); // us
             lastNs = nowNs;
         }
-    }
-
-    @Test
-    @RepeatedTest(value = 50)
-    void basic() {
-        OverloadDetector detector = new OverloadDetector(1);
-        assertTrue(detector.admit(null));
     }
 
 }

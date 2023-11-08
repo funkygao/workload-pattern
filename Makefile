@@ -18,3 +18,6 @@ coverage:clean
 javadoc:
 	@mvn javadoc:javadoc -Prelease
 	@open target/site/apidocs/index.html
+
+encapsulation:
+	@mvn io.github.dddplus:dddplus-maven-plugin:model -DrootDir=./overload-control -Dencapsulation=./doc/encapsulation.txt -X

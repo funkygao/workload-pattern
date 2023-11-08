@@ -1,7 +1,6 @@
 package io.github.workload.overloading;
 
-import lombok.AccessLevel;
-import lombok.Getter;
+import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.concurrent.ConcurrentSkipListMap;
@@ -10,7 +9,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
- * 基于(数量，时间)窗口的过载检测，运行在每个服务进程.
+ * 基于(数量，时间)窗口的过载检测.
  *
  * <p>复合型窗口设计有助于及时进行过载检测和准入控制调整.</p>
  * <p>avg waiting time of requests in the pending queue (or queuing time for short) to to profile the load status of a server</p>
@@ -35,7 +34,8 @@ class OverloadDetector {
     // 当前窗口的准入请求总量
     private AtomicInteger admittedCounter = new AtomicInteger(0);
 
-    volatile boolean overloaded;
+    volatile long overloadQueuingMs;
+    volatile long overloadedAtNs = 0;
     WindowSlideHook hook;
 
     /**
@@ -46,14 +46,11 @@ class OverloadDetector {
     private ConcurrentSkipListMap<Integer, AtomicInteger> histogram = new ConcurrentSkipListMap<>();
 
     private AtomicLong accumulatedWaitNs = new AtomicLong(0); // 该窗口内所有请求总排队时长
-    private long overloadQueuingMs;
 
     private AtomicBoolean slidingWindowLock = new AtomicBoolean(false);
 
     // 当前准入等级
-    @Getter(AccessLevel.PACKAGE)
     private AdmissionLevel localAdmissionLevel = AdmissionLevel.ofAdmitAll();
-    // private Map<Provider, AdmissionLevel> downstreamAdmissionLevels;
 
     private double dropRate = 0.05; // 5%
     private double recoverRate = 0.01; // 1%
@@ -62,14 +59,7 @@ class OverloadDetector {
         this.overloadQueuingMs = overloadQueuingMs;
     }
 
-    /**
-     * 判断请求准入.
-     */
-    boolean admit(WorkloadPriority workloadPriority) {
-        if (workloadPriority == null) {
-            return true;
-        }
-
+    boolean admit(@NonNull WorkloadPriority workloadPriority) {
         advanceWindow(workloadPriority);
 
         boolean admitted = localAdmissionLevel.admit(workloadPriority);
@@ -86,11 +76,9 @@ class OverloadDetector {
 
         int requests = requestCounter.incrementAndGet();
         updateHistogram(workloadPriority);
-        // 如果觉得获取时间影响性能，也可以time wheel
         long nowNs = System.nanoTime();
-        // 时间满足，或者请求数量满足
-        boolean slideWindowSatisfied = nowNs - windowStartNs > WindowTimeSizeNs || requests > WindowRequests;
-        if (slideWindowSatisfied) {
+        if (nowNs - windowStartNs > WindowTimeSizeNs // 时间满足
+                || requests > WindowRequests) { // 请求数量满足
             slideWindow(nowNs);
         }
     }
@@ -99,7 +87,11 @@ class OverloadDetector {
         histogramCounter(workloadPriority).incrementAndGet();
     }
 
-    // 滑动到下一个窗口周期：刷新状态
+    private boolean isOverloaded(long nowNs) {
+        return avgQueuingTimeMs() > overloadQueuingMs // 排队时间长
+                || (nowNs - overloadedAtNs) <= WindowTimeSizeNs; // 距离上次显式过载仍在窗口期
+    }
+
     private void slideWindow(long nowNs) {
         if (!slidingWindowLock.compareAndSet(false, true)) {
             // single flight
@@ -108,9 +100,7 @@ class OverloadDetector {
 
         try {
             // 调整准入级别，每个窗口周期一次
-            // for each setting of the admission level, server has to take a while to validate its effectiveness
-            // since the load status is aggregated within a certain time interval
-            updateAdmissionLevel(avgQueuingTimeMs() > overloadQueuingMs || overloaded);
+            updateAdmissionLevel(isOverloaded(nowNs));
 
             windowStartNs = nowNs;
             requestCounter.set(0);
@@ -130,7 +120,6 @@ class OverloadDetector {
         }
     }
 
-    // thread safe
     private AtomicInteger histogramCounter(WorkloadPriority workloadPriority) {
         int key = workloadPriority.P();
         AtomicInteger counter = histogram.get(key);
@@ -185,25 +174,21 @@ class OverloadDetector {
 
     void addWaitingNs(long waitingNs) {
         if (slidingWindowLock.get()) {
+            // 正在滑动窗口，即使计数也可能被重置
             return;
         }
+
         accumulatedWaitNs.addAndGet(waitingNs);
     }
 
-    long accumulatedWaitNs() {
-        return accumulatedWaitNs.get();
-    }
+    long avgQueuingTimeMs() {
+        int requests = requestCounter.get();
+        if (requests == 0) {
+            // avoid divide by zero
+            return 0;
+        }
 
-    /**
-     * 调整过载检测阈值，超过该值则认为系统过载，开始准入干预.
-     */
-    void adjustOverloadQueuingMs(long overloadQueuingMs) {
-        this.overloadQueuingMs = overloadQueuingMs;
-    }
-
-    private long avgQueuingTimeMs() {
-        // TODO divide by zero
-        return accumulatedWaitNs.get() / (requestCounter.get() * 1000_000);
+        return accumulatedWaitNs.get() / (requests * 1000_000);
     }
 
 }

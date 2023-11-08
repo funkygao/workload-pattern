@@ -31,16 +31,6 @@ class AdmissionLevel implements Serializable {
         return priority.P();
     }
 
-    WorkloadPriority priority() {
-        return priority;
-    }
-
-    /**
-     * 当前的{@code admission level}是否允许某个优先级的请求.
-     *
-     * @param workloadPriority 指定优先级的请求
-     * @return true if 准入
-     */
     boolean admit(WorkloadPriority workloadPriority) {
         return workloadPriority.P() <= this.priority.P();
     }

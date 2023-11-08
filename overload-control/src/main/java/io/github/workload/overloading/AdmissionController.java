@@ -1,74 +1,84 @@
 package io.github.workload.overloading;
 
+import lombok.NonNull;
+import lombok.extern.slf4j.Slf4j;
+
+import java.util.concurrent.RejectedExecutionHandler;
+
 /**
- * 自适应的服务负载准入管制.
+ * 面向QoS的自适应式工作负载准入管制.
  *
  * <pre>
  *                         AdmissionController
  *                   IN  +───────────────────────+  OUT
- * WorkloadPriority ───> │ admissionLevel/cursor │ ─────> deny/accept
+ * WorkloadPriority ───> │ AdmissionLevel        │ ─────> deny/accept
  *                       +───────────────────────+
  *                       │ +admit(P)             │
  *                       │ +recordQueuedNs(ns)   │
  *                       │ +markOverloaded()     │
  *                       +───────────────────────+
  *                        window: (time, counter)
- *                   load status: queuing time
+ *                   load status: avg queuing time/overloaded
  * </pre>
  *
- * <p>
- * Load variations and bursts of traffic often cause an application’s computational demands to exceed
- * allocated system resources, causing requests and tasks to linger in queues and, eventually, violate
- * service level objectives (SLOs).
- * </p>
- * <p>
- * Data center workloads are often heavy-tailed and characterized by
- * rare, expensive requests intermingled with many, simple ones.
- * </p>
- * <p>需要注意的是，该过载保护仅适用于brief bursts，如果系统长期过载，应该扩容或改进设计.</p>
+ * <p>Note：该过载保护仅适用于brief bursts，如果系统长期过载，应该扩容或改进设计.</p>
+ * <ul>过载检测有2种：
+ * <li>显式，例如线程池满，MQ积压超过阈值等：{@link AdmissionController#markOverloaded()}</li>
+ * <li>隐式，更准确，但需要系统可以检测工作负载的排队时长：{@link AdmissionController#recordQueuedNs(long)}</li>
+ * </ul>
  *
  * @see <a href="https://www.cs.columbia.edu/~ruigu/papers/socc18-final100.pdf">微信的过载保护</a>
- * @see <a href="https://cloud.redhat.com/blog/surviving-the-api-storm-with-api-priority-fairness">K8S APF配置</a>
  * @see <a href="https://www.usenix.org/legacy/publications/library/proceedings/usits03/tech/full_papers/welsh/welsh_html/usits.html">Adaptive Overload Control for Busy Internet Servers</a>
  */
+@Slf4j
 public class AdmissionController {
+    final OverloadDetector overloadDetector;
+
+    public AdmissionController() {
+        this(200);
+    }
+
     /**
-     * 对于微信，服务的默认超时是500ms，对应的平均排队阈值设置为20ms，超过该值则认为服务过载.
+     * Constructor.
+     *
+     * @param overloadQueuingMs 平均排队时间超过该值则认为系统已经过载
      */
-    private static final long defaultOverloadQueuingMs = 200;
-
-    // TODO ducc, dryrun to find the empirical configuration
-    private long overloadQueuingMs = defaultOverloadQueuingMs;
-
-    private final OverloadDetector overloadDetector = new OverloadDetector(defaultOverloadQueuingMs);
+    public AdmissionController(long overloadQueuingMs) {
+        overloadDetector = new OverloadDetector(overloadQueuingMs);
+    }
 
     public void setWindowSlideHook(WindowSlideHook hook) {
         overloadDetector.hook = hook;
     }
 
+    public RejectedExecutionHandler rejectedExecutionHandler() {
+        return (runnable, executor) -> {
+            // 显式过载
+            markOverloaded();
+        };
+    }
+
     /**
-     * 根据当前admission level，决定请求是否准入.
+     * 动态调整请求排队时间阈值.
      *
-     * @param workloadPriority 新请求的优先级
+     * <p>这是个经验值，因此实践中通常集成动态配置中心，尝试不同阈值摸索出最佳值.</p>
+     */
+    public void adjustOverloadQueuingMs(long overloadQueuingMs) {
+        overloadDetector.overloadQueuingMs = overloadQueuingMs;
+    }
+
+    /**
+     * 根据当前的{@link AdmissionLevel}水位，决定工作负荷是否准入.
+     *
+     * @param workloadPriority 工作负荷优先级
      * @return false if denied
      */
-    public boolean admit(WorkloadPriority workloadPriority) {
+    public boolean admit(@NonNull WorkloadPriority workloadPriority) {
         return overloadDetector.admit(workloadPriority);
     }
 
     /**
-     * 运维功能：动态调整请求排队时间阈值.
-     */
-    public void adjustOverloadQueuingMs(long overloadQueuingMs) {
-        overloadDetector.adjustOverloadQueuingMs(overloadQueuingMs);
-    }
-
-    public WorkloadPriority localAdmissionLevel() {
-        return overloadDetector.getLocalAdmissionLevel().priority();
-    }
-
-    /**
-     * 汇报请求的排队时长.
+     * 汇报工作负荷的排队时长：隐式过载检测.
      *
      * @param queuedNs
      */
@@ -77,16 +87,11 @@ public class AdmissionController {
     }
 
     /**
-     * 直接进入过载状态.
+     * 直接进入过载状态：显式过载检测.
      *
-     * <p>例如，线程池已满 {@link java.util.concurrent.RejectedExecutionHandler}</p>
+     * <p>例如，线程池已满</p>
      */
-    public void markOverloaded(boolean overloaded) {
-        overloadDetector.overloaded = overloaded;
+    public void markOverloaded() {
+        overloadDetector.overloadedAtNs = System.nanoTime();
     }
-
-    OverloadDetector detector() {
-        return overloadDetector;
-    }
-
 }
