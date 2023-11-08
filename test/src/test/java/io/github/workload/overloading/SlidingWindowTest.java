@@ -18,10 +18,7 @@ class SlidingWindowTest {
     @Test
     @RepeatedTest(20)
     void basic() throws InterruptedException {
-        SlidingWindow window = new SlidingWindow();
-        assertFalse(window.full(System.nanoTime()));
-
-        window = new SlidingWindow(SlidingWindow.DefaultTimeCycleNs, 10);
+        SlidingWindow window = new SlidingWindow(SlidingWindow.DefaultTimeCycleNs, 10);
         assertFalse(window.full(System.nanoTime()));
         for (int i = 0; i < 11; i++) {
             window.tick(true);

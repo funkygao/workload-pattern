@@ -1,6 +1,7 @@
 package io.github.workload.overloading;
 
 import lombok.NonNull;
+import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.concurrent.RejectedExecutionHandler;
@@ -14,8 +15,8 @@ import java.util.concurrent.RejectedExecutionHandler;
  * WorkloadPriority ───> │ AdmissionLevel        │ ─────> deny/accept
  *                       +───────────────────────+
  *                       │ +admit(P)             │
- *                       │ +recordQueuedNs(ns)   │
  *                       │ +markOverloaded()     │
+ *                       │ +recordQueuedNs(ns)   │
  *                       +───────────────────────+
  *                        window: (time, counter)
  *                   load status: avg queuing time/overloaded
@@ -33,6 +34,13 @@ import java.util.concurrent.RejectedExecutionHandler;
 @Slf4j
 public class AdmissionController {
     final OverloadDetector overloadDetector;
+
+    private AdmissionController(Essence essence) {
+        overloadDetector = new OverloadDetector(essence.overloadQueuingMs,
+                essence.timeCycleNs, essence.requestCycle);
+        overloadDetector.dropRate = essence.dropRate;
+        overloadDetector.recoverRate = essence.recoverRate;
+    }
 
     public AdmissionController() {
         this(200);
@@ -94,5 +102,18 @@ public class AdmissionController {
             // 显式过载
             markOverloaded();
         };
+    }
+
+    @Setter
+    public static class Essence {
+        private long overloadQueuingMs = 200;
+        private long timeCycleNs = SlidingWindow.DefaultTimeCycleNs;
+        private int requestCycle = SlidingWindow.DefaultRequestCycle;
+        private double dropRate = 0.05; // 5%
+        private double recoverRate = 0.01; // 1%
+
+        public AdmissionController createAdmissionController() {
+            return new AdmissionController(this);
+        }
     }
 }

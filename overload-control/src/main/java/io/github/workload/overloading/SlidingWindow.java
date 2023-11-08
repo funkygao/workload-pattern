@@ -20,6 +20,7 @@ import java.util.concurrent.atomic.AtomicLong;
  */
 class SlidingWindow {
     static final long NsPerMs = TimeUnit.NANOSECONDS.convert(1, TimeUnit.MILLISECONDS);
+
     static final long DefaultTimeCycleNs = TimeUnit.NANOSECONDS.convert(1, TimeUnit.SECONDS); // 1s
     static final int DefaultRequestCycle = 2 << 10; // 2K
 
@@ -52,11 +53,7 @@ class SlidingWindow {
     /**
      * 当前窗口所有请求的总排队时长.
      */
-    private AtomicLong accumulatedWaitNs = new AtomicLong(0);
-
-    SlidingWindow() {
-        this(DefaultTimeCycleNs, DefaultRequestCycle);
-    }
+    private AtomicLong accumulatedQueuedNs = new AtomicLong(0);
 
     SlidingWindow(long timeCycleNs, int requestCycle) {
         this.timeCycleNs = timeCycleNs;
@@ -77,24 +74,24 @@ class SlidingWindow {
     }
 
     void addWaitingNs(long waitingNs) {
-        accumulatedWaitNs.addAndGet(waitingNs);
+        accumulatedQueuedNs.addAndGet(waitingNs);
     }
 
-    long avgQueuingTimeMs() {
+    long avgQueuedMs() {
         int requests = requestCounter.get();
         if (requests == 0) {
             // avoid divide by zero
             return 0;
         }
 
-        return accumulatedWaitNs.get() / (requests * NsPerMs);
+        return accumulatedQueuedNs.get() / (requests * NsPerMs);
     }
 
     void slide(long nowNs) {
         startNs = nowNs;
         requestCounter.set(0);
         admittedCounter.set(0);
-        accumulatedWaitNs.set(0);
+        accumulatedQueuedNs.set(0);
     }
 
     int admitted() {

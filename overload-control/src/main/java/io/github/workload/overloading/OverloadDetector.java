@@ -23,9 +23,10 @@ import java.util.concurrent.atomic.AtomicInteger;
 class OverloadDetector {
     SlidingWindow window;
     WindowSlideHook hook;
+    double dropRate = 0.05; // 5%
+    double recoverRate = 0.01; // 1%
+
     private AtomicBoolean slideLock = new AtomicBoolean(false);
-    private double dropRate = 0.05; // 5%
-    private double recoverRate = 0.01; // 1%
 
     /**
      * 当前准入等级.
@@ -53,8 +54,12 @@ class OverloadDetector {
     private ConcurrentSkipListMap<Integer, AtomicInteger> histogram = new ConcurrentSkipListMap<>();
 
     OverloadDetector(long overloadQueuingMs) {
+        this(overloadQueuingMs, SlidingWindow.DefaultTimeCycleNs, SlidingWindow.DefaultRequestCycle);
+    }
+
+    OverloadDetector(long overloadQueuingMs, long timeCycleNs, int requestCycle) {
         this.overloadQueuingMs = overloadQueuingMs;
-        this.window = new SlidingWindow();
+        this.window = new SlidingWindow(timeCycleNs, requestCycle);
     }
 
     boolean admit(@NonNull WorkloadPriority workloadPriority) {
@@ -80,7 +85,7 @@ class OverloadDetector {
     }
 
     boolean isOverloaded(long nowNs) {
-        return window.avgQueuingTimeMs() > overloadQueuingMs // 排队时间长
+        return window.avgQueuedMs() > overloadQueuingMs // 排队时间长
                 || (nowNs - overloadedAtNs) <= window.getTimeCycleNs(); // 距离上次显式过载仍在窗口期
     }
 

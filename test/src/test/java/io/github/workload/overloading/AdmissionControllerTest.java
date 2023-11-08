@@ -44,5 +44,13 @@ class AdmissionControllerTest {
         Thread.sleep(1200); // 经过一个时间窗口
         assertFalse(detector.isOverloaded(System.nanoTime()));
     }
+
+    @Test
+    void essencePattern() {
+        AdmissionController.Essence essence = new AdmissionController.Essence();
+        essence.setDropRate(0.02);
+        AdmissionController controller = essence.createAdmissionController();
+        assertEquals(0.02, controller.overloadDetector.dropRate);
+    }
 }
 
