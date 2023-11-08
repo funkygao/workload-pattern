@@ -34,5 +34,15 @@ class AdmissionControllerTest {
             // 例如，查询队列积压情况，来判断是否已经过载
         });
     }
+
+    @Test
+    void markOverloaded() throws InterruptedException {
+        AdmissionController controller = new AdmissionController();
+        OverloadDetector detector = controller.overloadDetector;
+        controller.markOverloaded();
+        assertTrue(detector.isOverloaded(System.nanoTime()));
+        Thread.sleep(1200); // 经过一个时间窗口
+        assertFalse(detector.isOverloaded(System.nanoTime()));
+    }
 }
 

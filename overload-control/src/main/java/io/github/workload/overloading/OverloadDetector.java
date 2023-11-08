@@ -87,7 +87,7 @@ class OverloadDetector {
         histogramCounter(workloadPriority).incrementAndGet();
     }
 
-    private boolean isOverloaded(long nowNs) {
+    boolean isOverloaded(long nowNs) {
         return avgQueuingTimeMs() > overloadQueuingMs // 排队时间长
                 || (nowNs - overloadedAtNs) <= WindowTimeSizeNs; // 距离上次显式过载仍在窗口期
     }

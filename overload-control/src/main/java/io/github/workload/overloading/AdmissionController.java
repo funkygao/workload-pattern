@@ -51,13 +51,6 @@ public class AdmissionController {
         overloadDetector.hook = hook;
     }
 
-    public RejectedExecutionHandler rejectedExecutionHandler() {
-        return (runnable, executor) -> {
-            // 显式过载
-            markOverloaded();
-        };
-    }
-
     /**
      * 动态调整请求排队时间阈值.
      *
@@ -89,9 +82,17 @@ public class AdmissionController {
     /**
      * 直接进入过载状态：显式过载检测.
      *
-     * <p>例如，线程池已满</p>
+     * <p>例如，线程池满，CPU使用率过高等</p>
+     * <p>考虑到JVM运行在容器等复杂环境，CPU是否过载由应用自行判断</p>
      */
     public void markOverloaded() {
         overloadDetector.overloadedAtNs = System.nanoTime();
+    }
+
+    public RejectedExecutionHandler rejectedExecutionHandler() {
+        return (runnable, executor) -> {
+            // 显式过载
+            markOverloaded();
+        };
     }
 }
