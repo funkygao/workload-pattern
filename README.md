@@ -2,7 +2,7 @@
 
 <div align="center">
 
-Workload patterns in distributed environment.
+Workload scheduling patterns in distributed environment.
 
 </div>
 
@@ -12,6 +12,10 @@ Languages： English | [中文](README.zh-cn.md)
 </div>
 
 ----
+
+## Overview
+
+The following metrics are often used as scheduling objectives for a workload scheduling strategy: load balancing, economic principles, time horizon minimization, and quality of service (QoS).
 
 ## Patterns
 
