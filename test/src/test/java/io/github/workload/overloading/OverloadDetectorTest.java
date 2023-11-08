@@ -28,7 +28,7 @@ class OverloadDetectorTest {
             detector.admit(WorkloadPriority.ofLowestPriority());
             detector.addWaitingNs(8000_000); // 8ms
         }
-        assertEquals(8, detector.avgQueuingTimeMs());
+        assertEquals(8, detector.window.avgQueuingTimeMs());
 
     }
 
