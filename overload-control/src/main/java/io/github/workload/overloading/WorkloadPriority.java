@@ -44,18 +44,6 @@ public class WorkloadPriority implements Serializable {
      * <p>如果只有{@code B}，粒度太粗，会造成这样的问题：</p>
      * <p>由于过载，某个{@code B}的请求要全部抛弃，这很快把负载降下来；随后它的请求不再抛弃，马上再次过载，如此反复.</p>
      * <p>因此，增加{@code U}，本质上是更细粒度的过载保护控制：partial discarding request of B.</p>
-     * <pre>
-     * │<────────────────────── high priority ──────────────────────────────
-     * │<───── B=0 ─────>│<──────────────── B=3 ────────────────>│<─  B=8 ─>
-     * +─────────────────+───────────────────────────────────────+──────────
-     * │ 0 │ 5 │ 8 │ 127 │ 1 │ 2 │ 7 │ 12 │ 50 │ 101 │ 102 │ 115 │ ......
-     * +─────────────────+───────────────────────────────────────+──────────
-     *   │   │                              │
-     *   U   U                              │
-     *                              AdmissionLevel cursor
-     * AdmissionLevel游标=(3, 50)，意味着，所有B>3的请求被抛弃，所有(B=3, U>50)的请求被抛弃
-     * 移动该游标，向左意味着负载加剧，向右意味着负载减轻
-     * </pre>
      */
     private final int U;
 
@@ -125,8 +113,6 @@ public class WorkloadPriority implements Serializable {
 
     /**
      * 优先级降维：二维变一维，值越小优先级越高.
-     *
-     * <p>例如，P0优先级比P1优先级高</p>
      */
     public int P() {
         // +--------+--------+
@@ -134,4 +120,5 @@ public class WorkloadPriority implements Serializable {
         // +--------+--------+
         return (B << 8) | U;
     }
+
 }
