@@ -8,16 +8,17 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
 class SystemClock {
-    private static final String ThreadName = "Workload System Clock";
-
     private final long precision;
     private final AtomicLong currentTimeMillis;
 
-    SystemClock(long precisionInMs) {
+    SystemClock(long precisionInMs, String threadName) {
         this.precision = precisionInMs <= 0 ? 0 : precisionInMs;
         currentTimeMillis = new AtomicLong(System.currentTimeMillis());
         if (this.precision > 0) {
-            scheduleClockUpdating();
+            if (threadName == null) {
+                threadName = "Workload Overloading Clock";
+            }
+            scheduleClockUpdating(threadName);
         }
     }
 
@@ -25,11 +26,11 @@ class SystemClock {
         return precision == 0 ? System.currentTimeMillis() : currentTimeMillis.get();
     }
 
-    private void scheduleClockUpdating() {
+    private void scheduleClockUpdating(final String threadName) {
         Updater updater = new Updater(currentTimeMillis);
         ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor(
                 r -> {
-                    Thread namedThread = new Thread(r, ThreadName);
+                    Thread namedThread = new Thread(r, threadName);
                     namedThread.setDaemon(true);
                     return namedThread;
                 });

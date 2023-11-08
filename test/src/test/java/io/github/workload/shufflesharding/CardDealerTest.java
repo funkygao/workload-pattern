@@ -178,7 +178,7 @@ class CardDealerTest {
             int[] hand2 = new int[4];
             dealer1.dealIntoHand(warehouseNo.hashCode(), hand2);
             hands.add(hand2);
-            if (true) {
+            if (false) {
                 System.out.printf("%7s: ", warehouseNo);
                 for (int h : hand2) {
                     System.out.printf("%d ", h);

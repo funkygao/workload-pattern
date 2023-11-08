@@ -32,14 +32,4 @@ class OverloadDetectorTest {
 
     }
 
-    @Test
-    void nanoTime() {
-        long lastNs = System.nanoTime();
-        for (int i = 0; i < 100; i++) {
-            long nowNs = System.nanoTime();
-            System.out.println((nowNs - lastNs) / 1000); // us
-            lastNs = nowNs;
-        }
-    }
-
 }

@@ -84,34 +84,47 @@ class WorkloadPriorityTest {
     }
 
     @Test
-    void ofRandom() {
-        WorkloadPriority priority = WorkloadPriority.ofRandom(2, "34_2323".hashCode());
+    void ofHourlyRandomU() {
+        WorkloadPriority priority = WorkloadPriority.ofHourlyRandomU(2, "34_2323".hashCode());
         assertEquals(2, priority.B());
         assertEquals(100, priority.U());
-        priority = WorkloadPriority.ofRandom(5, 0);
+        priority = WorkloadPriority.ofHourlyRandomU(5, 0);
         assertEquals(5, priority.B());
         assertEquals(0, priority.U());
-        priority = WorkloadPriority.ofRandom(9, -1);
+        priority = WorkloadPriority.ofHourlyRandomU(9, -1);
         assertEquals(9, priority.B());
         assertEquals(7, priority.U());
-        priority = WorkloadPriority.ofRandom(10, Integer.MIN_VALUE);
+        priority = WorkloadPriority.ofHourlyRandomU(10, Integer.MIN_VALUE);
         assertEquals(0, priority.U());
-        priority = WorkloadPriority.ofRandom(10, Integer.MAX_VALUE);
+        priority = WorkloadPriority.ofHourlyRandomU(10, Integer.MAX_VALUE);
         assertEquals(7, priority.U());
 
-        priority = WorkloadPriority.ofRandom(0, 1);
+        priority = WorkloadPriority.ofHourlyRandomU(0, 1);
         assertEquals(0, priority.B());
-        priority = WorkloadPriority.ofRandom("listBooks".hashCode(), 5);
+        priority = WorkloadPriority.ofHourlyRandomU("listBooks".hashCode(), 5);
         assertEquals(1, priority.B());
-        priority = WorkloadPriority.ofRandom("getBook".hashCode(), 5);
+        priority = WorkloadPriority.ofHourlyRandomU("getBook".hashCode(), 5);
         assertEquals(0, priority.B());
-        priority = WorkloadPriority.ofRandom(-10, 1);
+        priority = WorkloadPriority.ofHourlyRandomU(-10, 1);
         assertEquals(125, priority.B());
-        priority = WorkloadPriority.ofRandom(Integer.MAX_VALUE, 1);
+        priority = WorkloadPriority.ofHourlyRandomU(Integer.MAX_VALUE, 1);
         assertEquals(7, priority.B());
-        priority = WorkloadPriority.ofRandom(Integer.MIN_VALUE, 1);
+        priority = WorkloadPriority.ofHourlyRandomU(Integer.MIN_VALUE, 1);
         assertEquals(0, priority.B());
         assertEquals(1, priority.U());
+    }
+
+    @Test
+    void randomUnchangedWithinHour() {
+        String uIdentifier = "34_2323";
+        WorkloadPriority priority = WorkloadPriority.ofHourlyRandomU(2, uIdentifier.hashCode());
+        for (int i = 0; i < 1000; i++) {
+            WorkloadPriority priority1 = WorkloadPriority.ofHourlyRandomU(2, uIdentifier.hashCode());
+            // 这些肯定在1h内执行完毕，1h内U不变
+            assertEquals(priority.U(), priority1.U());
+            assertEquals(priority.B(), priority1.B());
+            assertEquals(2, priority1.B());
+        }
     }
 
     @Test
