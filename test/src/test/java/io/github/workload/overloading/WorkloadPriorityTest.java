@@ -1,5 +1,6 @@
 package io.github.workload.overloading;
 
+import com.google.gson.Gson;
 import org.junit.jupiter.api.Test;
 
 import java.util.Random;
@@ -108,6 +109,14 @@ class WorkloadPriorityTest {
         priority = WorkloadPriority.ofRandom(Integer.MIN_VALUE, 1);
         assertEquals(0, priority.B());
         assertEquals(1, priority.U());
+    }
+
+    @Test
+    void toJson() {
+        WorkloadPriority priority = WorkloadPriority.ofExempt();
+        Gson gson = new Gson();
+        String json = gson.toJson(priority);
+        assertEquals("{\"B\":0,\"U\":0}", json);
     }
 
 }
