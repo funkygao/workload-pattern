@@ -6,45 +6,49 @@ import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.TreeMap;
+import java.util.*;
 
 class CardDealerVisualization {
-    private int nodes = 10;
-    private int handSize = 2;
-    private int dbShards = 4;
-    private int users = 20;
-
+    private static int nodes = 10;
+    private static int handSize = 2;
+    private static int dbShards = 4;
+    private static int users = 20;
     private StringBuilder d2 = new StringBuilder();
-    private Map<Integer, List<Integer>> node2user = new TreeMap<>();
-
+    private Map<Integer, List<Integer>> user2nodes = new TreeMap<>();
+    private Map<Integer, Set<Integer>> node2db = new HashMap<>();
+    private static Map<Integer, Integer> user2db = new HashMap<>();
+    
     @Test
     void visualizeCluster() throws IOException {
         CardDealer dealer = CardDealer.builder().deckSize(nodes).handSize(handSize).build();
         int[] hands = new int[handSize];
         for (int uid = 0; uid < users; uid++) {
             dealer.dealIntoHand(String.valueOf(uid), hands);
+            if (!user2nodes.containsKey(uid)) {
+                user2nodes.put(uid, new ArrayList<>());
+            }
             for (int node : hands) {
-                if (!node2user.containsKey(node)) {
-                    node2user.put(node, new ArrayList<>());
+                // 该用户被该节点服务
+                user2nodes.get(uid).add(node);
+                if (!node2db.containsKey(node)) {
+                    node2db.put(node, new HashSet<>());
                 }
-                node2user.get(node).add(uid);
+                // 该节点连接该数据库分片
+                node2db.get(node).add(user2db.get(uid));
             }
         }
-        for (int node : node2user.keySet()) {
-            List<Integer> uidList = node2user.get(node);
-            for (int uid : uidList) {
-                addLine(String.format("Node%d -> U%d {", node, uid));
-                addLine(String.format("  style.stroke: %s", colors[node % colors.length]));
-                addLine(" style.stroke-width: 5");
-                addLine("}");
+
+        for (int uid : user2nodes.keySet()) {
+            for (int node : user2nodes.get(uid)) {
+                addLine(String.format("U%d -> Node%d", uid, node));
             }
         }
-        for (int uid = 0; uid < users; uid++) {
-            addLine(String.format("U%d -> DB%d", uid, uid % dbShards));
+        for (int node : node2db.keySet()) {
+            for (int db : node2db.get(node)) {
+                addLine(String.format("Node%d -> DB%d", node, db));
+            }
         }
+
         dumpToFile("../doc/shufflesharding.d2", d2.toString());
     }
 
@@ -55,41 +59,11 @@ class CardDealerVisualization {
         }
     }
 
-
-    private static String[] colors = new String[]{
-            "aqua",
-            "aquamarine",
-            "black",
-            "blue",
-            "blueviolet", "brown", "burlywood", "cadetblue", "chartreuse",
-            "chocolate", "coral", "cornflowerblue", "cornsilk", "crimson",
-            "cyan", "darkblue", "darkcyan", "darkgoldenrod", "darkgray",
-            "darkgreen", "darkgrey", "darkkhaki", "darkmagenta", "darkolivegreen",
-            "darkorange", "darkorchid", "darkred", "darksalmon", "darkseagreen",
-            "darkslateblue", "darkslategray", "darkslategrey", "darkturquoise", "darkviolet",
-            "deeppink", "deepskyblue", "dimgray", "dimgrey", "dodgerblue",
-            "firebrick", "floralwhite", "forestgreen", "fuchsia", "gainsboro",
-            "ghostwhite", "gold", "goldenrod", "gray", "green",
-            "greenyellow", "grey", "honeydew", "hotpink", "indianred",
-            "indigo", "ivory", "khaki", "lavender", "lavenderblush",
-            "lawngreen", "lemonchiffon", "lightblue", "lightcoral", "lightcyan",
-            "lightgoldenrodyellow", "lightgray", "lightgreen", "lightgrey", "lightpink",
-            "lightsalmon", "lightseagreen", "lightskyblue", "lightslategray", "lightslategrey",
-            "lightsteelblue", "lightyellow", "lime", "limegreen", "linen",
-            "magenta", "maroon", "mediumaquamarine", "mediumblue", "mediumorchid",
-            "mediumpurple", "mediumseagreen", "mediumslateblue", "mediumspringgreen", "mediumturquoise",
-            "mediumvioletred", "midnightblue", "mintcream", "mistyrose", "moccasin",
-            "navajowhite", "navy", "oldlace", "olive", "olivedrab",
-            "orange", "orangered", "orchid", "palegoldenrod", "palegreen",
-            "paleturquoise", "palevioletred", "papayawhip", "peachpuff", "peru",
-            "pink", "plum", "powderblue", "purple", "rebeccapurple",
-            "red", "rosybrown", "royalblue", "saddlebrown", "salmon",
-            "sandybrown", "seagreen", "seashell", "sienna", "silver",
-            "skyblue", "slateblue", "slategray", "slategrey", "snow",
-            "springgreen", "steelblue", "tan", "teal", "thistle",
-            "tomato", "turquoise", "violet", "wheat", "white",
-            "whitesmoke", "yellow", "yellowgreen"
-    };
+    static {
+        for (int uid = 0; uid < users; uid++) {
+            user2db.put(uid, uid % dbShards);
+        }
+    }
 
     private void addLine(String content) {
         d2.append(content).append(System.getProperty("line.separator"));
