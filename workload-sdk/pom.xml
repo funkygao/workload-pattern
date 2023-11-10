@@ -11,6 +11,10 @@
     <packaging>jar</packaging>
     <name>Workload :: SDK</name>
 
+    <properties>
+        <maven.javadoc.skip>true</maven.javadoc.skip>
+    </properties>
+
     <dependencies>
         <dependency>
             <groupId>io.github.workload</groupId>
@@ -20,6 +24,11 @@
         <dependency>
             <groupId>io.github.workload</groupId>
             <artifactId>overload-control</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.github.workload</groupId>
+            <artifactId>tail-tolerant</artifactId>
             <version>${project.version}</version>
         </dependency>
     </dependencies>

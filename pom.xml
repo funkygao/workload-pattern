@@ -11,6 +11,7 @@
     <modules>
         <module>shuffle-sharding</module>
         <module>overload-control</module>
+        <module>tail-tolerant</module>
         <module>workload-sdk</module>
     </modules>
 
