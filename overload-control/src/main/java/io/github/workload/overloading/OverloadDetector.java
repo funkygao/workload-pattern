@@ -28,7 +28,7 @@ class OverloadDetector {
     private AtomicBoolean slideLock = new AtomicBoolean(false);
 
     /**
-     * 当前准入等级.
+     * 当前准入等级, the breakwater.
      */
     private AdmissionLevel admissionLevel = AdmissionLevel.ofAdmitAll();
 

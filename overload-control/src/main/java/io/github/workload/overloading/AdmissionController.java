@@ -30,6 +30,7 @@ import java.util.concurrent.RejectedExecutionHandler;
  *
  * @see <a href="https://www.cs.columbia.edu/~ruigu/papers/socc18-final100.pdf">微信的过载保护</a>
  * @see <a href="https://www.usenix.org/legacy/publications/library/proceedings/usits03/tech/full_papers/welsh/welsh_html/usits.html">Adaptive Overload Control for Busy Internet Servers</a>
+ * @see <a href="http://www.abelay.me/data/breakwater_osdi20.pdf">Overload Control for μs-Scale RPCs with Breakwater</a>
  */
 @Slf4j
 public class AdmissionController {

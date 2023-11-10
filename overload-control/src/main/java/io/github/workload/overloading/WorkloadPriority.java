@@ -17,6 +17,9 @@ import java.util.concurrent.TimeUnit;
  * <p>{@link WorkloadPriority}代表的用户视角的请求优先级，而不是被分解的子请求优先级，子请求优先级取决于entry service的.</p>
  * <p>例如：用户下单，该请求会产生扣减库存的子请求，库存系统处理时拿到的{@link WorkloadPriority}是{@code 用户下单}.</p>
  * <p>minimize the waste of computational resources spent on the partial processing of service tasks</p>
+ * <ul>How to prioritize workload?
+ * <li>prefer scheduling requests for which a user is waiting over non-interactive requests</li>
+ * </ul>
  */
 public class WorkloadPriority implements Serializable {
     private static final long serialVersionUID = 6373611532663483048L;
