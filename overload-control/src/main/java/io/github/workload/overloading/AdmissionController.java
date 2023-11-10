@@ -7,7 +7,7 @@ import lombok.extern.slf4j.Slf4j;
 import java.util.concurrent.RejectedExecutionHandler;
 
 /**
- * 面向QoS的自适应式工作负载准入管制.
+ * 面向QoS的自适应式工作负载准入管制，用于RPC/异步任务排队/MQ消费等场景.
  *
  * <pre>
  *                         AdmissionController
@@ -88,7 +88,7 @@ public class AdmissionController {
     }
 
     /**
-     * 冒烟了，直接进入过载状态：显式过载检测.
+     * 应用已经冒烟了，直接进入过载状态：显式过载检测.
      *
      * <p>例如，线程池满，CPU使用率过高等</p>
      * <p>考虑到JVM运行在容器等复杂环境，CPU是否过载由应用自行判断</p>
