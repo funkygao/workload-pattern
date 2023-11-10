@@ -9,6 +9,9 @@ clean:
 install:clean test
 	@mvn install
 
+deploy:clean
+	@mvn clean deploy verify
+
 test:
 	@mvn test -Ptest
 
