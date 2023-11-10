@@ -7,7 +7,7 @@ import lombok.extern.slf4j.Slf4j;
 import java.util.concurrent.RejectedExecutionHandler;
 
 /**
- * 面向QoS的自适应式工作负载准入管制，用于RPC/异步任务排队/MQ消费等场景.
+ * 面向QoS的自适应式工作负载准入管制，阀门，可用于RPC/异步任务排队/MQ消费等场景.
  *
  * <pre>
  *                         AdmissionController

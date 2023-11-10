@@ -13,7 +13,6 @@ import java.util.concurrent.atomic.AtomicInteger;
  * <p>复合型窗口设计有助于及时进行过载检测和准入控制调整.</p>
  * <p>avg waiting time of requests in the pending queue (or queuing time for short) to to profile the load status of a server</p>
  * <p>{@code queuing time = T(request processing started) - T(request arrival)}</p>
- * <p>它相当于amazon管理中的output metrics，而如下input metrics最终都会反映到这个结果：</p>
  * <p>吞吐率/latency/CPU Utilization/packet rate/number of pending requests/request processing time</p>
  * <p>A -> B，B处理非常慢，queuing time of A能够更准确地反映A的load status，而response time无法反映A的load status.</p>
  * <p>为什么不用CPU使用率度量load status？High load does not necessarily infer overload.</p>
