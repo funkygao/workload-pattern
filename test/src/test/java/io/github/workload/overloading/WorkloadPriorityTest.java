@@ -37,6 +37,7 @@ class WorkloadPriorityTest {
         assertTrue(p1 instanceof Serializable);
         assertEquals(1283, p1.P());
         assertEquals(2048 + 10, p2.P());
+        assertEquals(p1.delayTolerance(), p1.P());
     }
 
     @Test
@@ -71,6 +72,8 @@ class WorkloadPriorityTest {
         assertEquals(127, workloadPriority.U());
         assertEquals(127, workloadPriority.U());
         assertEquals(32639, workloadPriority.P());
+        // 如果直接换算成1秒，则最大容忍延迟9小时：9.07
+        assertEquals(9, workloadPriority.delayTolerance() / 3600);
     }
 
     @Test

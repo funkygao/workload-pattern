@@ -148,6 +148,15 @@ public class WorkloadPriority implements Serializable {
         return (B << 8) | U;
     }
 
+    /**
+     * How long this workload can be delayed for execution.
+     *
+     * <p>如果该值被直接换算成1秒，则最大容忍延迟9.07小时，最小0秒</p>
+     */
+    public int delayTolerance() {
+        return P();
+    }
+
     @AllArgsConstructor
     private static class UState {
         final int actual;
