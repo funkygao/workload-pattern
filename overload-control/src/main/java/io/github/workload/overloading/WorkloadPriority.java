@@ -31,7 +31,6 @@ public class WorkloadPriority implements Serializable {
 
     // {u: lastMs}
     private static Map<Integer, UState> uMap = new ConcurrentHashMap<>();
-    private static SystemClock clock = new SystemClock(1000, "WorkloadPriority Clock");
     private static Random random = new Random();
 
     /**
@@ -71,8 +70,8 @@ public class WorkloadPriority implements Serializable {
     /**
      * 创建指定二级优先级值的工作负荷优先级.
      *
-     * @param b
-     * @param u
+     * @param b user-specified 7-bit integer, lower number signifies a higher priority
+     * @param u user-specified 7-bit integer, lower number signifies a higher priority
      * @return
      * @throws IllegalArgumentException
      */
@@ -84,17 +83,15 @@ public class WorkloadPriority implements Serializable {
         return new WorkloadPriority(b, u);
     }
 
-    /**
-     * 基于{@link #U}每小时变化地随机生成优先级，但{@link #B}不变.
-     */
-    public static WorkloadPriority ofHourlyRandomU(int b, int u) {
+    public static WorkloadPriority ofTimeRandomU(int b, int u, long clockPrecisionMs) {
+        SystemClock clock = SystemClock.getInstance(clockPrecisionMs);
         u = (u & Integer.MAX_VALUE) % MAX_VALUE;
         long nowMs = clock.currentTimeMillis();
         UState us = uMap.get(u);
         if (us == null) {
             us = new UState(u, nowMs); // 首次就使用用户传入的u，而不做随机
             uMap.putIfAbsent(u, us);
-        } else if (nowMs - us.createdAtMs > MsInHour) {
+        } else if (nowMs - us.createdAtMs > clockPrecisionMs) {
             // 1h期限已到，更改其值
             us = new UState(random.nextInt(MAX_VALUE), nowMs);
         } else {
@@ -102,6 +99,13 @@ public class WorkloadPriority implements Serializable {
         }
 
         return of((b & Integer.MAX_VALUE) % MAX_VALUE, us.actual);
+    }
+
+    /**
+     * 基于{@link #U}每小时变化地随机生成优先级，但{@link #B}不变.
+     */
+    public static WorkloadPriority ofHourlyRandomU(int b, int u) {
+        return ofTimeRandomU(b, u, MsInHour);
     }
 
     /**
@@ -140,6 +144,8 @@ public class WorkloadPriority implements Serializable {
 
     /**
      * 优先级降维：二维变一维，值越小优先级越高.
+     *
+     * <p>a 14-bit integer</p>
      */
     public int P() {
         // +--------+--------+
