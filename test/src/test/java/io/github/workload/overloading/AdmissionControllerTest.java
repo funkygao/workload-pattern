@@ -39,7 +39,7 @@ class AdmissionControllerTest {
     void markOverloaded() throws InterruptedException {
         AdmissionController controller = new AdmissionController();
         OverloadDetector detector = controller.overloadDetector;
-        controller.onFire();
+        controller.overloaded();
         assertTrue(detector.isOverloaded(System.nanoTime()));
         Thread.sleep(1200); // 经过一个时间窗口
         assertFalse(detector.isOverloaded(System.nanoTime()));

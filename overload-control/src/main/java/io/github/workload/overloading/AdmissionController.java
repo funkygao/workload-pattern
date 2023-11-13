@@ -15,7 +15,7 @@ import java.util.concurrent.RejectedExecutionHandler;
  * WorkloadPriority ───> │ AdmissionLevel        │ ─────> deny/accept
  *                       +───────────────────────+
  *                       │ +admit(P)             │
- *                       │ +onFire()             │
+ *                       │ +overloaded()         │
  *                       │ +recordQueuedNs(ns)   │
  *                       +───────────────────────+
  *                        window: (time, counter)
@@ -24,7 +24,7 @@ import java.util.concurrent.RejectedExecutionHandler;
  *
  * <p>Note：该过载保护仅适用于brief bursts，如果系统长期过载，应该扩容或改进设计.</p>
  * <ul>过载检测有2种：
- * <li>显式，例如线程池满，MQ积压超过阈值等：{@link AdmissionController#onFire()}</li>
+ * <li>显式，例如线程池满，MQ积压超过阈值等：{@link AdmissionController#overloaded()}</li>
  * <li>隐式，更准确，但需要系统可以检测工作负载的排队时长：{@link AdmissionController#recordQueuedNs(long)}</li>
  * </ul>
  *
@@ -94,14 +94,14 @@ public class AdmissionController {
      * <p>例如，线程池满，CPU使用率过高等</p>
      * <p>考虑到JVM运行在容器等复杂环境，CPU是否过载由应用自行判断</p>
      */
-    public void onFire() {
+    public void overloaded() {
         overloadDetector.overloadedAtNs = System.nanoTime();
     }
 
     public RejectedExecutionHandler rejectedExecutionHandler() {
         return (runnable, executor) -> {
             // 显式过载
-            onFire();
+            overloaded();
         };
     }
 
