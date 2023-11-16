@@ -43,6 +43,7 @@ public class CardDealer {
      * 手里要抓几张牌.
      *
      * <p>具体应用该算法时，该值通常代表为某租户分配多少个节点，即{@code NodeSubset.size}.</p>
+     * <p>在{@code load balance}场景，{@link #handSize}表示对某类请求分配多少台服务器实例处理。如果为1，那么在部署过程中，该类请求无法处理；为2，只允许step=1的incremental deployment</p>
      */
     private final int handSize;
 
