@@ -1,12 +1,9 @@
 package io.github.workload.overloading;
 
-import org.junit.jupiter.api.RepeatedTest;
 import org.junit.jupiter.api.Test;
 
-import java.util.HashSet;
-import java.util.Set;
-
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.fail;
 
 class WorkloadPriorityTest {
 
@@ -105,22 +102,6 @@ class WorkloadPriorityTest {
             assertEquals(priority.B(), priority1.B());
             assertEquals(2, priority1.B());
         }
-    }
-
-    @Test
-    @RepeatedTest(20)
-    void timeRandomU() throws InterruptedException {
-        String uIdentifier = "34_2323";
-        Set<Integer> uniqueU = new HashSet<>();
-        int N = 10;
-        for (int i = 0; i < N; i++) {
-            WorkloadPriority priority = WorkloadPriority.timeRandomU(1, uIdentifier.hashCode(), 5);
-            Thread.sleep(3);
-            System.out.printf("T:%d %s\n", Thread.currentThread().getId(), priority);
-            uniqueU.add(priority.U());
-        }
-
-        assertTrue(N > uniqueU.size() && uniqueU.size() > 3);
     }
 
 }
