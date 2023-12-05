@@ -1,17 +1,17 @@
 package io.github.workload.tailtolerant;
 
 /**
- * 对冲请求.
+ * 对冲请求，用来消除长尾延迟.
  *
  * <p>In short: the client first sends one request, but then sends an additional request after a timeout if the previous hasn't returned an answer in the expected time.</p>
- * <p>The client cancels remaining requests once the first result is received.</p>
- * <p>A simple way to curb latency variability: within readonly request short-term adaptation</p>
  */
-public class HedgedRequest {
+class HedgedRequest {
+
     /**
+     * 正常请求在多少时间内未响应，才发起对冲请求.
      *
-     * <p>until the first request has been outstanding for more than the TP95 expected latency for this class of requests</p>
-     * <p>这只会额外增加整体的5%负荷，却有效提升了长尾响应性</p>
+     * <p>如果以TP95为准，这只会额外增加后端5%负荷，却有效提升了长尾响应性</p>
+     * <p>如果以TP50为准，会增加后端50%的压力</p>
      */
-    private int defer;
+    private int deferMs;
 }
