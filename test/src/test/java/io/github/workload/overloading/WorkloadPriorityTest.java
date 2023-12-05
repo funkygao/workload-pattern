@@ -2,8 +2,7 @@ package io.github.workload.overloading;
 
 import org.junit.jupiter.api.Test;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.jupiter.api.Assertions.*;
 
 class WorkloadPriorityTest {
 
@@ -32,6 +31,9 @@ class WorkloadPriorityTest {
         WorkloadPriority p2 = WorkloadPriority.of(8, 10);
         assertEquals(1283, p1.P());
         assertEquals(2048 + 10, p2.P());
+        assertFalse(p1.equals(p2));
+        assertTrue(p1.equals(WorkloadPriority.of(5, 3)));
+        assertEquals(p1, WorkloadPriority.of(5, 3));
     }
 
     @Test

@@ -74,7 +74,7 @@ public class WorkloadPriority {
     /**
      * 基于{@link #U}每半小时随机生成优先级，但{@link #B}不变.
      *
-     * @param b {@link #B()}
+     * @param b           {@link #B()}
      * @param uIdentifier u值特征，例如 {@code "foo".hashCode()}
      * @return 一个u值随机的优先级
      */
@@ -144,6 +144,20 @@ public class WorkloadPriority {
         }
 
         return of((b & Integer.MAX_VALUE) % MAX_VALUE, us.U);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (o == this) {
+            return true;
+        }
+
+        if (!(o instanceof WorkloadPriority)) {
+            return false;
+        }
+
+        WorkloadPriority that = (WorkloadPriority) o;
+        return P() == that.P();
     }
 
     @AllArgsConstructor
