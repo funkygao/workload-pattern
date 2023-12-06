@@ -1,5 +1,6 @@
 package io.github.workload.overloading;
 
+import io.github.workload.SystemClock;
 import io.github.workload.overloading.annotations.Immutable;
 import io.github.workload.overloading.annotations.ThreadSafe;
 import lombok.AllArgsConstructor;
@@ -15,13 +16,29 @@ import java.util.concurrent.TimeUnit;
  * 工作负荷优先级，面向QoS公平过载保护的一等公民.
  * <p>
  * <p>It can be applied on RPC Request, MQ Message, AsyncTask, anything you name it that is runnable.</p>
+ * <pre>
+ * ⠀⠀⠀⠀⠀⠀⠀⡄⠀⠀⠀⠀⠀⠀⠀⠀⠀⢠⣿⣿⣶⣶⣄⠀⠀⠀⠀⠀⠀⠀
+ * ⠀⠀⠀⠀⠀⠀⠀⣿⡄⠀⠀⠀⠀⠀⠀⠀⠀⢸⣿⣿⣿⣿⣿⣷⡄⣶⣇⠀⠀⠀
+ * ⠀⠀⠀⠀⠀⠀⠀⠿⠧⠀⠀⠀⠀⠀⢠⣷⡄⢹⣿⣿⣿⣿⣿⣿⣷⣿⣿⠀⠀⠀
+ * ⠀⠀⠀⠀⢶⣶⣶⣶⣶⡖⠀⠀⠀⠀⣼⣿⣿⣸⣿⣿⣿⣿⣿⣿⣿⣿⣿⠀⠀⠀user perceived/production block
+ * ⠀⠤⠤⠤⠤⠤⠤⠤⠤⠤⠤⠤⠤⠤⠤⠤⠤⠤⠤⠤⠤⠤⠤⠤⠤⠤⠤⠤⠤⠤⠤⠤⠤⠤⠤⠤⠤⠤⠤⠤⠤⠤⠤⠤⠤⠤⠤⠤⠤⠤⠤⠤⠤⠤⠤⠤
+ * ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣰⣶⣶⣶⣶⣶⣶⣶⣶⡄⢰⣶⣶⣶⡆⠀⠀defer execution acceptable
+ * ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣿⣿⣿⣿⡌⣿⣿⣿⣿⡇⣿⣿⣿⣿⠁⠀⠀
+ * ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣸⣿⣿⣿⣇⣿⣿⣿⣿⢸⣿⣿⣿⡿⠀⠀⠀
+ * ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣰⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⡇⠀⠀⠀
+ * ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢸⣿⣿⣿⠘⣿⣿⣿⣿⣿⣿⣿⣿⢹⣿⠃⠀⠀⠀
+ * ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠸⣿⣿⡟⠀⣿⣿⣿⣿⣿⣿⣿⣿⠘⠁⠀⠀⠀⠀
+ * ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠙⠉⠀⠀⢿⣿⣿⣿⣿⢿⣿⣿⠀⠀⠀⠀⠀⠀
+ * ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠈⠻⣿⣿⡏⠘⠿⠛⠀⠀⠀⠀⠀⠀
+ * ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠉⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+ * </pre>
  */
 @ThreadSafe
 @Immutable
 @Slf4j
 @ToString
 public class WorkloadPriority {
-    private static final long HalfHourMs = TimeUnit.MILLISECONDS.convert(30, TimeUnit.MINUTES);
+    private static final long HALF_HOUR_MS = TimeUnit.MILLISECONDS.convert(30, TimeUnit.MINUTES);
 
     private static final int MAX_VALUE = (1 << 7) - 1; // 127
     // (B, U)的最低优先级值：值越大优先级越低
@@ -79,7 +96,7 @@ public class WorkloadPriority {
      * @return 一个u值随机的优先级
      */
     public static WorkloadPriority ofStableRandomU(int b, int uIdentifier) {
-        return timeRandomU(b, uIdentifier, HalfHourMs);
+        return timeRandomU(b, uIdentifier, HALF_HOUR_MS);
     }
 
     static WorkloadPriority ofLowestPriority() {
@@ -120,7 +137,7 @@ public class WorkloadPriority {
 
     static WorkloadPriority timeRandomU(int b, int uIdentifier, long timeWindowMs) {
         int u = (uIdentifier & Integer.MAX_VALUE) % MAX_VALUE;
-        long nowMs = SystemClock.getInstance(timeWindowMs).currentTimeMillis();
+        long nowMs = SystemClock.ofPrecisionMs(timeWindowMs).currentTimeMillis();
         UState us = uStates.get(u);
         if (us == null) {
             us = new UState(u, nowMs); // 首次则不做随机 TODO 如何使用者不是hashCode怎么办?
