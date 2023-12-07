@@ -15,7 +15,7 @@ import java.util.concurrent.TimeUnit;
  * <p>Borrowed from alibaba/Sentinel SystemStatusListener.java</p>
  * <p>解决了JDK10-下docker容器环境问题.</p>
  * <ul>Issues:
- * <li>JDK8u131之前版本，docker下获取的CPU核数不正确：返回的是宿主机的核数</li>
+ * <li>JDK8u131之前版本，docker下获取的CPU核数不正确：返回的是宿主机的核数；目前使用的版本都大于此版本</li>
  * <li>如果docker中运行了两个java程序，那么每个进程只能统计自己占用的cpu而不知道整个系统处于何种状态</li>
  * <li>最终算出的cpu利用率取了宿主机cpu利用率和当前进程算出的cpu利用率的较大值，在docker的cpu被限制或者被绑定时，即cpu资源被隔离时，这两个值可能会相差很大，这时也并不太需要关注宿主机的cpu利用率</li>
  * </ul>
