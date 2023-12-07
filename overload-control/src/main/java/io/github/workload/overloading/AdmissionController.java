@@ -9,6 +9,7 @@ import lombok.NonNull;
  * <p>Providing provision leverage effect，按照{@link WorkloadPriority}提高资源分时复用的利用率，降低整体资源成本</p>
  */
 public interface AdmissionController {
+    double CPU_USAGE_UPPER_BOUND = 0.75; // 75%
 
     /**
      * 获取指定类型的准入控制器实例.
@@ -31,13 +32,15 @@ public interface AdmissionController {
 
     /**
      * 直接进入过载状态：显式过载反馈.
+     *
+     * TODO rename
      */
     void overloaded();
 
     /**
      * 汇报工作负荷的排队时长：隐式过载检测.
      *
-     * @param queuedNs
+     * TODO rename
      */
     void recordQueuedNs(long queuedNs);
 }

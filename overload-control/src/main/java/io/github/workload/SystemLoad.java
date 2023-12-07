@@ -12,6 +12,7 @@ import java.util.concurrent.TimeUnit;
 /**
  * 系统负载探测器.
  *
+ * <p>In platforms with garbage collection, memory pressure naturally translates into increased CPU consumption.</p>
  * <p>Borrowed from alibaba/Sentinel SystemStatusListener.java</p>
  * <p>解决了JDK10-下docker容器环境问题.</p>
  * <ul>Issues:
@@ -79,7 +80,9 @@ public class SystemLoad {
         processUpTimeMs = newProcessUpTime;
         currentCpuUsage = Math.max(processCpuUsage, systemCpuUsage);
 
-        log.debug("cpuCores:{}, getSystemLoadAverage:{}, getSystemCpuLoad:{}, getProcessCpuTime:{}ms, processUpTime:{}ms",
+        log.debug("cpuUsage:{}, loadAvg:{}, cpuCores:{}, getSystemLoadAverage:{}, getSystemCpuLoad:{}, getProcessCpuTime:{}ms, processUpTime:{}ms",
+                cpuUsage(),
+                loadAverage(),
                 cpuCores,
                 currentLoadAverage,
                 systemCpuUsage,

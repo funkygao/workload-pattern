@@ -1,4 +1,4 @@
-package io.github.workload.overloading.annotations;
+package io.github.workload.annotations;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.Target;
@@ -8,5 +8,5 @@ import static java.lang.annotation.RetentionPolicy.SOURCE;
 
 @Target(TYPE)
 @Retention(SOURCE)
-public @interface Immutable {
+public @interface ThreadSafe {
 }

@@ -1,6 +1,11 @@
 /**
  * 基于QoS公平的自适应过载保护算法，应对brief burst/skewed traffic.
  *
+ * <ul>Where does the burst traffic come from?
+ * <li>Over time</li>
+ * <li>Over space</li>
+ * </ul>
+ *
  * @see <a href="https://aws.amazon.com/cn/builders-library/using-load-shedding-to-avoid-overload/">Using load shedding to avoid overload</a>
  * @see <a href="https://www.cs.columbia.edu/~ruigu/papers/socc18-final100.pdf">微信的过载保护</a>
  * @see <a href="https://www.usenix.org/legacy/publications/library/proceedings/usits03/tech/full_papers/welsh/welsh_html/usits.html">Adaptive Overload Control for Busy Internet Servers</a>

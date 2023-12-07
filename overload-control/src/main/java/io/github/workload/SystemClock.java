@@ -1,6 +1,6 @@
 package io.github.workload;
 
-import io.github.workload.overloading.annotations.ThreadSafe;
+import io.github.workload.annotations.ThreadSafe;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.concurrent.*;

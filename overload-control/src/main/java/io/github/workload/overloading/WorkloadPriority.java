@@ -1,8 +1,8 @@
 package io.github.workload.overloading;
 
 import io.github.workload.SystemClock;
-import io.github.workload.overloading.annotations.Immutable;
-import io.github.workload.overloading.annotations.ThreadSafe;
+import io.github.workload.annotations.Immutable;
+import io.github.workload.annotations.ThreadSafe;
 import lombok.AllArgsConstructor;
 import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
@@ -13,9 +13,10 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
 /**
- * 工作负荷优先级，面向QoS公平过载保护的一等公民.
+ * 工作负荷优先级.
  * <p>
  * <p>It can be applied on RPC Request, MQ Message, AsyncTask, anything you name it that is runnable.</p>
+ * <p>First-class notion of our RPC system and propagated automatically.</p>
  * <pre>
  * ⠀⠀⠀⠀⠀⠀⠀⡄⠀⠀⠀⠀⠀⠀⠀⠀⠀⢠⣿⣿⣶⣶⣄⠀⠀⠀⠀⠀⠀⠀
  * ⠀⠀⠀⠀⠀⠀⠀⣿⡄⠀⠀⠀⠀⠀⠀⠀⠀⢸⣿⣿⣿⣿⣿⣷⡄⣶⣇⠀⠀⠀
@@ -23,7 +24,7 @@ import java.util.concurrent.TimeUnit;
  * ⠀⠀⠀⠀⢶⣶⣶⣶⣶⡖⠀⠀⠀⠀⣼⣿⣿⣸⣿⣿⣿⣿⣿⣿⣿⣿⣿⠀⠀⠀user perceived/production block
  * ⠀⠤⠤⠤⠤⠤⠤⠤⠤⠤⠤⠤⠤⠤⠤⠤⠤⠤⠤⠤⠤⠤⠤⠤⠤⠤⠤⠤⠤⠤⠤⠤⠤⠤⠤⠤⠤⠤⠤⠤⠤⠤⠤⠤⠤⠤⠤⠤⠤⠤⠤⠤⠤⠤⠤⠤
  * ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣰⣶⣶⣶⣶⣶⣶⣶⣶⡄⢰⣶⣶⣶⡆⠀⠀defer execution acceptable
- * ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣿⣿⣿⣿⡌⣿⣿⣿⣿⡇⣿⣿⣿⣿⠁⠀⠀
+ * ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣿⣿⣿⣿⡌⣿⣿⣿⣿⡇⣿⣿⣿⣿⠁⠀⠀leverage effect
  * ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣸⣿⣿⣿⣇⣿⣿⣿⣿⢸⣿⣿⣿⡿⠀⠀⠀
  * ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣰⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⡇⠀⠀⠀
  * ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢸⣿⣿⣿⠘⣿⣿⣿⣿⣿⣿⣿⣿⢹⣿⠃⠀⠀⠀
