@@ -23,3 +23,4 @@ The following metrics are often used as scheduling objectives for a workload sch
 
 ### 过载调度保护
 
+### 长尾响应延迟
