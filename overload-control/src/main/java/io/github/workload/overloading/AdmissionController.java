@@ -16,7 +16,7 @@ public interface AdmissionController {
      *
      * <p>对于相同的类型，返回的是同一份实例：以类型为单位的单例.</p>
      */
-    static AdmissionController getInstance(String kind) {
+    static AdmissionController getInstance(@NonNull String kind) {
         return FairSafeAdmissionController.getInstance(kind);
     }
 

@@ -11,7 +11,7 @@ import lombok.extern.slf4j.Slf4j;
  *             ┌──┐
  *     ∧       │  │ reject
  *     │       │──┘
- *  watermark ─│──┐
+ * breakwater ─│──┐
  *     │       │  │
  *     ∨       │  │
  *             │  │ admit
@@ -37,14 +37,14 @@ import lombok.extern.slf4j.Slf4j;
  */
 @Slf4j
 class AdmissionLevel {
-    private WorkloadPriority watermark;
+    // 防波堤
+    private WorkloadPriority breakwater;
 
     static AdmissionLevel ofAdmitAll() {
-        return new AdmissionLevel(WorkloadPriority.ofLowestPriority());
-    }
-
-    private AdmissionLevel(WorkloadPriority watermark) {
-        this.watermark = watermark;
+        AdmissionLevel level = new AdmissionLevel();
+        // 只防住最低优先级，意味着全放行
+        level.breakwater = WorkloadPriority.ofLowestPriority();
+        return level;
     }
 
     void changeTo(WorkloadPriority priority) {
@@ -53,16 +53,16 @@ class AdmissionLevel {
             return;
         }
 
-        log.warn("changed to admit {}: {} -> {}", delta > 0 ? "more" : "less", this.watermark, priority);
-        this.watermark = priority;
+        log.warn("changed to admit {}: {} -> {}", delta > 0 ? "more" : "less", this.breakwater, priority);
+        this.breakwater = priority;
     }
 
     int P() {
-        return watermark.P();
+        return breakwater.P();
     }
 
     boolean admit(WorkloadPriority workloadPriority) {
-        return workloadPriority.P() <= this.watermark.P();
+        return workloadPriority.P() <= this.breakwater.P();
     }
 
 }

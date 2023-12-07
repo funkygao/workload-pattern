@@ -15,5 +15,12 @@ class AdmissionControllerTest {
         assertTrue(controller instanceof FairSafeAdmissionController);
         assertSame(controller, AdmissionController.getInstance("foo"));
         assertNotSame(controller, AdmissionController.getInstance("bar"));
+
+        try {
+            AdmissionController.getInstance(null);
+            fail();
+        } catch (NullPointerException ok) {
+
+        }
     }
 }

@@ -12,6 +12,15 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 @Slf4j
 abstract class WorkloadShedder {
+
+    /**
+     * 当前准入等级.
+     *
+     * <p>每个{@link WorkloadShedder}都有自己的准入等级，互不冲突，各管各的.</p>
+     * <p>全局的基于CPU负载的{@link WorkloadShedder}在CPU过载时，它的准入等级开始接管准入判断逻辑.</p>
+     */
+    private AdmissionLevel admissionLevel = AdmissionLevel.ofAdmitAll();
+
     MetricsRollingWindow window;
 
     /**
@@ -29,10 +38,7 @@ abstract class WorkloadShedder {
 
     protected AtomicBoolean slideLock = new AtomicBoolean(false);
 
-    /**
-     * 当前准入等级, the breakwater.
-     */
-    private AdmissionLevel admissionLevel = AdmissionLevel.ofAdmitAll();
+
 
     /**
      * 当前窗口各种优先级请求的数量分布.

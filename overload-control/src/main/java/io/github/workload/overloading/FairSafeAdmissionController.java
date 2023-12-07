@@ -28,7 +28,7 @@ class FairSafeAdmissionController implements AdmissionController {
         this.workloadShedderOnQueue = new WorkloadShedderOnQueue();
     }
 
-    static AdmissionController getInstance(String kind) {
+    static AdmissionController getInstance(@NonNull String kind) {
         // see https://github.com/apache/shardingsphere/pull/13275/files
         AdmissionController instance = instances.get(kind);
         if (instance != null) {
