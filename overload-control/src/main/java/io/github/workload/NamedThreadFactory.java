@@ -4,8 +4,6 @@ import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicInteger;
 
 class NamedThreadFactory implements ThreadFactory {
-    private static final AtomicInteger poolCount = new AtomicInteger(0);
-
     final AtomicInteger threadCount = new AtomicInteger(1);
     final ThreadGroup group;
     final String namePrefix;
@@ -18,7 +16,7 @@ class NamedThreadFactory implements ThreadFactory {
     public NamedThreadFactory(String prefix, boolean daemon) {
         SecurityManager s = System.getSecurityManager();
         group = (s != null) ? s.getThreadGroup() : Thread.currentThread().getThreadGroup();
-        namePrefix = prefix + "-" + poolCount.getAndIncrement() + "-T-";
+        namePrefix = prefix + "-";
         isDaemon = daemon;
     }
 

@@ -18,14 +18,22 @@ class NamedThreadFactoryTest {
         });
         thread.start();
         Thread.sleep(100); // wait for task execution
-        assertEquals("foo-0-T-1", name.get());
+        assertEquals("foo-1", name.get());
 
         thread = factory.newThread(() -> {
             name.set(Thread.currentThread().getName());
         });
         thread.start();
         Thread.sleep(100); // wait for task execution
-        assertEquals("foo-0-T-2", name.get());
+        assertEquals("foo-2", name.get());
+
+        factory = new NamedThreadFactory("bar");
+        thread = factory.newThread(() -> {
+            name.set(Thread.currentThread().getName());
+        });
+        thread.start();
+        Thread.sleep(100); // wait for task execution
+        assertEquals("bar-1", name.get());
     }
 
 }
