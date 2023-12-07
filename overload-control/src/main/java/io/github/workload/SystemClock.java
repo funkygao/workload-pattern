@@ -32,12 +32,7 @@ public class SystemClock {
     private static volatile ScheduledFuture<?> timerTask;
     private static volatile long minPrecisionMs = Long.MAX_VALUE;
 
-    static final ScheduledExecutorService precisestClockUpdater = Executors.newSingleThreadScheduledExecutor(
-            r -> {
-                Thread namedThread = new Thread(r, THREAD_NAME);
-                namedThread.setDaemon(true);
-                return namedThread;
-            });
+    static final ScheduledExecutorService precisestClockUpdater = Executors.newSingleThreadScheduledExecutor(new NamedThreadFactory(THREAD_NAME));
 
     private SystemClock(long precisionMs) {
         this.precisionMs = precisionMs;
