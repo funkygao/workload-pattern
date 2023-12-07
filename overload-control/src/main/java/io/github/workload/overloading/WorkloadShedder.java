@@ -8,41 +8,31 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- * 基于(数量，时间)窗口的过载检测.
- *
- * <p>复合型窗口设计有助于及时进行过载检测和准入控制调整.</p>
- * <p>avg waiting time of requests in the pending queue (or queuing time for short) to to profile the load status of a server</p>
- * <p>{@code queuing time = T(request processing started) - T(request arrival)}</p>
- * <p>吞吐率/latency/CPU Utilization/packet rate/number of pending requests/request processing time</p>
- * <p>A -> B，B处理非常慢，queuing time of A能够更准确地反映A的load status，而response time无法反映A的load status.</p>
- * <p>为什么不用CPU使用率度量load status？High load does not necessarily infer overload.</p>
- * <p>As long as the server can handle requests in a timely manner (e.g., as reflected by the low queuing time), it is not considered to be overloaded, even if its CPU utilization stays high.</p>
+ * How to shed excess workload.
  */
 @Slf4j
-class OverloadDetector {
-    SlidingWindow window;
-    WindowSlideHook hook;
+abstract class WorkloadShedder {
+    MetricsRollingWindow window;
+
+    /**
+     * 降速因子.
+     */
     double dropRate = 0.05; // 5%
+
+    /**
+     * 提速因子.
+     *
+     * <p>(加速下降/reject request，慢速恢复/admit request)</p>
+     * <p>相当于冷却周期，如果没有它会造成负载短时间下降造成大量请求被放行，严重时打满CPU</p>
+     */
     double recoverRate = 0.01; // 1%
 
-    private AtomicBoolean slideLock = new AtomicBoolean(false);
+    protected AtomicBoolean slideLock = new AtomicBoolean(false);
 
     /**
      * 当前准入等级, the breakwater.
      */
     private AdmissionLevel admissionLevel = AdmissionLevel.ofAdmitAll();
-
-    /**
-     * 配置：平均排队时长多大被认为过载.
-     *
-     * <p>由于是配置，没有加{@code volatile}</p>
-     */
-    long overloadQueuingMs;
-
-    /**
-     * 最近一次显式过载的时间.
-     */
-    volatile long overloadedAtNs = 0;
 
     /**
      * 当前窗口各种优先级请求的数量分布.
@@ -52,13 +42,10 @@ class OverloadDetector {
      */
     private ConcurrentSkipListMap<Integer, AtomicInteger> histogram = new ConcurrentSkipListMap<>();
 
-    OverloadDetector(long overloadQueuingMs) {
-        this(overloadQueuingMs, SlidingWindow.DefaultTimeCycleNs, SlidingWindow.DefaultRequestCycle);
-    }
+    protected abstract boolean isOverloaded(long nowNs);
 
-    OverloadDetector(long overloadQueuingMs, long timeCycleNs, int requestCycle) {
-        this.overloadQueuingMs = overloadQueuingMs;
-        this.window = new SlidingWindow(timeCycleNs, requestCycle);
+    WorkloadShedder() {
+        window = new MetricsRollingWindow(MetricsRollingWindow.DefaultTimeCycleNs, MetricsRollingWindow.DefaultRequestCycle);
     }
 
     boolean admit(@NonNull WorkloadPriority workloadPriority) {
@@ -83,11 +70,6 @@ class OverloadDetector {
         histogramCounter(workloadPriority).incrementAndGet();
     }
 
-    boolean isOverloaded(long nowNs) {
-        return window.avgQueuedMs() > overloadQueuingMs // 排队时间长
-                || (nowNs - overloadedAtNs) <= window.getTimeCycleNs(); // 距离上次显式过载仍在窗口期
-    }
-
     private void slideWindow(long nowNs) {
         if (!slideLock.compareAndSet(false, true)) {
             // single flight
@@ -100,14 +82,6 @@ class OverloadDetector {
 
             window.slide(nowNs);
             histogram.clear();
-
-            if (hook != null) {
-                try {
-                    hook.onSlidingWindow();
-                } catch (Throwable ignored) {
-                    log.error("Hook error ignored on purpose", ignored);
-                }
-            }
         } finally {
             slideLock.set(false);
         }
@@ -129,6 +103,8 @@ class OverloadDetector {
 
     // 调整策略：把下一个窗口的准入请求量控制到目标值，从而滑动准入等级游标
     // 根据当前是否过载，计算下一个窗口准入量目标值
+    // 服务器上维护者目前准入优先级下，过去一个周期的每个优先级的请求量
+    // 当过载时，通过消减下一个周期的请求量来减轻负载
     private void updateAdmissionLevel(boolean overloaded) {
         int admitN = window.admitted();
         int currentP = admissionLevel.P();
@@ -144,6 +120,7 @@ class OverloadDetector {
             for (Integer P : histogram.headMap(currentP, true).descendingKeySet()) { // 优先级越高在keySet越靠前
                 admitN -= histogram.get(P).intValue();
                 if (admitN <= expectedN) {
+                    // TODO avoid sudden drop, sensitivity，而且至少要保证50%
                     log.warn("load shedding, switched P {} -> {}", currentP, P);
                     admissionLevel.changeTo(WorkloadPriority.fromP(P));
                     return;
@@ -163,15 +140,6 @@ class OverloadDetector {
                 }
             }
         }
-    }
-
-    void addWaitingNs(long waitingNs) {
-        if (slideLock.get()) {
-            // 正在滑动窗口，即使计数也可能被重置
-            return;
-        }
-
-        window.addWaitingNs(waitingNs);
     }
 
 }

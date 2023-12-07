@@ -1,5 +1,6 @@
 package io.github.workload.overloading;
 
+import io.github.workload.annotations.NotThreadSafe;
 import lombok.AccessLevel;
 import lombok.Getter;
 
@@ -8,17 +9,20 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
- * 基于(时间周期，请求数量周期)的滑动窗口，窗口间不重叠.
+ * 基于(时间周期，请求数量周期)的滚动窗口，窗口间不重叠.
  *
  * <pre>
- * +────────────────+────────────────+────
- * │ window1        │ window2        │ ...
- * +────────────────+────────────────+────
- *  |         |
+ * │<- requestCycle->│
+ * │<- timeCycleNs ->│
+ * +─────────────────+─────────────────+────
+ * │ window1/metrics │ window2/metrics │ ...
+ * +─────────────────+─────────────────+────
+ * │         │
  * startNs  nowNs
  * </pre>
  */
-class SlidingWindow {
+@NotThreadSafe
+class MetricsRollingWindow {
     static final long NsPerMs = TimeUnit.NANOSECONDS.convert(1, TimeUnit.MILLISECONDS);
 
     static final long DefaultTimeCycleNs = TimeUnit.NANOSECONDS.convert(1, TimeUnit.SECONDS); // 1s
@@ -55,7 +59,7 @@ class SlidingWindow {
      */
     private AtomicLong accumulatedQueuedNs = new AtomicLong(0);
 
-    SlidingWindow(long timeCycleNs, int requestCycle) {
+    MetricsRollingWindow(long timeCycleNs, int requestCycle) {
         this.timeCycleNs = timeCycleNs;
         this.requestCycle = requestCycle;
         this.startNs = System.nanoTime();

@@ -1,10 +1,6 @@
 package io.github.workload.overloading;
 
-import com.google.gson.Gson;
 import org.junit.jupiter.api.Test;
-
-import java.io.Serializable;
-import java.util.Random;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -33,10 +29,11 @@ class WorkloadPriorityTest {
     void P() {
         WorkloadPriority p1 = WorkloadPriority.of(5, 3);
         WorkloadPriority p2 = WorkloadPriority.of(8, 10);
-        // 它被传递，因此需要序列化
-        assertTrue(p1 instanceof Serializable);
         assertEquals(1283, p1.P());
         assertEquals(2048 + 10, p2.P());
+        assertFalse(p1.equals(p2));
+        assertTrue(p1.equals(WorkloadPriority.of(5, 3)));
+        assertEquals(p1, WorkloadPriority.of(5, 3));
     }
 
     @Test
@@ -66,50 +63,32 @@ class WorkloadPriorityTest {
     }
 
     @Test
-    void lowestPriority() {
-        WorkloadPriority workloadPriority = WorkloadPriority.ofLowestPriority();
-        assertEquals(127, workloadPriority.U());
-        assertEquals(127, workloadPriority.U());
-        assertEquals(32639, workloadPriority.P());
-    }
-
-    @Test
-    void exempt() {
-        WorkloadPriority exempt = WorkloadPriority.ofExempt();
-        Random random = new Random();
-        for (int i = 0; i < 10000; i++) {
-            WorkloadPriority that = WorkloadPriority.of(random.nextInt(5), random.nextInt(5));
-            assertTrue(exempt.P() <= that.P());
-        }
-    }
-
-    @Test
-    void ofHourlyRandomU() {
-        WorkloadPriority priority = WorkloadPriority.ofHourlyRandomU(2, "34_2323".hashCode());
+    void ofStableRandomU() {
+        WorkloadPriority priority = WorkloadPriority.ofStableRandomU(2, "34_2323".hashCode());
         assertEquals(2, priority.B());
         assertEquals(100, priority.U());
-        priority = WorkloadPriority.ofHourlyRandomU(5, 0);
+        priority = WorkloadPriority.ofStableRandomU(5, 0);
         assertEquals(5, priority.B());
         assertEquals(0, priority.U());
-        priority = WorkloadPriority.ofHourlyRandomU(9, -1);
+        priority = WorkloadPriority.ofStableRandomU(9, -1);
         assertEquals(9, priority.B());
         assertEquals(7, priority.U());
-        priority = WorkloadPriority.ofHourlyRandomU(10, Integer.MIN_VALUE);
+        priority = WorkloadPriority.ofStableRandomU(10, Integer.MIN_VALUE);
         assertEquals(0, priority.U());
-        priority = WorkloadPriority.ofHourlyRandomU(10, Integer.MAX_VALUE);
+        priority = WorkloadPriority.ofStableRandomU(10, Integer.MAX_VALUE);
         assertEquals(7, priority.U());
 
-        priority = WorkloadPriority.ofHourlyRandomU(0, 1);
+        priority = WorkloadPriority.ofStableRandomU(0, 1);
         assertEquals(0, priority.B());
-        priority = WorkloadPriority.ofHourlyRandomU("listBooks".hashCode(), 5);
+        priority = WorkloadPriority.ofStableRandomU("listBooks".hashCode(), 5);
         assertEquals(1, priority.B());
-        priority = WorkloadPriority.ofHourlyRandomU("getBook".hashCode(), 5);
+        priority = WorkloadPriority.ofStableRandomU("getBook".hashCode(), 5);
         assertEquals(0, priority.B());
-        priority = WorkloadPriority.ofHourlyRandomU(-10, 1);
+        priority = WorkloadPriority.ofStableRandomU(-10, 1);
         assertEquals(125, priority.B());
-        priority = WorkloadPriority.ofHourlyRandomU(Integer.MAX_VALUE, 1);
+        priority = WorkloadPriority.ofStableRandomU(Integer.MAX_VALUE, 1);
         assertEquals(7, priority.B());
-        priority = WorkloadPriority.ofHourlyRandomU(Integer.MIN_VALUE, 1);
+        priority = WorkloadPriority.ofStableRandomU(Integer.MIN_VALUE, 1);
         assertEquals(0, priority.B());
         assertEquals(1, priority.U());
     }
@@ -117,22 +96,14 @@ class WorkloadPriorityTest {
     @Test
     void randomUnchangedWithinHour() {
         String uIdentifier = "34_2323";
-        WorkloadPriority priority = WorkloadPriority.ofHourlyRandomU(2, uIdentifier.hashCode());
+        WorkloadPriority priority = WorkloadPriority.ofStableRandomU(2, uIdentifier.hashCode());
         for (int i = 0; i < 1000; i++) {
-            WorkloadPriority priority1 = WorkloadPriority.ofHourlyRandomU(2, uIdentifier.hashCode());
+            WorkloadPriority priority1 = WorkloadPriority.ofStableRandomU(2, uIdentifier.hashCode());
             // 这些肯定在1h内执行完毕，1h内U不变
             assertEquals(priority.U(), priority1.U());
             assertEquals(priority.B(), priority1.B());
             assertEquals(2, priority1.B());
         }
-    }
-
-    @Test
-    void toJson() {
-        WorkloadPriority priority = WorkloadPriority.ofExempt();
-        Gson gson = new Gson();
-        String json = gson.toJson(priority);
-        assertEquals("{\"B\":0,\"U\":0}", json);
     }
 
 }

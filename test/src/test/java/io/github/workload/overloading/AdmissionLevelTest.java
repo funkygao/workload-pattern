@@ -2,8 +2,7 @@ package io.github.workload.overloading;
 
 import org.junit.jupiter.api.Test;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
 class AdmissionLevelTest {
 
@@ -12,6 +11,7 @@ class AdmissionLevelTest {
         AdmissionLevel level = AdmissionLevel.ofAdmitAll();
         assertTrue(level.admit(WorkloadPriority.ofLowestPriority()));
         assertTrue(level.admit(WorkloadPriority.of(1, 2)));
+        assertTrue(level.admit(WorkloadPriority.timeRandomU(90, "foo".hashCode(), 100)));
 
         assertEquals(32639, level.P());
     }
@@ -19,9 +19,13 @@ class AdmissionLevelTest {
     @Test
     void changeTo() {
         AdmissionLevel level = AdmissionLevel.ofAdmitAll();
-        level.changeTo(WorkloadPriority.ofExempt());
+        WorkloadPriority priority = WorkloadPriority.timeRandomU(1, 1, 120);
+        assertTrue(level.admit(priority));
+        level.changeTo(WorkloadPriority.of(0, 0));
         assertEquals(0, level.P());
+        assertFalse(level.admit(priority));
 
+        level.changeTo(WorkloadPriority.of(0, 0));
     }
 }
 
