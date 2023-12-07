@@ -109,6 +109,7 @@ public class SystemClock {
             }
             minPrecisionMs = precisionMs;
             timerTask = precisestClockUpdater.scheduleAtFixedRate(() -> {
+                // scheduleAtFixedRate 会把任务放入queue，即使任务执行时长跨调度周期也不会并发执行
                 syncAllClocks();
             }, minPrecisionMs, minPrecisionMs, TimeUnit.MILLISECONDS);
         } finally {

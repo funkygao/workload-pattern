@@ -6,6 +6,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInfo;
 import org.junit.jupiter.api.parallel.Execution;
 import org.junit.jupiter.api.parallel.ExecutionMode;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -16,6 +18,8 @@ import java.util.concurrent.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 class SystemClockTest {
+    private static final Logger log = LoggerFactory.getLogger(SystemClockTest.class);
+
     private static final int THREAD_COUNT = 10;
     private static final int PRECISION_MS = 15;
     private static final ExecutorService executorService = Executors.newFixedThreadPool(THREAD_COUNT);
@@ -24,6 +28,24 @@ class SystemClockTest {
     static void cleanup() {
         executorService.shutdownNow();
         SystemClock.shutdown();
+    }
+
+    // 固定周期调度的任务，如果该runnable执行时间长，还未结束就来了下一个周期，那么等该执行完毕还是并发执行？
+    // If any execution of this task takes longer than its period, then subsequent executions may start late, but will not concurrently execute.
+    @Test
+    void confirmScheduleAtFixedRateHasNoConcurrency() throws InterruptedException {
+        // 根据输出结果：每隔1秒输出日志，而不是每10ms
+        SystemClock.precisestClockUpdater.scheduleAtFixedRate(() -> {
+            try {
+                log.info("ha");
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+                // 恢复中断
+                Thread.currentThread().interrupt();
+            }
+        }, 0, 10, TimeUnit.MILLISECONDS);
+        Thread.sleep(5000);
+        SystemClock.precisestClockUpdater.shutdownNow();
     }
 
     @Test
@@ -123,7 +145,6 @@ class SystemClockTest {
                         rtClock.currentTimeMillis() - clock3.currentTimeMillis(),
                         rtClock.currentTimeMillis() - clock15.currentTimeMillis());
             }
-
 
             assertEquals(0, clock3.currentTimeMillis() - clock15.currentTimeMillis());
         }
