@@ -106,8 +106,8 @@ public class WorkloadPriority {
             throw new IllegalArgumentException("Invalid P");
         }
 
-        int b = P >> U_BITS;
-        int u = P & 0x7F;
+        int b = (P >> U_BITS) & 0x7F;
+        int u = P & 0x7F; // 取最高的7位：0x7F(0111 1111)
         return of(b, u);
     }
 
@@ -145,7 +145,6 @@ public class WorkloadPriority {
                 log.debug("b:{}, create random U:{} for uid:{}", b, randomU, uid);
                 return new UState(randomU, nowMs);
             } else {
-                // UState is still valid
                 // log.debug("b:{} reuse U:{} for uid:{}", b, presentValue.U, uid);
                 return presentValue;
             }
@@ -155,9 +154,8 @@ public class WorkloadPriority {
         int gcCandidateKey = ThreadLocalRandom.current().nextInt(MAX_VALUE);
         uStates.computeIfPresent(gcCandidateKey, (key, presentValue) -> {
             if (nowMs - presentValue.createdAtMs > timeWindowMs) {
-                // stale unused: GC, scavenge
                 if (log.isDebugEnabled()) {
-                    log.debug("Scavenge key:{}, {}", gcCandidateKey, presentValue);
+                    log.debug("Scavenge stale key:{}, {}", gcCandidateKey, presentValue);
                 }
                 return null;
             } else {
