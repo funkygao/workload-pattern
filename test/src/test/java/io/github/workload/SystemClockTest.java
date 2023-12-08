@@ -12,7 +12,6 @@ import org.slf4j.LoggerFactory;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Random;
 import java.util.concurrent.*;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -156,10 +155,9 @@ class SystemClockTest {
         SystemClock rt = SystemClock.ofRealtime();
         long precisionMs = 20;
         SystemClock p20 = SystemClock.ofPrecisionMs(precisionMs);
-        Random random = new Random();
         for (int i = 0; i < 20; i++) {
             long err = rt.currentTimeMillis() - p20.currentTimeMillis();
-            Thread.sleep(random.nextInt(30));
+            Thread.sleep(ThreadLocalRandom.current().nextInt(30));
             assertTrue(err <= precisionMs + SystemClock.PRECISION_DRIFT_MS * 2);
         }
     }

@@ -7,9 +7,8 @@ import lombok.AllArgsConstructor;
 import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
 
-import java.util.Map;
-import java.util.Random;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -46,9 +45,7 @@ public class WorkloadPriority {
     private static final int MAX_P = ofLowestPriority().P(); // 32639
     private static final int U_BITS = 8;
 
-    // {u: lastMs}
-    private static Map<Integer, UState> uStates = new ConcurrentHashMap<>();
-    private static Random random = new Random();
+    private static ConcurrentHashMap<Integer, UState> uStates = new ConcurrentHashMap<>();
 
     /**
      * 第一层准入机制，Business Use Case Layer Priority.
@@ -92,13 +89,12 @@ public class WorkloadPriority {
     /**
      * 基于{@link #U}每半小时随机生成优先级，但{@link #B}不变.
      *
-     * @param b           {@link #B()}
-     * @param uIdentifier u值特征，例如 {@code "foo".hashCode()}
+     * @param b   {@link #B()}
+     * @param uid u值特征，例如 {@code "foo".hashCode()}
      * @return 一个u值随机的优先级
-     * TODO rename
      */
-    public static WorkloadPriority ofStableRandomU(int b, int uIdentifier) {
-        return timeRandomU(b, uIdentifier, HALF_HOUR_MS);
+    public static WorkloadPriority ofUid(int b, int uid) {
+        return timeRandomU(b, uid, HALF_HOUR_MS);
     }
 
     static WorkloadPriority ofLowestPriority() {
@@ -111,7 +107,7 @@ public class WorkloadPriority {
         }
 
         int b = P >> U_BITS;
-        int u = P & 0xFF;
+        int u = P & 0x7F;
         return of(b, u);
     }
 
@@ -140,33 +136,34 @@ public class WorkloadPriority {
     }
 
     @VisibleForTesting
-    static WorkloadPriority timeRandomU(int b, int uIdentifier, long timeWindowMs) {
-        // normalize uIdentifier -> u
-        int u = (uIdentifier & Integer.MAX_VALUE) % MAX_VALUE;
+    static WorkloadPriority timeRandomU(int b, int uid, long timeWindowMs) {
+        int normalizedStableU = (uid & Integer.MAX_VALUE) % MAX_VALUE;
         long nowMs = SystemClock.ofPrecisionMs(timeWindowMs).currentTimeMillis();
-        UState us = uStates.get(u);
-        if (us == null) {
-            us = new UState(u, nowMs); // 首次则不做随机 TODO 如何使用者不是hashCode怎么办?
-            uStates.putIfAbsent(u, us);
-        } else if (nowMs - us.createdAtMs > timeWindowMs) {
-            // time to roll time window, randomize U
-            int oldU = us.U;
-            us = new UState(random.nextInt(MAX_VALUE), nowMs);
-            uStates.put(u, us);
-            log.debug("U Identifier:{} expired, recreate: {} -> {}", uIdentifier, oldU, us.U);
-        } else {
-            // keep the u unchanged
-            // GC the stale states: steal instruction cycle
-            int gcCandidateKey = random.nextInt(MAX_VALUE);
-            if (gcCandidateKey != us.U) {
-                UState gcCandidate = uStates.get(gcCandidateKey);
-                if (gcCandidate != null && nowMs - gcCandidate.createdAtMs > timeWindowMs) {
-                    // stale unused: GC, scavenge
-                    log.debug("scavenge key:{} U state:{}", gcCandidateKey, gcCandidate);
-                    uStates.remove(gcCandidateKey);
-                }
+        UState us = uStates.compute(normalizedStableU, (key, presentValue) -> {
+            if (presentValue == null || nowMs - presentValue.createdAtMs > timeWindowMs) {
+                int randomU = ThreadLocalRandom.current().nextInt(MAX_VALUE);
+                log.debug("b:{}, create random U:{} for uid:{}", b, randomU, uid);
+                return new UState(randomU, nowMs);
+            } else {
+                // UState is still valid
+                // log.debug("b:{} reuse U:{} for uid:{}", b, presentValue.U, uid);
+                return presentValue;
             }
-        }
+        });
+
+        // GC the stale states: steal instruction cycle
+        int gcCandidateKey = ThreadLocalRandom.current().nextInt(MAX_VALUE);
+        uStates.computeIfPresent(gcCandidateKey, (key, presentValue) -> {
+            if (nowMs - presentValue.createdAtMs > timeWindowMs) {
+                // stale unused: GC, scavenge
+                if (log.isDebugEnabled()) {
+                    log.debug("Scavenge key:{}, {}", gcCandidateKey, presentValue);
+                }
+                return null;
+            } else {
+                return presentValue;
+            }
+        });
 
         return of((b & Integer.MAX_VALUE) % MAX_VALUE, us.U);
     }

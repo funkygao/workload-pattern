@@ -3,6 +3,7 @@ package io.github.workload.shufflesharding;
 import org.junit.jupiter.api.Test;
 
 import java.util.*;
+import java.util.concurrent.ThreadLocalRandom;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -199,12 +200,11 @@ class CardDealerTest {
     void duplication() {
         int[] deckSizes = new int[]{4, 8, 10, 12, 128, 256, 512};
         int[] handSizes = new int[]{4, 8, 10, 12, 8, 7, 6};
-        Random random = new Random();
         for (int loop = 0; loop < 1 << 16; loop++) {
             for (int i = 0; i < deckSizes.length; i++) {
                 int deckSize = deckSizes[i];
                 int handSize = handSizes[i];
-                int hashValue = random.nextInt() & Integer.MAX_VALUE;
+                int hashValue = ThreadLocalRandom.current().nextInt() & Integer.MAX_VALUE;
                 CardDealer dealer = CardDealer.builder().deckSize(deckSize).handSize(handSize).build();
                 int[] hand = new int[handSize];
                 // with hashValue

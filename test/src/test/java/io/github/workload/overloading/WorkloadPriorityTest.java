@@ -60,45 +60,42 @@ class WorkloadPriorityTest {
         } catch (IllegalArgumentException expected) {
             assertEquals("Invalid P", expected.getMessage());
         }
+
+        // 随机数来验证fromP解析出来的(B, U)在合法区间
+        for (int i = 0; i < 1000; i++) {
+            TestingUtil.randomWorkloadPriority();
+        }
     }
 
     @Test
-    void ofStableRandomU() {
-        WorkloadPriority priority = WorkloadPriority.ofStableRandomU(2, "34_2323".hashCode());
+    void ofUid() {
+        WorkloadPriority priority = WorkloadPriority.ofUid(2, "34_2323".hashCode());
         assertEquals(2, priority.B());
-        assertEquals(100, priority.U());
-        priority = WorkloadPriority.ofStableRandomU(5, 0);
-        assertEquals(5, priority.B());
-        assertEquals(0, priority.U());
-        priority = WorkloadPriority.ofStableRandomU(9, -1);
-        assertEquals(9, priority.B());
-        assertEquals(7, priority.U());
-        priority = WorkloadPriority.ofStableRandomU(10, Integer.MIN_VALUE);
-        assertEquals(0, priority.U());
-        priority = WorkloadPriority.ofStableRandomU(10, Integer.MAX_VALUE);
-        assertEquals(7, priority.U());
+        priority = WorkloadPriority.ofUid(5, 0);
+        priority = WorkloadPriority.ofUid(9, -1);
+        priority = WorkloadPriority.ofUid(10, Integer.MIN_VALUE);
+        priority = WorkloadPriority.ofUid(10, Integer.MAX_VALUE);
 
-        priority = WorkloadPriority.ofStableRandomU(0, 1);
+        priority = WorkloadPriority.ofUid(0, 1);
         assertEquals(0, priority.B());
-        priority = WorkloadPriority.ofStableRandomU("listBooks".hashCode(), 5);
+        priority = WorkloadPriority.ofUid("listBooks".hashCode(), 5);
         assertEquals(1, priority.B());
-        priority = WorkloadPriority.ofStableRandomU("getBook".hashCode(), 5);
+        priority = WorkloadPriority.ofUid("getBook".hashCode(), 5);
         assertEquals(0, priority.B());
-        priority = WorkloadPriority.ofStableRandomU(-10, 1);
+        priority = WorkloadPriority.ofUid(-10, 1);
         assertEquals(125, priority.B());
-        priority = WorkloadPriority.ofStableRandomU(Integer.MAX_VALUE, 1);
+        priority = WorkloadPriority.ofUid(Integer.MAX_VALUE, 1);
         assertEquals(7, priority.B());
-        priority = WorkloadPriority.ofStableRandomU(Integer.MIN_VALUE, 1);
+        priority = WorkloadPriority.ofUid(Integer.MIN_VALUE, 1);
         assertEquals(0, priority.B());
-        assertEquals(1, priority.U());
     }
 
     @Test
     void randomUnchangedWithinHour() {
         String uIdentifier = "34_2323";
-        WorkloadPriority priority = WorkloadPriority.ofStableRandomU(2, uIdentifier.hashCode());
+        WorkloadPriority priority = WorkloadPriority.ofUid(2, uIdentifier.hashCode());
         for (int i = 0; i < 1000; i++) {
-            WorkloadPriority priority1 = WorkloadPriority.ofStableRandomU(2, uIdentifier.hashCode());
+            WorkloadPriority priority1 = WorkloadPriority.ofUid(2, uIdentifier.hashCode());
             // 这些肯定在1h内执行完毕，1h内U不变
             assertEquals(priority.U(), priority1.U());
             assertEquals(priority.B(), priority1.B());

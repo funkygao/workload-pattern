@@ -1,12 +1,10 @@
 package io.github.workload.overloading;
 
-import java.util.Random;
+import java.util.concurrent.ThreadLocalRandom;
 
 class TestingUtil {
-    private static final Random rand = new Random();
-
     static WorkloadPriority randomWorkloadPriority() {
-        int P = rand.nextInt(WorkloadPriority.ofLowestPriority().P());
+        int P = ThreadLocalRandom.current().nextInt(WorkloadPriority.ofLowestPriority().P());
         return WorkloadPriority.fromP(P);
     }
 }
