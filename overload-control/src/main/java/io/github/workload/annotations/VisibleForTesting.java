@@ -6,8 +6,7 @@ import java.lang.annotation.Target;
 import static java.lang.annotation.ElementType.*;
 import static java.lang.annotation.RetentionPolicy.SOURCE;
 
-@Target({TYPE, FIELD, METHOD})
+@Target({TYPE, FIELD, METHOD, CONSTRUCTOR})
 @Retention(SOURCE)
-public @interface ThreadSafe {
-    String value() default "";
+public @interface VisibleForTesting {
 }

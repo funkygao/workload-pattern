@@ -95,6 +95,7 @@ public class WorkloadPriority {
      * @param b           {@link #B()}
      * @param uIdentifier u值特征，例如 {@code "foo".hashCode()}
      * @return 一个u值随机的优先级
+     * TODO rename
      */
     public static WorkloadPriority ofStableRandomU(int b, int uIdentifier) {
         return timeRandomU(b, uIdentifier, HALF_HOUR_MS);
@@ -123,7 +124,9 @@ public class WorkloadPriority {
     }
 
     /**
-     * 优先级降维：二维变一维，值越小优先级越高.
+     * The normalized breakwater priority value.
+     *
+     * <p>优先级降维：二维变一维，值越小优先级越高.</p>
      *
      * <p>它代表的是：workload delay execution tolerance</p>
      * <p>a 14-bit integer</p>

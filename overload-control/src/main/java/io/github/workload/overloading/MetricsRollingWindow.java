@@ -7,6 +7,9 @@ import lombok.Getter;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 /**
  * 基于(时间周期，请求数量周期)的滚动窗口，窗口间不重叠.
@@ -23,10 +26,10 @@ import java.util.concurrent.atomic.AtomicLong;
  */
 @NotThreadSafe
 class MetricsRollingWindow {
-    static final long NsPerMs = TimeUnit.NANOSECONDS.convert(1, TimeUnit.MILLISECONDS);
+    static final long NS_PER_MS =  TimeUnit.MILLISECONDS.toNanos(1);
 
-    static final long DefaultTimeCycleNs = TimeUnit.NANOSECONDS.convert(1, TimeUnit.SECONDS); // 1s
-    static final int DefaultRequestCycle = 2 << 10; // 2K
+    static final long DEFAULT_TIME_CYCLE_NS = TimeUnit.SECONDS.toNanos(1); // 1s
+    static final int DEFAULT_REQUEST_CYCLE = 2 << 10; // 2K
 
     /**
      * 时间周期.
@@ -59,10 +62,16 @@ class MetricsRollingWindow {
      */
     private AtomicLong accumulatedQueuedNs = new AtomicLong(0);
 
+    private final ReadWriteLock rwLock = new ReentrantReadWriteLock();
+    private final Lock writeLock;
+    private final Lock readLock;
+
     MetricsRollingWindow(long timeCycleNs, int requestCycle) {
         this.timeCycleNs = timeCycleNs;
         this.requestCycle = requestCycle;
         this.startNs = System.nanoTime();
+        this.writeLock = rwLock.writeLock();
+        this.readLock = rwLock.readLock();
     }
 
     void tick(boolean admitted) {
@@ -88,7 +97,7 @@ class MetricsRollingWindow {
             return 0;
         }
 
-        return accumulatedQueuedNs.get() / (requests * NsPerMs);
+        return accumulatedQueuedNs.get() / (requests * NS_PER_MS);
     }
 
     void slide(long nowNs) {

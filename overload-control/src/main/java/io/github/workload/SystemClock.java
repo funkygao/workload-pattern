@@ -5,6 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
 /**
@@ -27,7 +28,7 @@ public class SystemClock {
 
     // key is precisionMs
     private static final ConcurrentHashMap<Long, SystemClock> clocks = new ConcurrentHashMap<>();
-    private static ReentrantLock clocksLock = new ReentrantLock();
+    private static Lock clocksLock = new ReentrantLock();
 
     private static volatile ScheduledFuture<?> timerTask;
     private static volatile long minPrecisionMs = Long.MAX_VALUE;

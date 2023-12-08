@@ -1,5 +1,6 @@
 package io.github.workload.overloading;
 
+import io.github.workload.annotations.ThreadSafe;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 
@@ -11,6 +12,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  * How to shed excess workload.
  */
 @Slf4j
+@ThreadSafe
 abstract class WorkloadShedder {
 
     /**
@@ -19,7 +21,7 @@ abstract class WorkloadShedder {
      * <p>每个{@link WorkloadShedder}都有自己的准入等级，互不冲突，各管各的.</p>
      * <p>全局的基于CPU负载的{@link WorkloadShedder}在CPU过载时，它的准入等级开始接管准入判断逻辑.</p>
      */
-    private AdmissionLevel admissionLevel = AdmissionLevel.ofAdmitAll();
+    private final AdmissionLevel admissionLevel = AdmissionLevel.ofAdmitAll();
 
     MetricsRollingWindow window;
 
@@ -38,10 +40,8 @@ abstract class WorkloadShedder {
 
     protected AtomicBoolean slideLock = new AtomicBoolean(false);
 
-
-
     /**
-     * 当前窗口各种优先级请求的数量分布.
+     * 当前窗口各种优先级请求(包括admitted)的数量分布.
      *
      * <p>key is {@link WorkloadPriority#P()}.</p>
      * <p>它被用来调整新窗口的{@link AdmissionLevel}.</p>
@@ -51,21 +51,27 @@ abstract class WorkloadShedder {
     protected abstract boolean isOverloaded(long nowNs);
 
     WorkloadShedder() {
-        window = new MetricsRollingWindow(MetricsRollingWindow.DefaultTimeCycleNs, MetricsRollingWindow.DefaultRequestCycle);
+        window = new MetricsRollingWindow(MetricsRollingWindow.DEFAULT_TIME_CYCLE_NS,
+                MetricsRollingWindow.DEFAULT_REQUEST_CYCLE);
     }
 
+    @ThreadSafe
     boolean admit(@NonNull WorkloadPriority workloadPriority) {
+        // 当前准入等级判断
         boolean admitted = admissionLevel.admit(workloadPriority);
+        // 采样到窗口
         advanceWindow(System.nanoTime(), workloadPriority, admitted);
         return admitted;
     }
 
+    @ThreadSafe
     private void advanceWindow(long nowNs, WorkloadPriority workloadPriority, boolean admitted) {
         if (slideLock.get()) {
             return;
         }
 
         window.tick(admitted);
+        // 该优先级请求总量
         updateHistogram(workloadPriority);
         if (window.full(nowNs)) {
             slideWindow(nowNs);
@@ -96,15 +102,13 @@ abstract class WorkloadShedder {
     private AtomicInteger histogramCounter(WorkloadPriority workloadPriority) {
         int key = workloadPriority.P();
         AtomicInteger counter = histogram.get(key);
-        if (counter == null) {
-            counter = new AtomicInteger(0);
-            AtomicInteger counter2 = histogram.putIfAbsent(key, counter);
-            if (counter2 != null) {
-                counter = counter2;
-            }
+        if (counter != null) {
+            return counter;
         }
-
-        return counter;
+        return histogram.computeIfAbsent(key, P -> {
+            log.debug("histogram register new P: {}", P);
+            return new AtomicInteger(0);
+        });
     }
 
     // 调整策略：把下一个窗口的准入请求量控制到目标值，从而滑动准入等级游标

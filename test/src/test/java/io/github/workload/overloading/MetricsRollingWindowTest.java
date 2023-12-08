@@ -11,13 +11,13 @@ class MetricsRollingWindowTest {
 
     @Test
     void timeUnitConversion() {
-        assertEquals(1000_000, MetricsRollingWindow.NsPerMs);
-        assertEquals(1_000_000_000, MetricsRollingWindow.DefaultTimeCycleNs);
+        assertEquals(1_000_000, MetricsRollingWindow.NS_PER_MS);
+        assertEquals(1_000_000_000, MetricsRollingWindow.DEFAULT_TIME_CYCLE_NS);
     }
 
     @RepeatedTest(20)
     void basic() throws InterruptedException {
-        MetricsRollingWindow window = new MetricsRollingWindow(MetricsRollingWindow.DefaultTimeCycleNs, 10);
+        MetricsRollingWindow window = new MetricsRollingWindow(MetricsRollingWindow.DEFAULT_TIME_CYCLE_NS, 10);
         assertFalse(window.full(System.nanoTime()));
         for (int i = 0; i < 11; i++) {
             window.tick(true);

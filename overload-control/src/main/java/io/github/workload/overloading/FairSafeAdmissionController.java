@@ -43,13 +43,13 @@ class FairSafeAdmissionController implements AdmissionController {
 
     @Override
     public boolean admit(@NonNull WorkloadPriority workloadPriority) {
-        // 进程级准入
+        // 进程级准入，全局采样
         if (!workloadShedderOnCpu.admit(workloadPriority)) {
             log.debug("CPU overloaded, might reject {}", workloadPriority);
             return false;
         }
 
-        // 具体类型的业务准入
+        // 具体类型的业务准入，局部采样
         return workloadShedderOnQueue.admit(workloadPriority);
     }
 

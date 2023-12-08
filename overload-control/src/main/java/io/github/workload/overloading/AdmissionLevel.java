@@ -1,5 +1,7 @@
 package io.github.workload.overloading;
 
+import io.github.workload.annotations.NotThreadSafe;
+import io.github.workload.annotations.ThreadSafe;
 import lombok.extern.slf4j.Slf4j;
 
 /**
@@ -37,16 +39,25 @@ import lombok.extern.slf4j.Slf4j;
  */
 @Slf4j
 class AdmissionLevel {
-    // 防波堤
-    private WorkloadPriority breakwater;
 
-    static AdmissionLevel ofAdmitAll() {
-        AdmissionLevel level = new AdmissionLevel();
-        // 只防住最低优先级，意味着全放行
-        level.breakwater = WorkloadPriority.ofLowestPriority();
-        return level;
+    /**
+     * 准入门槛，在一个窗口期内不变.
+     *
+     * <p>优先级低于门槛值的请求都应该拒绝.</p>
+     */
+    @ThreadSafe("一个线程写，多个线程并发读")
+    private volatile WorkloadPriority breakwater;
+
+    private AdmissionLevel(WorkloadPriority breakwater) {
+        this.breakwater = breakwater;
     }
 
+    static AdmissionLevel ofAdmitAll() {
+        // 只防住最低优先级，意味着全放行
+        return new AdmissionLevel(WorkloadPriority.ofLowestPriority());
+    }
+
+    @NotThreadSafe(serial = true)
     void changeTo(WorkloadPriority priority) {
         int delta = priority.P() - this.P();
         if (delta == 0) {
@@ -57,12 +68,15 @@ class AdmissionLevel {
         this.breakwater = priority;
     }
 
-    int P() {
-        return breakwater.P();
-    }
-
+    @ThreadSafe
     boolean admit(WorkloadPriority workloadPriority) {
         return workloadPriority.P() <= this.breakwater.P();
     }
 
+    /**
+     * The normalized breakwater priority value.
+     */
+    int P() {
+        return breakwater.P();
+    }
 }
