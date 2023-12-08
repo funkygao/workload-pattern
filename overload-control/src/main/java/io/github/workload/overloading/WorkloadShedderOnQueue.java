@@ -1,5 +1,8 @@
 package io.github.workload.overloading;
 
+import lombok.AccessLevel;
+import lombok.Setter;
+
 class WorkloadShedderOnQueue extends WorkloadShedder {
 
     /**
@@ -7,12 +10,13 @@ class WorkloadShedderOnQueue extends WorkloadShedder {
      *
      * <p>由于是配置，没有加{@code volatile}</p>
      */
-    long overloadQueuingMs = 200;
+    private long overloadQueuingMs = 200;
 
     /**
      * 最近一次显式过载的时间.
      */
-    volatile long overloadedAtNs = 0;
+    @Setter(AccessLevel.PACKAGE)
+    private volatile long overloadedAtNs = 0;
 
     WorkloadShedderOnQueue() {
         super();
@@ -25,7 +29,7 @@ class WorkloadShedderOnQueue extends WorkloadShedder {
     }
 
     void addWaitingNs(long waitingNs) {
-        if (slideLock.get()) {
+        if (swapLock.get()) {
             // 正在滑动窗口，即使计数也可能被重置
             return;
         }

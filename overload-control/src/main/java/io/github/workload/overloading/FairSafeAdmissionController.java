@@ -29,7 +29,8 @@ class FairSafeAdmissionController implements AdmissionController {
     }
 
     static AdmissionController getInstance(@NonNull String kind) {
-        // see https://github.com/apache/shardingsphere/pull/13275/files
+        // https://github.com/apache/shardingsphere/pull/13275/files
+        // https://bugs.openjdk.org/browse/JDK-8161372
         AdmissionController instance = instances.get(kind);
         if (instance != null) {
             return instance;
@@ -60,7 +61,7 @@ class FairSafeAdmissionController implements AdmissionController {
 
     @Override
     public void overloaded() {
-        workloadShedderOnQueue.overloadedAtNs = System.nanoTime();
+        workloadShedderOnQueue.setOverloadedAtNs(System.nanoTime());
     }
 
 }

@@ -56,7 +56,8 @@ public class SystemClock {
             throw new IllegalArgumentException("precisionMs cannot be negative");
         }
 
-        // see https://github.com/apache/shardingsphere/pull/13275/files
+        // https://github.com/apache/shardingsphere/pull/13275/files
+        // https://bugs.openjdk.org/browse/JDK-8161372
         SystemClock clock = clocks.get(precisionMs);
         if (clock != null) {
             return clock;

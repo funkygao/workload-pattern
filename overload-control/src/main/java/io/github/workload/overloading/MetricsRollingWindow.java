@@ -1,6 +1,7 @@
 package io.github.workload.overloading;
 
 import io.github.workload.annotations.NotThreadSafe;
+import io.github.workload.annotations.VisibleForTesting;
 import lombok.AccessLevel;
 import lombok.Getter;
 
@@ -12,23 +13,15 @@ import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 /**
- * 基于(时间周期，请求数量周期)的滚动窗口，窗口间不重叠.
- *
- * <pre>
- * │<- requestCycle->│
- * │<- timeCycleNs ->│
- * +─────────────────+─────────────────+────
- * │ window1/metrics │ window2/metrics │ ...
- * +─────────────────+─────────────────+────
- * │         │
- * startNs  nowNs
- * </pre>
+ * 基于(时间周期，请求数量周期)的滚动窗口.
  */
 @NotThreadSafe
 class MetricsRollingWindow {
+    @VisibleForTesting
     static final long NS_PER_MS =  TimeUnit.MILLISECONDS.toNanos(1);
-
+    @VisibleForTesting
     static final long DEFAULT_TIME_CYCLE_NS = TimeUnit.SECONDS.toNanos(1); // 1s
+    @VisibleForTesting
     static final int DEFAULT_REQUEST_CYCLE = 2 << 10; // 2K
 
     /**
@@ -66,10 +59,14 @@ class MetricsRollingWindow {
     private final Lock writeLock;
     private final Lock readLock;
 
-    MetricsRollingWindow(long timeCycleNs, int requestCycle) {
+    MetricsRollingWindow(long startNs) {
+        this(DEFAULT_TIME_CYCLE_NS, DEFAULT_REQUEST_CYCLE, startNs);
+    }
+
+    private MetricsRollingWindow(long timeCycleNs, int requestCycle, long startNs) {
         this.timeCycleNs = timeCycleNs;
         this.requestCycle = requestCycle;
-        this.startNs = System.nanoTime();
+        this.startNs = startNs;
         this.writeLock = rwLock.writeLock();
         this.readLock = rwLock.readLock();
     }
@@ -86,6 +83,17 @@ class MetricsRollingWindow {
                 || requestCounter.get() > requestCycle; // 请求数量满足
     }
 
+    int admitted() {
+        return admittedCounter.get();
+    }
+
+    void restart(long nowNs) {
+        startNs = nowNs;
+        requestCounter.set(0);
+        admittedCounter.set(0);
+        accumulatedQueuedNs.set(0);
+    }
+
     void addWaitingNs(long waitingNs) {
         accumulatedQueuedNs.addAndGet(waitingNs);
     }
@@ -99,16 +107,4 @@ class MetricsRollingWindow {
 
         return accumulatedQueuedNs.get() / (requests * NS_PER_MS);
     }
-
-    void slide(long nowNs) {
-        startNs = nowNs;
-        requestCounter.set(0);
-        admittedCounter.set(0);
-        accumulatedQueuedNs.set(0);
-    }
-
-    int admitted() {
-        return admittedCounter.get();
-    }
-
 }
