@@ -1,6 +1,7 @@
 package io.github.workload;
 
 import io.github.workload.annotations.ThreadSafe;
+import io.github.workload.annotations.VisibleForTesting;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.concurrent.*;
@@ -33,6 +34,7 @@ public class SystemClock {
     private static volatile ScheduledFuture<?> timerTask;
     private static volatile long minPrecisionMs = Long.MAX_VALUE;
 
+    @VisibleForTesting
     static final ScheduledExecutorService precisestClockUpdater = Executors.newSingleThreadScheduledExecutor(new NamedThreadFactory(THREAD_NAME));
 
     private SystemClock(long precisionMs) {

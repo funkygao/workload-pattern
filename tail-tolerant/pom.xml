@@ -12,4 +12,8 @@
     <name>Workload :: TailTolerant</name>
     <description>读扩散请求的长尾响应时间SLA保证</description>
 
+    <properties>
+        <maven.javadoc.skip>true</maven.javadoc.skip>
+    </properties>
+
 </project>

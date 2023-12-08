@@ -1,6 +1,7 @@
 package io.github.workload.overloading;
 
 import io.github.workload.annotations.ThreadSafe;
+import io.github.workload.annotations.VisibleForTesting;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 
@@ -17,6 +18,7 @@ import java.util.concurrent.ConcurrentHashMap;
 @Slf4j
 @ThreadSafe
 class FairSafeAdmissionController implements AdmissionController {
+    @VisibleForTesting
     final WorkloadShedderOnQueue workloadShedderOnQueue;
 
     // shared singleton in JVM

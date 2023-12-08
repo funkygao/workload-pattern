@@ -106,4 +106,10 @@ class WorkloadPriorityTest {
         }
     }
 
+    @Test
+    void testToString() {
+        WorkloadPriority priority = WorkloadPriority.ofLowestPriority();
+        assertEquals("WorkloadPriority(B=127, U=127)", priority.toString());
+    }
+
 }

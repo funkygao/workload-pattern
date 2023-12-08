@@ -4,19 +4,18 @@ import io.github.workload.annotations.NotThreadSafe;
 import io.github.workload.annotations.VisibleForTesting;
 import lombok.AccessLevel;
 import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
 
+import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReadWriteLock;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 /**
- * 基于(时间周期，请求数量周期)的滚动窗口.
+ * 基于(时间周期，请求数量周期)的滚动窗口，用于对工作负荷采样.
  */
-@NotThreadSafe
-class MetricsRollingWindow {
+@Slf4j
+class SamplingWindow {
     @VisibleForTesting
     static final long NS_PER_MS =  TimeUnit.MILLISECONDS.toNanos(1);
     @VisibleForTesting
@@ -55,27 +54,36 @@ class MetricsRollingWindow {
      */
     private AtomicLong accumulatedQueuedNs = new AtomicLong(0);
 
-    private final ReadWriteLock rwLock = new ReentrantReadWriteLock();
-    private final Lock writeLock;
-    private final Lock readLock;
+    /**
+     * 各种优先级的请求数量分布.
+     */
+    private ConcurrentSkipListMap<Integer, AtomicInteger> prioritizedRequestCounters = new ConcurrentSkipListMap<>();
 
-    MetricsRollingWindow(long startNs) {
+    SamplingWindow(long startNs) {
         this(DEFAULT_TIME_CYCLE_NS, DEFAULT_REQUEST_CYCLE, startNs);
     }
 
-    private MetricsRollingWindow(long timeCycleNs, int requestCycle, long startNs) {
+    private SamplingWindow(long timeCycleNs, int requestCycle, long startNs) {
         this.timeCycleNs = timeCycleNs;
         this.requestCycle = requestCycle;
         this.startNs = startNs;
-        this.writeLock = rwLock.writeLock();
-        this.readLock = rwLock.readLock();
     }
 
-    void tick(boolean admitted) {
+    void sample(WorkloadPriority workloadPriority, boolean admitted) {
         requestCounter.incrementAndGet();
         if (admitted) {
             admittedCounter.getAndIncrement();
         }
+
+        AtomicInteger counter = prioritizedRequestCounters.computeIfAbsent(workloadPriority.P(), key -> {
+            log.debug("sample for new P: {}", key);
+            return new AtomicInteger(0);
+        });
+        counter.incrementAndGet();
+    }
+
+    void sampleWaitingNs(long waitingNs) {
+        accumulatedQueuedNs.addAndGet(waitingNs);
     }
 
     boolean full(long nowNs) {
@@ -87,15 +95,19 @@ class MetricsRollingWindow {
         return admittedCounter.get();
     }
 
+    ConcurrentSkipListMap<Integer, AtomicInteger> histogram() {
+        return prioritizedRequestCounters;
+    }
+
+    @NotThreadSafe(serial = true)
     void restart(long nowNs) {
+        log.debug("restart {}", nowNs);
+
         startNs = nowNs;
         requestCounter.set(0);
         admittedCounter.set(0);
         accumulatedQueuedNs.set(0);
-    }
-
-    void addWaitingNs(long waitingNs) {
-        accumulatedQueuedNs.addAndGet(waitingNs);
+        prioritizedRequestCounters.clear();
     }
 
     long avgQueuedMs() {

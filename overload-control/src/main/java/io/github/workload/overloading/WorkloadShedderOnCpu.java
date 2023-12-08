@@ -1,10 +1,8 @@
 package io.github.workload.overloading;
 
 import io.github.workload.SystemLoad;
-import io.github.workload.annotations.NotThreadSafe;
 import lombok.extern.slf4j.Slf4j;
 
-@NotThreadSafe
 @Slf4j
 class WorkloadShedderOnCpu extends WorkloadShedder {
     private final double cpuUsageUpperBound;
@@ -19,7 +17,7 @@ class WorkloadShedderOnCpu extends WorkloadShedder {
         double cpuUsage = SystemLoad.cpuUsage();
         boolean overloaded = cpuUsage > cpuUsageUpperBound;
         if (overloaded) {
-            log.warn("CPU BUSY, cpu usage: {}%", cpuUsage * 100);
+            log.warn("CPU BUSY, usage: {} > {}", cpuUsage, cpuUsageUpperBound);
         }
         return overloaded;
     }

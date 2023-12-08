@@ -2,7 +2,7 @@ package io.github.workload.overloading;
 
 import io.github.workload.SystemClock;
 import io.github.workload.annotations.Immutable;
-import io.github.workload.annotations.ThreadSafe;
+import io.github.workload.annotations.VisibleForTesting;
 import lombok.AllArgsConstructor;
 import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
@@ -34,10 +34,9 @@ import java.util.concurrent.TimeUnit;
  * ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠉⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
  * </pre>
  */
-@ThreadSafe
 @Immutable
-@Slf4j
 @ToString
+@Slf4j
 public class WorkloadPriority {
     private static final long HALF_HOUR_MS = TimeUnit.MILLISECONDS.convert(30, TimeUnit.MINUTES);
 
@@ -81,6 +80,7 @@ public class WorkloadPriority {
      * @return a new priority instance
      * @throws IllegalArgumentException
      */
+    @VisibleForTesting
     static WorkloadPriority of(int b, int u) throws IllegalArgumentException {
         if (b > MAX_VALUE || u > MAX_VALUE) {
             throw new IllegalArgumentException("Out of range for B or U");
@@ -139,7 +139,9 @@ public class WorkloadPriority {
         return (B << U_BITS) | U;
     }
 
+    @VisibleForTesting
     static WorkloadPriority timeRandomU(int b, int uIdentifier, long timeWindowMs) {
+        // normalize uIdentifier -> u
         int u = (uIdentifier & Integer.MAX_VALUE) % MAX_VALUE;
         long nowMs = SystemClock.ofPrecisionMs(timeWindowMs).currentTimeMillis();
         UState us = uStates.get(u);
@@ -148,8 +150,10 @@ public class WorkloadPriority {
             uStates.putIfAbsent(u, us);
         } else if (nowMs - us.createdAtMs > timeWindowMs) {
             // time to roll time window, randomize U
+            int oldU = us.U;
             us = new UState(random.nextInt(MAX_VALUE), nowMs);
             uStates.put(u, us);
+            log.debug("U Identifier:{} expired, recreate: {} -> {}", uIdentifier, oldU, us.U);
         } else {
             // keep the u unchanged
             // GC the stale states: steal instruction cycle

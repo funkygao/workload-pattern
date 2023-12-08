@@ -3,32 +3,31 @@ package io.github.workload.overloading;
 import org.junit.jupiter.api.RepeatedTest;
 import org.junit.jupiter.api.Test;
 
-import java.util.concurrent.TimeUnit;
-
 import static org.junit.jupiter.api.Assertions.*;
 
-class MetricsRollingWindowTest {
+class SamplingWindowTest {
 
     @Test
     void timeUnitConversion() {
-        assertEquals(1_000_000, MetricsRollingWindow.NS_PER_MS);
-        assertEquals(1_000_000_000, MetricsRollingWindow.DEFAULT_TIME_CYCLE_NS);
+        assertEquals(1_000_000, SamplingWindow.NS_PER_MS);
+        assertEquals(1_000_000_000, SamplingWindow.DEFAULT_TIME_CYCLE_NS);
     }
 
     @RepeatedTest(20)
     void basic() throws InterruptedException {
-        MetricsRollingWindow window = new MetricsRollingWindow(MetricsRollingWindow.DEFAULT_TIME_CYCLE_NS, 10);
+        long nowNs = System.nanoTime();
+        SamplingWindow window = new SamplingWindow(nowNs);
         assertFalse(window.full(System.nanoTime()));
         for (int i = 0; i < 11; i++) {
-            window.tick(true);
+            window.sample(WorkloadPriority.of(1, 2), true);
             if (i % 3 == 0) {
-                window.tick(false);
+                window.sample(WorkloadPriority.of(1, 2), false);
             }
         }
         assertTrue(window.full(System.nanoTime())); // 请求量满了
         assertEquals(11, window.admitted());
 
-        window = new MetricsRollingWindow(TimeUnit.NANOSECONDS.convert(1, TimeUnit.MILLISECONDS), 100);
+        window = new SamplingWindow(nowNs);
         assertFalse(window.full(System.nanoTime()));
         Thread.sleep(2);
         assertTrue(window.full(System.nanoTime()));
