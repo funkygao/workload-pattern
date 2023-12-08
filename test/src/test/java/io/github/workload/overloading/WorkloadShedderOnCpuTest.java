@@ -12,7 +12,7 @@ class WorkloadShedderOnCpuTest {
         assertFalse(shedder.isOverloaded(System.nanoTime()));
 
         Thread.sleep(2000);
-        CpuStressLoad.burnCPUs();
+        CpuStressLoader.burnCPUs();
         for (int i = 0; i < 10; i++) {
             if (shedder.isOverloaded(0)) {
                 return;

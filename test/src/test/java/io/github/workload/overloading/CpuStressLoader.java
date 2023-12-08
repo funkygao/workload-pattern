@@ -1,6 +1,6 @@
 package io.github.workload.overloading;
 
-class CpuStressLoad {
+class CpuStressLoader {
 
     static void burnCPUs() {
         int numThreads = Runtime.getRuntime().availableProcessors();
