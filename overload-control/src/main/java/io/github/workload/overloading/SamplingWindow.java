@@ -1,6 +1,7 @@
 package io.github.workload.overloading;
 
 import io.github.workload.annotations.NotThreadSafe;
+import io.github.workload.annotations.ThreadSafe;
 import io.github.workload.annotations.VisibleForTesting;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -69,6 +70,7 @@ class SamplingWindow {
         this.startNs = startNs;
     }
 
+    @ThreadSafe
     void sample(WorkloadPriority workloadPriority, boolean admitted) {
         requestCounter.incrementAndGet();
         if (admitted) {
@@ -82,6 +84,7 @@ class SamplingWindow {
         counter.incrementAndGet();
     }
 
+    @ThreadSafe
     void sampleWaitingNs(long waitingNs) {
         accumulatedQueuedNs.addAndGet(waitingNs);
     }

@@ -24,12 +24,15 @@ class SamplingWindowTest {
                 window.sample(WorkloadPriority.of(1, 2), false);
             }
         }
-        assertTrue(window.full(System.nanoTime())); // 请求量满了
+        assertFalse(window.full(System.nanoTime())); // 请求量满了
         assertEquals(11, window.admitted());
 
         window = new SamplingWindow(nowNs);
         assertFalse(window.full(System.nanoTime()));
         Thread.sleep(2);
+        for (int i = 0; i < 2049; i++) {
+            window.sample(TestingUtil.randomWorkloadPriority(), true);
+        }
         assertTrue(window.full(System.nanoTime()));
     }
 
