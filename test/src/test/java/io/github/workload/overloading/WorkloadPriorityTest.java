@@ -68,6 +68,17 @@ class WorkloadPriorityTest {
     }
 
     @Test
+    void consistentEncodeDecode() {
+        for (int B = 0; B < 128; B++) {
+            for (int U = 0; U < 128; U++) {
+                WorkloadPriority priority = WorkloadPriority.of(B, U);
+                WorkloadPriority priority1 = WorkloadPriority.fromP(priority.P());
+                assertEquals(priority, priority1);
+            }
+        }
+    }
+
+    @Test
     void ofUid() {
         WorkloadPriority priority = WorkloadPriority.ofUid(2, "34_2323".hashCode());
         assertEquals(2, priority.B());
