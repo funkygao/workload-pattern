@@ -10,7 +10,7 @@ class WorkloadShedderOnQueue extends WorkloadShedder {
      *
      * <p>由于是配置，没有加{@code volatile}</p>
      */
-    private long overloadQueuingMs = 200;
+    private final long overloadQueuingMs = 200;
 
     /**
      * 最近一次显式过载的时间.
