@@ -18,8 +18,9 @@ class WorkloadShedderOnQueue extends WorkloadShedder {
     @Setter(AccessLevel.PACKAGE)
     private volatile long overloadedAtNs = 0;
 
-    WorkloadShedderOnQueue() {
+    WorkloadShedderOnQueue(String name) {
         super();
+        this.window = new SamplingWindow(System.nanoTime(), name);
     }
 
     @Override

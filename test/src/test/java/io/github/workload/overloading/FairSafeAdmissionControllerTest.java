@@ -1,6 +1,9 @@
 package io.github.workload.overloading;
 
+import io.github.workload.SystemLoadProvider;
 import org.junit.jupiter.api.Test;
+
+import java.util.concurrent.ThreadLocalRandom;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -27,6 +30,33 @@ class FairSafeAdmissionControllerTest {
         assertTrue(detector.isOverloaded(System.nanoTime()));
         Thread.sleep(1200); // 经过一个时间窗口
         assertFalse(detector.isOverloaded(System.nanoTime()));
+    }
+
+    @Test
+    void simulate() throws InterruptedException {
+        FairSafeAdmissionController mqController = (FairSafeAdmissionController) AdmissionController.getInstance("MQ");
+        FairSafeAdmissionController rpcController = (FairSafeAdmissionController) AdmissionController.getInstance("RPC");
+        FairSafeAdmissionController webController = (FairSafeAdmissionController) AdmissionController.getInstance("Web");
+        FairSafeAdmissionController.workloadShedderOnCpu.loadProvider = new RandomCpuLoadProvider();
+        for (int i = 0; i < 2001; i++) {
+            // 默认情况下，都放行：除非此时CPU已经高了
+            WorkloadPriority mq = WorkloadPrioritizer.randomMQ();
+            WorkloadPriority rpc = WorkloadPrioritizer.randomRpc();
+            WorkloadPriority web = WorkloadPrioritizer.randomWeb();
+
+            assertTrue(mqController.admit(mq));
+            assertTrue((rpcController.admit(rpc)));
+            assertTrue(webController.admit(web));
+        }
+
+    }
+
+    static class RandomCpuLoadProvider implements SystemLoadProvider {
+
+        @Override
+        public double cpuUsage() {
+            return ThreadLocalRandom.current().nextDouble(100);
+        }
     }
 
 }

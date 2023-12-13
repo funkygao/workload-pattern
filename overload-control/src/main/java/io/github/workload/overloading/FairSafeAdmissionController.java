@@ -5,6 +5,7 @@ import io.github.workload.annotations.VisibleForTesting;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -14,6 +15,10 @@ import java.util.concurrent.ConcurrentHashMap;
  * <li>fair: based on {@link WorkloadPriority}, i,e. QoS</li>
  * <li>safe: embedded JVM scope CPU overload shedding mechanism</li>
  * </ul>
+ * <ul>局限性，无法解决这类问题:
+ * <li>某个请求导致CPU瞬间从低暴涨到100%，例如某个bug导致死循环：shuffle sharding可以，但前提是区分出隔离维度</li>
+ * <li>只卸除新请求，已接受的请求(已经在执行，在{@link BlockingQueue}里等待执行)即使耗尽CPU也无法卸除</li>
+ * </ul>
  */
 @Slf4j
 @ThreadSafe
@@ -22,12 +27,13 @@ class FairSafeAdmissionController implements AdmissionController {
     final WorkloadShedderOnQueue workloadShedderOnQueue;
 
     // shared singleton in JVM
-    private static final WorkloadShedderOnCpu workloadShedderOnCpu = new WorkloadShedderOnCpu(CPU_USAGE_UPPER_BOUND);
+    @VisibleForTesting
+    static final WorkloadShedderOnCpu workloadShedderOnCpu = new WorkloadShedderOnCpu(CPU_USAGE_UPPER_BOUND);
 
     private static final ConcurrentHashMap<String, FairSafeAdmissionController> instances = new ConcurrentHashMap<>(8);
 
-    private FairSafeAdmissionController() {
-        this.workloadShedderOnQueue = new WorkloadShedderOnQueue();
+    private FairSafeAdmissionController(String name) {
+        this.workloadShedderOnQueue = new WorkloadShedderOnQueue(name);
     }
 
     static AdmissionController getInstance(@NonNull String kind) {
@@ -40,7 +46,7 @@ class FairSafeAdmissionController implements AdmissionController {
 
         return instances.computeIfAbsent(kind, key -> {
             log.info("register new kind: {}", kind);
-            return new FairSafeAdmissionController();
+            return new FairSafeAdmissionController(kind);
         });
     }
 

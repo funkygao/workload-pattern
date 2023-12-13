@@ -5,7 +5,7 @@ import lombok.NonNull;
 /**
  * 基于反馈控制原理的自适应式工作负载准入控制器.
  *
- * <p>Regulate incoming requests and shed excess workload.</p>
+ * <p>Regulate incoming requests and shed excess trivial workload.</p>
  * <p>Providing provision leverage effect，按照{@link WorkloadPriority}提高资源分时复用的利用率，降低整体资源成本</p>
  */
 public interface AdmissionController {

@@ -142,7 +142,7 @@ public class WorkloadPriority {
         UState us = uStates.compute(normalizedStableU, (key, presentValue) -> {
             if (presentValue == null || nowMs - presentValue.createdAtMs > timeWindowMs) {
                 int randomU = ThreadLocalRandom.current().nextInt(MAX_VALUE);
-                log.debug("b:{}, create random U:{} for uid:{}", b, randomU, uid);
+                log.trace("b:{}, create random U:{} for uid:{}", b, randomU, uid);
                 return new UState(randomU, nowMs);
             } else {
                 // log.debug("b:{} reuse U:{} for uid:{}", b, presentValue.U, uid);

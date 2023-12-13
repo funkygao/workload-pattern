@@ -3,7 +3,7 @@ package io.github.workload;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicInteger;
 
-class NamedThreadFactory implements ThreadFactory {
+public class NamedThreadFactory implements ThreadFactory {
     private final AtomicInteger threadCount = new AtomicInteger(1);
     private final ThreadGroup group;
     private final String namePrefix;

@@ -1,6 +1,8 @@
-package io.github.workload;
+package io.github.workload.overloading;
 
 import com.sun.management.OperatingSystemMXBean;
+import io.github.workload.NamedThreadFactory;
+import io.github.workload.SystemLoadProvider;
 import lombok.extern.slf4j.Slf4j;
 
 import java.lang.management.ManagementFactory;
@@ -24,14 +26,18 @@ import java.util.concurrent.TimeUnit;
  * @see <a href="https://cloud.tencent.com/developer/article/1760923">Sentinel在docker中获取CPU利用率的一个BUG</a>
  */
 @Slf4j
-public class SystemLoad {
+class SystemLoad implements SystemLoadProvider {
     private static SystemLoad singleton = new SystemLoad();
 
-    private double currentLoadAverage = -1;
-    private double currentCpuUsage = -1;
+    private volatile double currentLoadAverage = -1;
+    private volatile double currentCpuUsage = -1;
 
     private long processCpuTimeNs = 0; // 当前进程累计占用CPU时长
     private long processUpTimeMs = 0; // 当前进程累计运行时长
+
+    static SystemLoad getInstance() {
+        return singleton;
+    }
 
     private SystemLoad() {
         ScheduledExecutorService timer = Executors.newSingleThreadScheduledExecutor(new NamedThreadFactory(SystemLoad.class.getSimpleName()));
@@ -40,16 +46,12 @@ public class SystemLoad {
         }, 2, 1, TimeUnit.SECONDS);
     }
 
-    public static double loadAverage() {
+    static double loadAverage() {
         return singleton.currentLoadAverage;
     }
 
-    /**
-     * 最近的CPU利用率.
-     *
-     * <p>是指程序的CPU占用时间除以程序的运行时间</p>
-     */
-    public static double cpuUsage() {
+    @Override
+    public double cpuUsage() {
         return singleton.currentCpuUsage;
     }
 

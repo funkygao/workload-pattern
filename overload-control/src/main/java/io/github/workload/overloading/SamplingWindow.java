@@ -24,6 +24,8 @@ class SamplingWindow {
     @VisibleForTesting
     static final int DEFAULT_REQUEST_CYCLE = 2 << 10; // 2K
 
+    private final String name;
+
     /**
      * 时间周期.
      */
@@ -60,14 +62,15 @@ class SamplingWindow {
      */
     private ConcurrentSkipListMap<Integer, AtomicInteger> prioritizedRequestCounters = new ConcurrentSkipListMap<>();
 
-    SamplingWindow(long startNs) {
-        this(DEFAULT_TIME_CYCLE_NS, DEFAULT_REQUEST_CYCLE, startNs);
+    SamplingWindow(long startNs, String name) {
+        this(DEFAULT_TIME_CYCLE_NS, DEFAULT_REQUEST_CYCLE, startNs, name);
     }
 
-    private SamplingWindow(long timeCycleNs, int requestCycle, long startNs) {
+    private SamplingWindow(long timeCycleNs, int requestCycle, long startNs, String name) {
         this.timeCycleNs = timeCycleNs;
         this.requestCycle = requestCycle;
         this.startNs = startNs;
+        this.name = name;
     }
 
     @ThreadSafe
@@ -78,7 +81,7 @@ class SamplingWindow {
         }
 
         AtomicInteger counter = prioritizedRequestCounters.computeIfAbsent(workloadPriority.P(), key -> {
-            log.debug("sample for new P: {}", key);
+            log.debug("[{}] register counter for new P:{}, admitted:{}", name, key, admitted);
             return new AtomicInteger(0);
         });
         counter.incrementAndGet();
@@ -89,11 +92,13 @@ class SamplingWindow {
         accumulatedQueuedNs.addAndGet(waitingNs);
     }
 
+    @ThreadSafe
     boolean full(long nowNs) {
         return nowNs - startNs > timeCycleNs // 时间满足
                 || requestCounter.get() > requestCycle; // 请求数量满足
     }
 
+    @ThreadSafe
     int admitted() {
         return admittedCounter.get();
     }

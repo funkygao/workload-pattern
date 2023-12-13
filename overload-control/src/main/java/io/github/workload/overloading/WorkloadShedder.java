@@ -16,7 +16,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 @ThreadSafe
 abstract class WorkloadShedder {
     private final AdmissionLevel admissionLevel = AdmissionLevel.ofAdmitAll();
-    protected final SamplingWindow window = new SamplingWindow(System.nanoTime());
+    protected SamplingWindow window;
     private final WorkloadSheddingPolicy policy = new WorkloadSheddingPolicy();
     protected AtomicBoolean windowSwapLock = new AtomicBoolean(false);
 
