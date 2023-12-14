@@ -5,6 +5,7 @@ import io.github.workload.annotations.VisibleForTesting;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 
+import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -24,52 +25,52 @@ import java.util.concurrent.ConcurrentHashMap;
 @ThreadSafe
 class FairSafeAdmissionController implements AdmissionController {
     @VisibleForTesting
-    final WorkloadShedderOnQueue workloadShedderOnQueue;
+    final WorkloadShedderOnQueue shedderOnQueue;
 
     // shared singleton in JVM
     @VisibleForTesting
-    static final WorkloadShedderOnCpu workloadShedderOnCpu = new WorkloadShedderOnCpu(CPU_USAGE_UPPER_BOUND);
+    static final WorkloadShedderOnCpu shedderOnCpu = new WorkloadShedderOnCpu(CPU_USAGE_UPPER_BOUND);
 
-    private static final ConcurrentHashMap<String, FairSafeAdmissionController> instances = new ConcurrentHashMap<>(8);
+    private static final Map<String, FairSafeAdmissionController> instances = new ConcurrentHashMap<>(8);
 
     private FairSafeAdmissionController(String name) {
-        this.workloadShedderOnQueue = new WorkloadShedderOnQueue(name);
+        this.shedderOnQueue = new WorkloadShedderOnQueue(name);
     }
 
-    static AdmissionController getInstance(@NonNull String kind) {
+    static AdmissionController getInstance(@NonNull String name) {
         // https://github.com/apache/shardingsphere/pull/13275/files
         // https://bugs.openjdk.org/browse/JDK-8161372
-        AdmissionController instance = instances.get(kind);
+        AdmissionController instance = instances.get(name);
         if (instance != null) {
             return instance;
         }
 
-        return instances.computeIfAbsent(kind, key -> {
-            log.info("register new kind: {}", kind);
-            return new FairSafeAdmissionController(kind);
+        return instances.computeIfAbsent(name, key -> {
+            log.info("register new admission controller: {}", name);
+            return new FairSafeAdmissionController(name);
         });
     }
 
     @Override
     public boolean admit(@NonNull WorkloadPriority workloadPriority) {
         // 进程级准入，全局采样
-        if (!workloadShedderOnCpu.admit(workloadPriority)) {
+        if (!shedderOnCpu.admit(workloadPriority)) {
             log.debug("CPU overloaded, might reject {}", workloadPriority);
             return false;
         }
 
         // 具体类型的业务准入，局部采样
-        return workloadShedderOnQueue.admit(workloadPriority);
+        return shedderOnQueue.admit(workloadPriority);
     }
 
     @Override
     public void recordQueuedNs(long queuedNs) {
-        workloadShedderOnQueue.addWaitingNs(queuedNs);
+        shedderOnQueue.addWaitingNs(queuedNs);
     }
 
     @Override
     public void overloaded() {
-        workloadShedderOnQueue.setOverloadedAtNs(System.nanoTime());
+        shedderOnQueue.setOverloadedAtNs(System.nanoTime());
     }
 
 }

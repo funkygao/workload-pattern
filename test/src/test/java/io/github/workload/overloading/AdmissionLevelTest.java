@@ -31,5 +31,13 @@ class AdmissionLevelTest {
         assertTrue(level.admit(WorkloadPriority.of(1, 19)));
         assertFalse(level.admit(WorkloadPriority.of(5, 19)));
     }
+
+    @Test
+    void testToString() {
+        AdmissionLevel level = AdmissionLevel.ofAdmitAll();
+        assertEquals("AdmissionLevel(B=127,U=127;P=32639)", level.toString());
+        level.changeTo(WorkloadPriority.of(5, 9));
+        assertEquals("AdmissionLevel(B=5,U=9;P=1289)", level.toString());
+    }
 }
 

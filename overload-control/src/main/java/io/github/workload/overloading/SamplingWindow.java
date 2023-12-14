@@ -18,11 +18,17 @@ import java.util.concurrent.atomic.AtomicLong;
 @Slf4j
 class SamplingWindow {
     @VisibleForTesting
-    static final long NS_PER_MS =  TimeUnit.MILLISECONDS.toNanos(1);
+    static final long NS_PER_MS = TimeUnit.MILLISECONDS.toNanos(1);
+
     @VisibleForTesting
-    static final long DEFAULT_TIME_CYCLE_NS = TimeUnit.SECONDS.toNanos(1); // 1s
+    static final long DEFAULT_TIME_CYCLE_NS = System.getProperty("workload.window.DEFAULT_TIME_CYCLE_MS") != null ?
+            TimeUnit.MILLISECONDS.toNanos(Long.valueOf(System.getProperty("workload.window.DEFAULT_TIME_CYCLE_MS"))) :
+            TimeUnit.MILLISECONDS.toNanos(1000); // 1s
+
     @VisibleForTesting
-    static final int DEFAULT_REQUEST_CYCLE = 2 << 10; // 2K
+    static final int DEFAULT_REQUEST_CYCLE = System.getProperty("workload.window.DEFAULT_REQUEST_CYCLE") != null ?
+            Integer.valueOf(System.getProperty("workload.window.DEFAULT_REQUEST_CYCLE")) :
+            2 << 10; // 2K
 
     private final String name;
 
@@ -60,7 +66,7 @@ class SamplingWindow {
     /**
      * 各种优先级的请求数量分布.
      */
-    private ConcurrentSkipListMap<Integer, AtomicInteger> prioritizedRequestCounters = new ConcurrentSkipListMap<>();
+    private ConcurrentSkipListMap<Integer, AtomicInteger> histogram = new ConcurrentSkipListMap<>();
 
     SamplingWindow(long startNs, String name) {
         this(DEFAULT_TIME_CYCLE_NS, DEFAULT_REQUEST_CYCLE, startNs, name);
@@ -80,11 +86,11 @@ class SamplingWindow {
             admittedCounter.getAndIncrement();
         }
 
-        AtomicInteger counter = prioritizedRequestCounters.computeIfAbsent(workloadPriority.P(), key -> {
-            log.debug("[{}] register counter for new P:{}, admitted:{}", name, key, admitted);
+        AtomicInteger prioritizedCounter = histogram.computeIfAbsent(workloadPriority.P(), key -> {
+            log.debug("[{}] histogram for new P:{}, admitted:{}", name, key, admitted);
             return new AtomicInteger(0);
         });
-        counter.incrementAndGet();
+        prioritizedCounter.incrementAndGet();
     }
 
     @ThreadSafe
@@ -104,18 +110,18 @@ class SamplingWindow {
     }
 
     ConcurrentSkipListMap<Integer, AtomicInteger> histogram() {
-        return prioritizedRequestCounters;
+        return histogram;
     }
 
     @NotThreadSafe(serial = true)
     void restart(long nowNs) {
-        log.debug("restart {}", nowNs);
+        log.debug("[{}] restart after:{} ms, requests:{}", name, (nowNs - startNs) / NS_PER_MS, requestCounter.get());
 
         startNs = nowNs;
         requestCounter.set(0);
         admittedCounter.set(0);
         accumulatedQueuedNs.set(0);
-        prioritizedRequestCounters.clear();
+        histogram.clear();
     }
 
     long avgQueuedMs() {
@@ -126,5 +132,12 @@ class SamplingWindow {
         }
 
         return accumulatedQueuedNs.get() / (requests * NS_PER_MS);
+    }
+
+    @Override
+    public String toString() {
+        // FIXME ConcurrentSkipListMap.size not O(1)
+        return "Window(request=" + requestCounter.get() + ",admit=" + admittedCounter.get()
+                + ",counters:" + histogram.size() + ")";
     }
 }

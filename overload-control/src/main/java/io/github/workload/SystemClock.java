@@ -4,6 +4,7 @@ import io.github.workload.annotations.ThreadSafe;
 import io.github.workload.annotations.VisibleForTesting;
 import lombok.extern.slf4j.Slf4j;
 
+import java.util.Map;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Lock;
@@ -28,7 +29,7 @@ public class SystemClock {
     private final AtomicLong currentTimeMillis = new AtomicLong(System.currentTimeMillis());
 
     // key is precisionMs
-    private static final ConcurrentHashMap<Long, SystemClock> clocks = new ConcurrentHashMap<>();
+    private static final Map<Long, SystemClock> clocks = new ConcurrentHashMap<>();
     private static Lock clocksLock = new ReentrantLock();
 
     private static volatile ScheduledFuture<?> timerTask;

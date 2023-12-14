@@ -7,6 +7,7 @@ import lombok.AllArgsConstructor;
 import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
 
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
@@ -45,7 +46,7 @@ public class WorkloadPriority {
     private static final int MAX_P = ofLowestPriority().P(); // 32639
     private static final int U_BITS = 8;
 
-    private static ConcurrentHashMap<Integer, UState> uStates = new ConcurrentHashMap<>();
+    private static Map<Integer, UState> uStates = new ConcurrentHashMap<>();
 
     /**
      * 第一层准入机制，Business Use Case Layer Priority.

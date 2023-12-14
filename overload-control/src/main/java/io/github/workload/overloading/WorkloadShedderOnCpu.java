@@ -7,13 +7,14 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 class WorkloadShedderOnCpu extends WorkloadShedder {
     private final double cpuUsageUpperBound;
+
     @VisibleForTesting
     SystemLoadProvider loadProvider = SystemLoad.getInstance();
 
     WorkloadShedderOnCpu(double cpuUsageUpperBound) {
-        super();
-        this.window = new SamplingWindow(System.nanoTime(), "CPU");
+        super("CPU");
         this.cpuUsageUpperBound = cpuUsageUpperBound;
+        log.info("created with upper bound:{}", cpuUsageUpperBound);
     }
 
     @Override
@@ -25,4 +26,5 @@ class WorkloadShedderOnCpu extends WorkloadShedder {
         }
         return overloaded;
     }
+
 }

@@ -1,5 +1,6 @@
 package io.github.workload.overloading;
 
+import io.github.workload.annotations.ThreadSafe;
 import lombok.NonNull;
 
 /**
@@ -8,6 +9,7 @@ import lombok.NonNull;
  * <p>Regulate incoming requests and shed excess trivial workload.</p>
  * <p>Providing provision leverage effect，按照{@link WorkloadPriority}提高资源分时复用的利用率，降低整体资源成本</p>
  */
+@ThreadSafe
 public interface AdmissionController {
     double CPU_USAGE_UPPER_BOUND = 0.75; // 75%
 
@@ -16,8 +18,8 @@ public interface AdmissionController {
      *
      * <p>对于相同的类型，返回的是同一份实例：以类型为单位的单例.</p>
      */
-    static AdmissionController getInstance(@NonNull String kind) {
-        return FairSafeAdmissionController.getInstance(kind);
+    static AdmissionController getInstance(@NonNull String name) {
+        return FairSafeAdmissionController.getInstance(name);
     }
 
     /**

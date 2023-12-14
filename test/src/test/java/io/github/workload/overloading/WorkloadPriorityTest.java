@@ -63,7 +63,7 @@ class WorkloadPriorityTest {
 
         // 随机数来验证fromP解析出来的(B, U)在合法区间
         for (int i = 0; i < 1000; i++) {
-            TestingUtil.randomWorkloadPriority();
+            RandomUtil.randomWorkloadPriority();
         }
     }
 

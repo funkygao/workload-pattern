@@ -2,6 +2,7 @@ package io.github.workload.overloading;
 
 import io.github.workload.annotations.NotThreadSafe;
 import io.github.workload.annotations.ThreadSafe;
+import lombok.EqualsAndHashCode;
 import lombok.extern.slf4j.Slf4j;
 
 /**
@@ -38,6 +39,7 @@ import lombok.extern.slf4j.Slf4j;
  * </pre>
  */
 @Slf4j
+@EqualsAndHashCode
 class AdmissionLevel {
 
     /**
@@ -57,6 +59,7 @@ class AdmissionLevel {
         return new AdmissionLevel(WorkloadPriority.ofLowestPriority());
     }
 
+    // TODO immutable
     @NotThreadSafe(serial = true)
     void changeTo(WorkloadPriority priority) {
         int delta = priority.P() - this.P();
@@ -79,4 +82,10 @@ class AdmissionLevel {
     int P() {
         return breakwater.P();
     }
+
+    @Override
+    public String toString() {
+        return "AdmissionLevel(B=" + breakwater.B() + ",U=" + breakwater.U() + ";P=" + breakwater.P() + ")";
+    }
+
 }
