@@ -129,6 +129,7 @@ public class WorkloadPriority {
      * <p>a 14-bit integer</p>
      * <p>可以使用该值进行序列化传递，并通过{@link #fromP(int)}反序列化</p>
      */
+    @ToString.Include
     public int P() {
         // +--------+--------+
         // |  B(8)  |  U(8)  |

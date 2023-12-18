@@ -70,7 +70,7 @@ class FairSafeAdmissionController implements AdmissionController {
 
     @Override
     public void overloaded() {
-        shedderOnQueue.setOverloadedAtNs(System.nanoTime());
+        shedderOnQueue.overload(System.nanoTime());
     }
 
 }

@@ -8,6 +8,7 @@ import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.Iterator;
+import java.util.Map;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -74,7 +75,6 @@ abstract class WorkloadShedder {
     // 当过载时，通过消减下一个周期的请求量来减轻负载
     @NotThreadSafe(serial = true)
     private void adaptAdmissionLevel(boolean overloaded) {
-        log.trace("[{}] {}, {}", name, window, admissionLevel);
         if (overloaded) {
             dropMore();
         } else {
@@ -83,48 +83,67 @@ abstract class WorkloadShedder {
     }
 
     private void dropMore() {
-        int admittedLastCycle = window.admitted(); // 上个窗口
-        // 把下一个窗口的 admitted requests 下降到当前窗口的 (1 - dropRate)%
-        int toAdmitNextCycle = (int) (1 - policy.getDropRate()) * admittedLastCycle;
-        // 当前窗口准入请求=100，下一个窗口准入=95，当前P=14
-        // 当前窗口histogram：{2:3, 3:1, 8:20, 14*:3, 20:40}
-        // 调整过程：descendingKeySet => [14, 8, 3, 2]，对应的counter：[3, 20, 1, 3]
-        // 100 - 3 = 97
-        // 97 - 20 = 77 < 95, P=8：准入等级P由14调整到8
-        ConcurrentSkipListMap<Integer, AtomicInteger> histogram = window.histogram();
-        for (Integer P : histogram.headMap(admissionLevel.P(), true).descendingKeySet()) { // 优先级越高在keySet越靠前
-            admittedLastCycle -= histogram.get(P).intValue();
-            if (admittedLastCycle <= toAdmitNextCycle) {
-                // TODO avoid sudden drop, sensitivity，而且至少要保证50%
-                admissionLevel.changeTo(WorkloadPriority.fromP(P));
+        // 如果上个周期的准入请求非常少，那么 expectedDropNextCycle 可能为0
+        final int expectedDropNextCycle = (int) (policy.getDropRate() * window.admitted());
+        final ConcurrentSkipListMap<Integer, AtomicInteger> histogram = window.histogram();
+        int accumulatedDrop = 0;
+        final Iterator<Integer> descendingP = histogram.headMap(admissionLevel.P(), true).descendingKeySet().iterator();
+        while (descendingP.hasNext()) {
+            // TODO inclusive logic
+            final int P = descendingP.next();
+            final int admittedLastCycle = histogram.get(P).get();
+            accumulatedDrop += admittedLastCycle;
+            if (log.isDebugEnabled()) {
+                log.debug("[{}] drop plan(P:{} N:{}), last admitted:{}, expected:{}, accumulated:{}",
+                        name, P, admittedLastCycle, window.admitted(), expectedDropNextCycle, accumulatedDrop);
+            }
+
+            if (accumulatedDrop >= expectedDropNextCycle) {
+                // FIXME level 应该是下一个 level
+                if (accumulatedDrop - expectedDropNextCycle > 100) {
+                    // 抛弃太多了，可能误伤
+                }
+                final WorkloadPriority target = WorkloadPriority.fromP(P);
+                log.warn("[{}] dropping more(expected:{}, accumulated:{}), admitted:{}, {} -> {}", name, expectedDropNextCycle, accumulatedDrop, window.admitted(), admissionLevel, target);
+                admissionLevel.changeTo(target);
                 return;
             }
+
+            if (!descendingP.hasNext()) {
+                // head of histogram, we should never drop all
+                log.warn("[{}] HEAD ALREADY", name);
+            }
         }
+
+        // already at head of histogram
+        log.warn("[{}] haha, already head", name);
         // TODO edge case，还不够扣呢
     }
 
     private void admitMore() {
         if (ADMIT_ALL_P == admissionLevel.P()) {
-            log.trace("[{}] cannot admit more", name);
             return;
         }
 
-        final int expectedExtraNextCycle = (int) (policy.getRecoverRate() * window.admitted());
-        ConcurrentSkipListMap<Integer, AtomicInteger> histogram = window.histogram();
-        int accumulatedExtra = 0;
-        Iterator<Integer> iterator = histogram.tailMap(admissionLevel.P()).keySet().iterator();
-        while (iterator.hasNext()) {
-            Integer P = iterator.next();
-            final int droppedLastCycle = histogram.get(P).intValue();
-            accumulatedExtra += droppedLastCycle;
-            if (accumulatedExtra >= expectedExtraNextCycle) {
-                WorkloadPriority target = WorkloadPriority.fromP(P);
-                log.warn("[{}] expected extra:{}, {} -> {}", name, expectedExtraNextCycle, admissionLevel, target);
+        final int expectedAddNextCycle = (int) (policy.getRecoverRate() * window.admitted());
+        int accumulatedAdd = 0;
+        // entrySet is in ascending order
+        final Iterator<Map.Entry<Integer, AtomicInteger>> ascendingP = window.histogram().tailMap(admissionLevel.P()).entrySet().iterator();
+        while (ascendingP.hasNext()) {
+            final Map.Entry<Integer, AtomicInteger> entry = ascendingP.next();
+            final int P = entry.getKey();
+            final int droppedLastCycle = entry.getValue().get();
+            accumulatedAdd += droppedLastCycle;
+            log.debug("[{}] admit plan(P:{} N:{}), expected:{}, accumulated:{}", name, P, droppedLastCycle, expectedAddNextCycle, accumulatedAdd);
+
+            if (accumulatedAdd >= expectedAddNextCycle) {
+                final WorkloadPriority target = WorkloadPriority.fromP(P);
+                log.warn("[{}] admitting more(expected:{}, accumulated:{}), {} -> {}", name, expectedAddNextCycle, accumulatedAdd, admissionLevel, target);
                 admissionLevel.changeTo(target);
                 return;
             }
 
-            if (!iterator.hasNext()) {
+            if (!ascendingP.hasNext()) {
                 log.warn("[{}] tail reached but still not enough for admit more: happy to admit all", name);
                 admissionLevel.changeTo(WorkloadPriority.ofLowestPriority());
                 return;

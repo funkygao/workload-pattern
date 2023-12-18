@@ -87,7 +87,7 @@ class SamplingWindow {
         }
 
         AtomicInteger prioritizedCounter = histogram.computeIfAbsent(workloadPriority.P(), key -> {
-            log.debug("[{}] histogram for new P:{}, admitted:{}", name, key, admitted);
+            log.trace("[{}] histogram for new P:{}, admitted:{}", name, key, admitted);
             return new AtomicInteger(0);
         });
         prioritizedCounter.incrementAndGet();

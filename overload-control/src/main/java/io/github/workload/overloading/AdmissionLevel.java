@@ -3,7 +3,6 @@ package io.github.workload.overloading;
 import io.github.workload.annotations.NotThreadSafe;
 import io.github.workload.annotations.ThreadSafe;
 import lombok.EqualsAndHashCode;
-import lombok.extern.slf4j.Slf4j;
 
 /**
  * 准入等级水位线.
@@ -38,7 +37,6 @@ import lombok.extern.slf4j.Slf4j;
  * 移动该游标，向左意味着负载加剧，向右意味着负载减轻
  * </pre>
  */
-@Slf4j
 @EqualsAndHashCode
 class AdmissionLevel {
 
@@ -67,7 +65,6 @@ class AdmissionLevel {
             return;
         }
 
-        log.warn("changed to admit {}: {} -> {}", delta > 0 ? "more" : "less", this.breakwater, priority);
         this.breakwater = priority;
     }
 

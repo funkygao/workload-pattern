@@ -1,8 +1,8 @@
 package io.github.workload.overloading;
 
-import lombok.AccessLevel;
-import lombok.Setter;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 class WorkloadShedderOnQueue extends WorkloadShedder {
 
     /**
@@ -15,7 +15,6 @@ class WorkloadShedderOnQueue extends WorkloadShedder {
     /**
      * 最近一次显式过载的时间.
      */
-    @Setter(AccessLevel.PACKAGE)
     private volatile long overloadedAtNs = 0;
 
     WorkloadShedderOnQueue(String name) {
@@ -35,6 +34,11 @@ class WorkloadShedderOnQueue extends WorkloadShedder {
         }
 
         window.sampleWaitingNs(waitingNs);
+    }
+
+    void overload(long overloadedAtNs) {
+        log.trace("[{}] got explicit overload event", name);
+        this.overloadedAtNs = overloadedAtNs;
     }
 
 }

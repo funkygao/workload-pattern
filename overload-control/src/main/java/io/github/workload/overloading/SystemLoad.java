@@ -82,6 +82,7 @@ class SystemLoad implements SystemLoadProvider {
         processUpTimeMs = newProcessUpTime;
         currentCpuUsage = Math.max(processCpuUsage, systemCpuUsage);
 
+        // FIXME NaN
         log.debug("cpuUsage:{}, loadAvg:{}, cpuCores:{}, getSystemLoadAverage:{}, getSystemCpuLoad:{}, getProcessCpuTime:{}ms, processUpTime:{}ms",
                 cpuUsage(),
                 loadAverage(),

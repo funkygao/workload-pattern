@@ -15,4 +15,8 @@ class RandomUtil {
 
         return false;
     }
+
+    static boolean randomBoolean(int possibilityThousandth) {
+        return ThreadLocalRandom.current().nextInt(1000) <= possibilityThousandth;
+    }
 }
