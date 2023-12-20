@@ -69,7 +69,7 @@ public class SystemClock {
         clocksLock.lock();
         try {
             return clocks.computeIfAbsent(precisionMs, key -> {
-                log.info("register new precision: {}ms", key);
+                log.info("register new clock, precision:{}ms", key);
                 rescheduleTimerIfNec(key);
                 return new SystemClock(key);
             });
@@ -102,10 +102,10 @@ public class SystemClock {
             }
 
             if (timerTask != null) {
-                log.info("reschedule timer: {}ms -> {}ms", minPrecisionMs, precisionMs);
+                log.info("reschedule timer: {} -> {}ms", minPrecisionMs, precisionMs);
                 timerTask.cancel(true);
             } else {
-                log.info("schedule first timer, interval: {}ms", precisionMs);
+                log.info("schedule first timer, interval:{}ms", precisionMs);
             }
             minPrecisionMs = precisionMs;
             timerTask = precisestClockUpdater.scheduleAtFixedRate(() -> {

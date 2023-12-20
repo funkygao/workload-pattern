@@ -41,9 +41,8 @@ class SystemLoad implements SystemLoadProvider {
 
     private SystemLoad() {
         ScheduledExecutorService timer = Executors.newSingleThreadScheduledExecutor(new NamedThreadFactory(SystemLoad.class.getSimpleName()));
-        timer.scheduleAtFixedRate(() -> {
-            compute();
-        }, 2, 1, TimeUnit.SECONDS);
+        // FIXME JVM启动时 CPU会彪高，排除该干扰
+        timer.scheduleAtFixedRate(() -> compute(), 2, 1, TimeUnit.SECONDS);
     }
 
     static double loadAverage() {
@@ -77,19 +76,25 @@ class SystemLoad implements SystemLoadProvider {
         long processCpuTimeDiffInMs = TimeUnit.NANOSECONDS
                 .toMillis(newProcessCpuTime - processCpuTimeNs);
         long processUpTimeDiffInMs = newProcessUpTime - processUpTimeMs;
-        double processCpuUsage = (double) processCpuTimeDiffInMs / processUpTimeDiffInMs / cpuCores;
+        if (processUpTimeDiffInMs > 0) {
+            // it should never be 0, but for safety, we check it
+            double processCpuUsage = (double) processCpuTimeDiffInMs / processUpTimeDiffInMs / cpuCores;
+            currentCpuUsage = Math.max(processCpuUsage, systemCpuUsage);
+        }
+
         processCpuTimeNs = newProcessCpuTime;
         processUpTimeMs = newProcessUpTime;
-        currentCpuUsage = Math.max(processCpuUsage, systemCpuUsage);
 
         // FIXME NaN
-        log.debug("cpuUsage:{}, loadAvg:{}, cpuCores:{}, getSystemLoadAverage:{}, getSystemCpuLoad:{}, getProcessCpuTime:{}ms, processUpTime:{}ms",
-                cpuUsage(),
-                loadAverage(),
-                cpuCores,
-                currentLoadAverage,
-                systemCpuUsage,
-                processCpuTimeNs / 1000_000, // ns -> ms
-                processUpTimeMs);
+        if (log.isDebugEnabled()) {
+            log.debug("cpuUsage:{}, loadAvg:{}, cpuCores:{}, getSystemLoadAverage:{}, getSystemCpuLoad:{}, getProcessCpuTime:{}ms, processUpTime:{}ms",
+                    cpuUsage(),
+                    loadAverage(),
+                    cpuCores,
+                    currentLoadAverage,
+                    systemCpuUsage,
+                    processCpuTimeNs / 1000_000, // ns -> ms
+                    processUpTimeMs);
+        }
     }
 }

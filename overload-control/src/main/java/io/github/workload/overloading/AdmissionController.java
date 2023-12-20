@@ -33,16 +33,10 @@ public interface AdmissionController {
     boolean admit(@NonNull WorkloadPriority priority);
 
     /**
-     * 直接进入过载状态：显式过载反馈.
+     * Feedback of workload.
      *
-     * TODO rename
+     * @param feedback 反馈
      */
-    void overloaded();
+    void feedback(WorkloadFeedback feedback);
 
-    /**
-     * 汇报工作负荷的排队时长：隐式过载检测.
-     *
-     * TODO rename
-     */
-    void recordQueuedNs(long queuedNs);
 }

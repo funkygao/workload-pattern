@@ -2,8 +2,7 @@ package io.github.workload.overloading;
 
 import io.github.workload.annotations.NotThreadSafe;
 import io.github.workload.annotations.ThreadSafe;
-import lombok.AccessLevel;
-import lombok.Getter;
+import io.github.workload.annotations.VisibleForTesting;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 
@@ -21,11 +20,11 @@ import java.util.concurrent.atomic.AtomicInteger;
 abstract class WorkloadShedder {
     private static final int ADMIT_ALL_P = AdmissionLevel.ofAdmitAll().P();
 
-    @Getter(AccessLevel.PACKAGE)
-    private final AdmissionLevel admissionLevel = AdmissionLevel.ofAdmitAll();
+    private volatile AdmissionLevel admissionLevel = AdmissionLevel.ofAdmitAll();
     protected SamplingWindow window;
     protected final String name;
-    private final WorkloadSheddingPolicy policy = new WorkloadSheddingPolicy();
+    @VisibleForTesting
+    final WorkloadSheddingPolicy policy = new WorkloadSheddingPolicy();
     protected AtomicBoolean windowSwapLock = new AtomicBoolean(false);
 
     protected abstract boolean isOverloaded(long nowNs);
@@ -42,21 +41,26 @@ abstract class WorkloadShedder {
         return admitted;
     }
 
+    @VisibleForTesting
+    AdmissionLevel admissionLevel() {
+        return admissionLevel;
+    }
+
     @ThreadSafe
     private void advanceWindow(long nowNs, WorkloadPriority workloadPriority, boolean admitted) {
-        window.sample(workloadPriority, admitted);
         if (window.full(nowNs)) {
             if (!windowSwapLock.compareAndSet(false, true)) {
                 return;
             }
 
             try {
-                log.trace("swap window ...");
                 swapWindow(nowNs);
             } finally {
                 windowSwapLock.set(false);
             }
         }
+
+        window.sample(workloadPriority, admitted);
     }
 
     @NotThreadSafe(serial = true)
@@ -74,7 +78,8 @@ abstract class WorkloadShedder {
     // 服务器上维护者目前准入优先级下，过去一个周期的每个优先级的请求量
     // 当过载时，通过消减下一个周期的请求量来减轻负载
     @NotThreadSafe(serial = true)
-    private void adaptAdmissionLevel(boolean overloaded) {
+    @VisibleForTesting
+    void adaptAdmissionLevel(boolean overloaded) {
         if (overloaded) {
             dropMore();
         } else {
@@ -94,18 +99,20 @@ abstract class WorkloadShedder {
             final int admittedLastCycle = histogram.get(P).get();
             accumulatedDrop += admittedLastCycle;
             if (log.isDebugEnabled()) {
-                log.debug("[{}] drop plan(P:{} N:{}), last admitted:{}, expected:{}, accumulated:{}",
-                        name, P, admittedLastCycle, window.admitted(), expectedDropNextCycle, accumulatedDrop);
+                log.debug("[{}] drop plan(P:{} admitted:{}), last window admitted:{}, accumulated:{}/{}",
+                        name, P, admittedLastCycle, window.admitted(), accumulatedDrop, expectedDropNextCycle);
             }
 
             if (accumulatedDrop >= expectedDropNextCycle) {
+                // TODO if expectedDropNextCycle is 0? drop the admitted lowest priority
                 // FIXME level 应该是下一个 level
+                // FIXME AdmissionLevel(B=20,U=122;P=5242) -> WorkloadPriority(B=20, U=122, P=5242)
                 if (accumulatedDrop - expectedDropNextCycle > 100) {
                     // 抛弃太多了，可能误伤
                 }
                 final WorkloadPriority target = WorkloadPriority.fromP(P);
-                log.warn("[{}] dropping more(expected:{}, accumulated:{}), admitted:{}, {} -> {}", name, expectedDropNextCycle, accumulatedDrop, window.admitted(), admissionLevel, target);
-                admissionLevel.changeTo(target);
+                log.warn("[{}] dropping more({}/{}), last window admitted:{}, {} -> {}", name, accumulatedDrop, expectedDropNextCycle, window.admitted(), admissionLevel, target);
+                admissionLevel = admissionLevel.changeTo(target);
                 return;
             }
 
@@ -116,7 +123,7 @@ abstract class WorkloadShedder {
         }
 
         // already at head of histogram
-        log.warn("[{}] haha, already head", name);
+        log.warn("[{}] already head", name);
         // TODO edge case，还不够扣呢
     }
 
@@ -134,23 +141,24 @@ abstract class WorkloadShedder {
             final int P = entry.getKey();
             final int droppedLastCycle = entry.getValue().get();
             accumulatedAdd += droppedLastCycle;
-            log.debug("[{}] admit plan(P:{} N:{}), expected:{}, accumulated:{}", name, P, droppedLastCycle, expectedAddNextCycle, accumulatedAdd);
+            log.debug("[{}] admit plan(P:{} dropped:{}), accumulated:{}/{}", name, P, droppedLastCycle, accumulatedAdd, expectedAddNextCycle);
 
             if (accumulatedAdd >= expectedAddNextCycle) {
                 final WorkloadPriority target = WorkloadPriority.fromP(P);
-                log.warn("[{}] admitting more(expected:{}, accumulated:{}), {} -> {}", name, expectedAddNextCycle, accumulatedAdd, admissionLevel, target);
-                admissionLevel.changeTo(target);
+                log.warn("[{}] admitting more({}/{}), {} -> {}", name, accumulatedAdd, expectedAddNextCycle, admissionLevel, target);
+                admissionLevel = admissionLevel.changeTo(target);
                 return;
             }
 
             if (!ascendingP.hasNext()) {
                 log.warn("[{}] tail reached but still not enough for admit more: happy to admit all", name);
-                admissionLevel.changeTo(WorkloadPriority.ofLowestPriority());
+                admissionLevel = AdmissionLevel.ofAdmitAll();
                 return;
             }
         }
 
         // already at tail of histogram
+        log.debug("[{}] already at histogram tail", name);
     }
 
 }

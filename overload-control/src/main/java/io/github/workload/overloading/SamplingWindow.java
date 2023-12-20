@@ -101,7 +101,7 @@ class SamplingWindow {
     @ThreadSafe
     boolean full(long nowNs) {
         return nowNs - startNs > timeCycleNs // 时间满足
-                || requestCounter.get() > requestCycle; // 请求数量满足
+                || requestCounter.get() >= requestCycle; // 请求数量满足
     }
 
     @ThreadSafe
@@ -115,7 +115,9 @@ class SamplingWindow {
 
     @NotThreadSafe(serial = true)
     void restart(long nowNs) {
-        log.debug("[{}] restart after:{} ms, requests:{}", name, (nowNs - startNs) / NS_PER_MS, requestCounter.get());
+        if (log.isDebugEnabled()) {
+            log.debug("[{}] restart after:{} ms, requests:{}", name, (nowNs - startNs) / NS_PER_MS, requestCounter.get());
+        }
 
         startNs = nowNs;
         requestCounter.set(0);

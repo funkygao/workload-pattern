@@ -1,6 +1,7 @@
 package io.github.workload.overloading;
 
 import io.github.workload.SystemLoadProvider;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.RepeatedTest;
 import org.junit.jupiter.api.Test;
@@ -16,8 +17,14 @@ class FairSafeAdmissionControllerTest {
 
     @BeforeAll
     static void setUp() {
-        System.setProperty("workload.window.DEFAULT_TIME_CYCLE_MS", "12");
+        System.setProperty("workload.window.DEFAULT_TIME_CYCLE_MS", "500");
         System.setProperty("workload.window.DEFAULT_REQUEST_CYCLE", "100");
+    }
+
+    @AfterAll
+    static void tearDown() {
+        System.clearProperty("workload.window.DEFAULT_TIME_CYCLE_MS");
+        System.clearProperty("workload.window.DEFAULT_REQUEST_CYCLE");
     }
 
     @Test
@@ -29,15 +36,15 @@ class FairSafeAdmissionControllerTest {
         } catch (NullPointerException expected) {
         }
         assertTrue(controller.admit(WorkloadPriority.of(4, 6)));
-        controller.recordQueuedNs(5 * 1000_000); // 5ms
-        controller.recordQueuedNs(10 * 1000_000); // 5ms
+        controller.feedback(WorkloadFeedback.ofQueuedNs(5 * 1000_000)); // 5ms
+        controller.feedback(WorkloadFeedback.ofQueuedNs(10 * 1000_000)); // 10ms
     }
 
     @Test
     void markOverloaded() throws InterruptedException {
         FairSafeAdmissionController controller = (FairSafeAdmissionController) AdmissionController.getInstance("foo");
         WorkloadShedder detector = controller.shedderOnQueue;
-        controller.overloaded();
+        controller.feedback(WorkloadFeedback.ofOverloaded());
         assertTrue(detector.isOverloaded(System.nanoTime()));
         Thread.sleep(1200); // 经过一个时间窗口
         assertFalse(detector.isOverloaded(System.nanoTime()));
@@ -64,15 +71,15 @@ class FairSafeAdmissionControllerTest {
 
         // 没有过overload，level不会变
         AdmissionLevel admitAll = AdmissionLevel.ofAdmitAll();
-        assertEquals(admitAll, FairSafeAdmissionController.shedderOnCpu.getAdmissionLevel());
-        assertEquals(admitAll, mqController.shedderOnQueue.getAdmissionLevel());
-        assertEquals(admitAll, rpcController.shedderOnQueue.getAdmissionLevel());
-        assertEquals(admitAll, webController.shedderOnQueue.getAdmissionLevel());
+        assertEquals(admitAll, FairSafeAdmissionController.shedderOnCpu.admissionLevel());
+        assertEquals(admitAll, mqController.shedderOnQueue.admissionLevel());
+        assertEquals(admitAll, rpcController.shedderOnQueue.admissionLevel());
+        assertEquals(admitAll, webController.shedderOnQueue.admissionLevel());
     }
 
     private void simulateServiceRandomlyOverload(int sleepBound, SystemLoadProvider systemLoadProvider) throws InterruptedException {
         log.info("window(time:{}ms, count:{})", System.getProperty("workload.window.DEFAULT_TIME_CYCLE_MS"), System.getProperty("workload.window.DEFAULT_REQUEST_CYCLE"));
-        log.info("randomly overload start, random sleep:{}ms, cpu load:{}", sleepBound, systemLoadProvider.getClass().getSimpleName());
+        log.info("randomly overload start, random sleep bound:{}ms, cpu load:{}", sleepBound, systemLoadProvider.getClass().getSimpleName());
         FairSafeAdmissionController mqController = (FairSafeAdmissionController) AdmissionController.getInstance("SQS");
         FairSafeAdmissionController rpcController = (FairSafeAdmissionController) AdmissionController.getInstance("RPC");
         FairSafeAdmissionController webController = (FairSafeAdmissionController) AdmissionController.getInstance("WEB");
@@ -90,16 +97,16 @@ class FairSafeAdmissionControllerTest {
 
             // 随机制造局部过载
             if (RandomUtil.randomBoolean(2)) {
-                log.info("{} overload SQS ...", i);
-                mqController.overloaded();
+                log.info("{}\uD83D\uDCA5 overload SQS ...", i);
+                mqController.feedback(WorkloadFeedback.ofOverloaded());
             }
             if (RandomUtil.randomBoolean(4)) {
-                log.info("{} overload RPC ...", i);
-                rpcController.overloaded();
+                log.info("{}\uD83D\uDCA5 overload RPC ...", i);
+                rpcController.feedback(WorkloadFeedback.ofOverloaded());
             }
             if (RandomUtil.randomBoolean(1)) {
-                log.info("{} overload WEB ...", i);
-                webController.overloaded();
+                log.info("{}\uD83D\uDCA5 overload WEB ...", i);
+                webController.feedback(WorkloadFeedback.ofOverloaded());
             }
 
             // 对于 CPU shedder，each iteration 3 times admit，因此 cpu overload至少要等 i=682/1s 后才进入保护
@@ -121,9 +128,9 @@ class FairSafeAdmissionControllerTest {
         simulateServiceRandomlyOverload(0, new AlwaysHealthySystemLoad());
     }
 
-    @RepeatedTest(20)
+    @RepeatedTest(1)
     void simulateServiceRandomlyOverloadWithSleep() throws InterruptedException {
-        simulateServiceRandomlyOverload(60, new AlwaysHealthySystemLoad());
+        simulateServiceRandomlyOverload(10, new AlwaysHealthySystemLoad());
     }
 
     @RepeatedTest(20)

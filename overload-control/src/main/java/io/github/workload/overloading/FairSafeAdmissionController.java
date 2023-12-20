@@ -46,7 +46,7 @@ class FairSafeAdmissionController implements AdmissionController {
         }
 
         return instances.computeIfAbsent(name, key -> {
-            log.info("register new admission controller: {}", name);
+            log.info("register new admission controller:{}", name);
             return new FairSafeAdmissionController(name);
         });
     }
@@ -64,13 +64,15 @@ class FairSafeAdmissionController implements AdmissionController {
     }
 
     @Override
-    public void recordQueuedNs(long queuedNs) {
-        shedderOnQueue.addWaitingNs(queuedNs);
-    }
+    public void feedback(WorkloadFeedback feedback) {
+        if (feedback instanceof WorkloadFeedbackOverloaded) {
+            shedderOnQueue.overload(((WorkloadFeedbackOverloaded) feedback).getOverloadedAtNs());
+            return;
+        }
 
-    @Override
-    public void overloaded() {
-        shedderOnQueue.overload(System.nanoTime());
+        if (feedback instanceof WorkloadFeedbackQueued) {
+            shedderOnQueue.addWaitingNs(((WorkloadFeedbackQueued) feedback).getQueuedNs());
+        }
     }
 
 }

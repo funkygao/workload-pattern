@@ -1,6 +1,6 @@
 package io.github.workload.overloading;
 
-import io.github.workload.annotations.NotThreadSafe;
+import io.github.workload.annotations.Immutable;
 import io.github.workload.annotations.ThreadSafe;
 import lombok.EqualsAndHashCode;
 
@@ -38,6 +38,7 @@ import lombok.EqualsAndHashCode;
  * </pre>
  */
 @EqualsAndHashCode
+@Immutable
 class AdmissionLevel {
 
     /**
@@ -46,7 +47,7 @@ class AdmissionLevel {
      * <p>优先级低于门槛值的请求都应该拒绝.</p>
      */
     @ThreadSafe("一个线程写，多个线程并发读")
-    private volatile WorkloadPriority breakwater;
+    private final WorkloadPriority breakwater;
 
     private AdmissionLevel(WorkloadPriority breakwater) {
         this.breakwater = breakwater;
@@ -57,20 +58,18 @@ class AdmissionLevel {
         return new AdmissionLevel(WorkloadPriority.ofLowestPriority());
     }
 
-    // TODO immutable
-    @NotThreadSafe(serial = true)
-    void changeTo(WorkloadPriority priority) {
+    AdmissionLevel changeTo(WorkloadPriority priority) {
         int delta = priority.P() - this.P();
         if (delta == 0) {
-            return;
+            return this;
         }
 
-        this.breakwater = priority;
+        return new AdmissionLevel(priority);
     }
 
     @ThreadSafe
     boolean admit(WorkloadPriority workloadPriority) {
-        return workloadPriority.P() <= this.breakwater.P();
+        return workloadPriority.P() <= this.P();
     }
 
     /**
