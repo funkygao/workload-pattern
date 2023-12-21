@@ -57,7 +57,7 @@ class FairSafeAdmissionControllerTest {
         FairSafeAdmissionController rpcController = (FairSafeAdmissionController) AdmissionController.getInstance("RPC");
         FairSafeAdmissionController webController = (FairSafeAdmissionController) AdmissionController.getInstance("Web");
         FairSafeAdmissionController.shedderOnCpu.loadProvider = new AlwaysHealthySystemLoad();
-        for (int i = 0; i < SamplingWindow.DEFAULT_REQUEST_CYCLE + 1; i++) {
+        for (int i = 0; i < TumblingSampleWindow.DEFAULT_REQUEST_CYCLE + 1; i++) {
             log.info("loop: {}", i + 1);
             // 默认情况下，都放行：除非此时CPU已经高了
             WorkloadPriority mq = WorkloadPrioritizer.randomMQ();
@@ -84,7 +84,7 @@ class FairSafeAdmissionControllerTest {
         FairSafeAdmissionController rpcController = (FairSafeAdmissionController) AdmissionController.getInstance("RPC");
         FairSafeAdmissionController webController = (FairSafeAdmissionController) AdmissionController.getInstance("WEB");
         FairSafeAdmissionController.shedderOnCpu.loadProvider = systemLoadProvider;
-        int loops = SamplingWindow.DEFAULT_REQUEST_CYCLE * 5;
+        int loops = TumblingSampleWindow.DEFAULT_REQUEST_CYCLE * 5;
         for (int i = 0; i < loops; i++) {
             WorkloadPriority mq = WorkloadPrioritizer.randomMQ();
             WorkloadPriority rpc = WorkloadPrioritizer.randomRpc();

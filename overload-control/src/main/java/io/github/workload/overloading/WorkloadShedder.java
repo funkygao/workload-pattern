@@ -21,7 +21,7 @@ abstract class WorkloadShedder {
     private static final int ADMIT_ALL_P = AdmissionLevel.ofAdmitAll().P();
 
     private volatile AdmissionLevel admissionLevel = AdmissionLevel.ofAdmitAll();
-    protected SamplingWindow window;
+    protected TumblingSampleWindow window;
     protected final String name;
     @VisibleForTesting
     final WorkloadSheddingPolicy policy = new WorkloadSheddingPolicy();
@@ -31,7 +31,7 @@ abstract class WorkloadShedder {
 
     protected WorkloadShedder(String name) {
         this.name = name;
-        this.window = new SamplingWindow(System.nanoTime(), name);
+        this.window = new TumblingSampleWindow(System.nanoTime(), name);
     }
 
     @ThreadSafe

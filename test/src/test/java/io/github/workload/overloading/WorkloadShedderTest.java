@@ -37,7 +37,7 @@ class WorkloadShedderTest {
             // 每个P发一个请求
             assertTrue(shedder.admit(WorkloadPriority.fromP(P)));
         }
-        final int expectedAdmittedLastWindow = initialP % SamplingWindow.DEFAULT_REQUEST_CYCLE;
+        final int expectedAdmittedLastWindow = initialP % TumblingSampleWindow.DEFAULT_REQUEST_CYCLE;
         assertEquals(expectedAdmittedLastWindow, shedder.window.admitted());
         // trigger overload
         shedder.adaptAdmissionLevel(true);

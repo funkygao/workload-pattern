@@ -16,7 +16,7 @@ import java.util.concurrent.atomic.AtomicLong;
  * 基于(时间周期，请求数量周期)的滚动窗口，用于对工作负荷采样.
  */
 @Slf4j
-class SamplingWindow {
+class TumblingSampleWindow {
     @VisibleForTesting
     static final long NS_PER_MS = TimeUnit.MILLISECONDS.toNanos(1);
 
@@ -68,11 +68,11 @@ class SamplingWindow {
      */
     private ConcurrentSkipListMap<Integer, AtomicInteger> histogram = new ConcurrentSkipListMap<>();
 
-    SamplingWindow(long startNs, String name) {
+    TumblingSampleWindow(long startNs, String name) {
         this(DEFAULT_TIME_CYCLE_NS, DEFAULT_REQUEST_CYCLE, startNs, name);
     }
 
-    private SamplingWindow(long timeCycleNs, int requestCycle, long startNs, String name) {
+    private TumblingSampleWindow(long timeCycleNs, int requestCycle, long startNs, String name) {
         this.timeCycleNs = timeCycleNs;
         this.requestCycle = requestCycle;
         this.startNs = startNs;

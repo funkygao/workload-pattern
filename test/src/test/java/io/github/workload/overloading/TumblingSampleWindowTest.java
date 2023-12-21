@@ -10,20 +10,20 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-class SamplingWindowTest {
-    private static final Logger log = LoggerFactory.getLogger(SamplingWindowTest.class);
+class TumblingSampleWindowTest {
+    private static final Logger log = LoggerFactory.getLogger(TumblingSampleWindowTest.class);
 
 
     @Test
     void timeUnitConversion() {
-        assertEquals(1_000_000, SamplingWindow.NS_PER_MS);
-        assertEquals(1_000_000_000, SamplingWindow.DEFAULT_TIME_CYCLE_NS);
+        assertEquals(1_000_000, TumblingSampleWindow.NS_PER_MS);
+        assertEquals(1_000_000_000, TumblingSampleWindow.DEFAULT_TIME_CYCLE_NS);
     }
 
     @RepeatedTest(20)
     void basic() throws InterruptedException {
         long nowNs = System.nanoTime();
-        SamplingWindow window = new SamplingWindow(nowNs, "");
+        TumblingSampleWindow window = new TumblingSampleWindow(nowNs, "");
         assertFalse(window.full(System.nanoTime()));
         for (int i = 0; i < 11; i++) {
             window.sample(WorkloadPriority.of(1, 2), true);
@@ -34,7 +34,7 @@ class SamplingWindowTest {
         assertFalse(window.full(System.nanoTime())); // 请求量满了
         assertEquals(11, window.admitted());
 
-        window = new SamplingWindow(nowNs, "");
+        window = new TumblingSampleWindow(nowNs, "");
         assertFalse(window.full(System.nanoTime()));
         Thread.sleep(2);
         for (int i = 0; i < 2049; i++) {
@@ -46,18 +46,18 @@ class SamplingWindowTest {
     @Test
     void timeFull() {
         long nowNs = System.nanoTime();
-        SamplingWindow window = new SamplingWindow(nowNs, "bar");
+        TumblingSampleWindow window = new TumblingSampleWindow(nowNs, "bar");
         long oneSecondMs = 1000;
-        assertFalse(window.full(nowNs + SamplingWindow.NS_PER_MS * oneSecondMs - 1));
-        assertFalse(window.full(nowNs + SamplingWindow.NS_PER_MS * oneSecondMs));
-        assertTrue(window.full(nowNs + SamplingWindow.NS_PER_MS * oneSecondMs + 1));
+        assertFalse(window.full(nowNs + TumblingSampleWindow.NS_PER_MS * oneSecondMs - 1));
+        assertFalse(window.full(nowNs + TumblingSampleWindow.NS_PER_MS * oneSecondMs));
+        assertTrue(window.full(nowNs + TumblingSampleWindow.NS_PER_MS * oneSecondMs + 1));
     }
 
     @Test
     void countFull() {
-        SamplingWindow window = new SamplingWindow(System.nanoTime(), "bar");
+        TumblingSampleWindow window = new TumblingSampleWindow(System.nanoTime(), "bar");
         assertFalse(window.full(System.nanoTime()));
-        for (int i = 0; i < SamplingWindow.DEFAULT_REQUEST_CYCLE; i++) {
+        for (int i = 0; i < TumblingSampleWindow.DEFAULT_REQUEST_CYCLE; i++) {
             window.sample(RandomUtil.randomWorkloadPriority(), RandomUtil.randomBoolean());
         }
         assertFalse(window.full(System.nanoTime()));
@@ -67,7 +67,7 @@ class SamplingWindowTest {
 
     @Test
     void histogram() {
-        SamplingWindow window = new SamplingWindow(System.nanoTime(), "foo");
+        TumblingSampleWindow window = new TumblingSampleWindow(System.nanoTime(), "foo");
         for (int i = 0; i < 100; i++) {
             WorkloadPriority priority = WorkloadPriority.of(i, 0);
             window.sample(priority, true);
@@ -87,7 +87,7 @@ class SamplingWindowTest {
 
     @Test
     void testToString() {
-        SamplingWindow window = new SamplingWindow(System.nanoTime(), "foo");
+        TumblingSampleWindow window = new TumblingSampleWindow(System.nanoTime(), "foo");
         assertEquals("Window(request=0,admit=0,counters:0)", window.toString());
         for (int i = 0; i < 100; i++) {
             WorkloadPriority priority = WorkloadPriority.of(i, 0);
