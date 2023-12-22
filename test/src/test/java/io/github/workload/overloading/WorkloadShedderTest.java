@@ -62,6 +62,7 @@ class WorkloadShedderTest extends AbstractBaseTest {
 
     @RepeatedTest(10)
     void adaptAdmissionLevel_dropMore_unbalanced(TestInfo testInfo) throws InterruptedException {
+        //System.setProperty("workload.window.DEFAULT_TIME_CYCLE_MS", "50000000");
         FairSafeAdmissionController admissionController = (FairSafeAdmissionController) AdmissionController.getInstance("RPC");
         WorkloadShedder shedder = admissionController.shedderOnQueue;
         Map<Integer, Integer> P2Requests = ImmutableMap.of(
@@ -73,12 +74,10 @@ class WorkloadShedderTest extends AbstractBaseTest {
                 58, 123
         );
 
-        log.info("{}", testInfo.getDisplayName());
+        log.info("{} {}", testInfo.getDisplayName(), shedder);
 
         injectWorkloads(shedder, P2Requests);
         shedder.adaptAdmissionLevel(true);
-        //assertEquals(1990, shedder.window.admitted());
-        Thread.sleep(3000);
     }
 
     private void injectWorkloads(WorkloadShedder shedder, Map<Integer, Integer> P2Requests) {
@@ -87,7 +86,11 @@ class WorkloadShedderTest extends AbstractBaseTest {
             Collections.shuffle(priorities);
             for (int P : priorities) {
                 for (int request = 0; request < P2Requests.get(P); request++) {
-                    shedder.admit(WorkloadPriority.fromP(P));
+                    WorkloadPriority priority = WorkloadPriority.fromP(P);
+                    boolean admitted = shedder.admit(priority);
+                    if (!admitted) {
+                        log.trace("rejected: {}", priority);
+                    }
                 }
             }
         };

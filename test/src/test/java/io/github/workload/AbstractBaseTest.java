@@ -11,7 +11,7 @@ import java.util.concurrent.Executors;
 public abstract class AbstractBaseTest {
     protected final Logger log = LoggerFactory.getLogger(getClass());
 
-    protected static final int THREAD_COUNT = 7;
+    protected static final int THREAD_COUNT = 26;
     protected static final ExecutorService threadPool = Executors.newFixedThreadPool(THREAD_COUNT);
 
     @AfterAll

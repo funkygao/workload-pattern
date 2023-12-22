@@ -48,19 +48,25 @@ abstract class WorkloadShedder {
 
     @ThreadSafe
     private void advanceWindow(long nowNs, WorkloadPriority workloadPriority, boolean admitted) {
-        if (window.full(nowNs)) {
-            if (!windowSwapLock.compareAndSet(false, true)) {
-                return;
-            }
+        boolean full = window.sample(workloadPriority, admitted, nowNs);
+        if (!full) {
+            return;
+        }
 
-            try {
+        // critical section
+        if (!windowSwapLock.compareAndSet(false, true)) {
+            // 没有拿到切换权
+            return;
+        }
+
+        try {
+            // double check to avoid swap multiple times within a cycle
+            if (window.full(nowNs)) {
                 swapWindow(nowNs);
-            } finally {
-                windowSwapLock.set(false);
             }
-        } else {
-            // 窗口切换期间，并发的请求不采样
-            window.sample(workloadPriority, admitted);
+        } finally {
+            // 释放切换权：如果切换很快，可能导致其他并发进入的线程重新获得切换权，一个cycle内swap多次
+            windowSwapLock.set(false);
         }
     }
 

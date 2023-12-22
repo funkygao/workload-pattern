@@ -77,13 +77,23 @@ class TumblingSampleWindow {
         this.requestCycle = requestCycle;
         this.startNs = startNs;
         this.name = name;
+        log.info("[{}] time cycle {}s, request cycle:{}", name, timeCycleNs / NS_PER_MS / 1000, requestCycle);
     }
 
     @ThreadSafe
-    void sample(WorkloadPriority workloadPriority, boolean admitted) {
-        requestCounter.incrementAndGet();
+    boolean sample(WorkloadPriority workloadPriority, boolean admitted, long nowNs) {
+        boolean full = false;
+        if (nowNs - startNs > timeCycleNs) {
+            // 时间周期到了
+            full = true;
+        }
+        if (requestCounter.incrementAndGet() >= requestCycle) {
+            // 并发场景下，一个窗口内的实际请求数量可能超过requestCycle，这些请求被采样到当前窗口
+            full = true;
+        }
+
         if (admitted) {
-            admittedCounter.getAndIncrement();
+            admittedCounter.incrementAndGet();
         }
 
         AtomicInteger prioritizedCounter = histogram.computeIfAbsent(workloadPriority.P(), key -> {
@@ -91,17 +101,18 @@ class TumblingSampleWindow {
             return new AtomicInteger(0);
         });
         prioritizedCounter.incrementAndGet();
-    }
-
-    @ThreadSafe
-    void sampleWaitingNs(long waitingNs) {
-        accumulatedQueuedNs.addAndGet(waitingNs);
+        return full;
     }
 
     @ThreadSafe
     boolean full(long nowNs) {
         return nowNs - startNs > timeCycleNs // 时间满足
                 || requestCounter.get() >= requestCycle; // 请求数量满足
+    }
+
+    @ThreadSafe
+    void sampleWaitingNs(long waitingNs) {
+        accumulatedQueuedNs.addAndGet(waitingNs);
     }
 
     @ThreadSafe
@@ -116,7 +127,7 @@ class TumblingSampleWindow {
     @NotThreadSafe(serial = true)
     void restart(long nowNs) {
         if (log.isDebugEnabled()) {
-            log.debug("[{}] restart after:{} ms, requests:{}", name, (nowNs - startNs) / NS_PER_MS, requestCounter.get());
+            log.debug("[{}] restart after:{}ms, admitted:{}/{}", name, (nowNs - startNs) / NS_PER_MS, admitted(), requestCounter.get());
         }
 
         startNs = nowNs;
@@ -138,8 +149,7 @@ class TumblingSampleWindow {
 
     @Override
     public String toString() {
-        // FIXME ConcurrentSkipListMap.size not O(1)
-        return "Window(request=" + requestCounter.get() + ",admit=" + admittedCounter.get()
-                + ",counters:" + histogram.size() + ")";
+        return "Window(request=" + requestCounter.get() + ",admit=" + admittedCounter.get() + ")";
     }
+
 }
