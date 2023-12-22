@@ -41,8 +41,8 @@ class SystemLoad implements SystemLoadProvider {
 
     private SystemLoad() {
         ScheduledExecutorService timer = Executors.newSingleThreadScheduledExecutor(new NamedThreadFactory(SystemLoad.class.getSimpleName()));
-        // FIXME JVM启动时 CPU会彪高，排除该干扰
-        timer.scheduleAtFixedRate(() -> compute(), 2, 1, TimeUnit.SECONDS);
+        // 60s后再开始刷新数据：JVM启动时CPU往往很高
+        timer.scheduleAtFixedRate(() -> refresh(), 60, 1, TimeUnit.SECONDS);
     }
 
     static double loadAverage() {
@@ -54,46 +54,56 @@ class SystemLoad implements SystemLoadProvider {
         return singleton.currentCpuUsage;
     }
 
-    private void compute() {
+    private void refresh() {
         OperatingSystemMXBean osBean = ManagementFactory.getPlatformMXBean(OperatingSystemMXBean.class);
-        // 操作系统的load avg，与cpu核数相关
         currentLoadAverage = osBean.getSystemLoadAverage();
+        if (currentLoadAverage < 0) {
+            log.warn("JVM getSystemLoadAverage got:{}, currentLoadAverage reset to 0", currentLoadAverage);
+            currentLoadAverage = 0;
+        }
 
         // normalized cpu load: [0.0,1.0], percentage
-        double systemCpuUsage = osBean.getSystemCpuLoad();
+        final double newSystemCpuUsage = osBean.getSystemCpuLoad();
+        if (Double.isNaN(newSystemCpuUsage)) {
+            // 某些情况下可能会返回 NaN，这取决于JVM的实现和运行时环境
+            log.warn("JVM getSystemCpuLoad got NaN, skip this cycle");
+            return;
+        }
 
         // calculate process cpu usage to support application running in container environment
         // 计算出每次JVM的运行时间差值与占用cpu的时间差值
         // 利用cpu占用时间差值除以JVM运行时间差值，再除以cpu的核数，计算出归一化后的cpu利用率
         // 每次都计算差值是为了取到比较精确的“瞬时”cpu利用率，而不是一个历史平均值
-        RuntimeMXBean runtimeBean = ManagementFactory.getPlatformMXBean(RuntimeMXBean.class);
-        long newProcessCpuTime = osBean.getProcessCpuTime();
-        long newProcessUpTime = runtimeBean.getUptime();
+        final RuntimeMXBean runtimeBean = ManagementFactory.getPlatformMXBean(RuntimeMXBean.class);
+        final long newProcessCpuTime = osBean.getProcessCpuTime();
+        final long newProcessUpTime = runtimeBean.getUptime();
 
         // 准确获取docker分配的cpu核数是从JDK8u131版本开始，之前都会返回宿主机的核数
-        int cpuCores = osBean.getAvailableProcessors();
+        final int cpuCores = osBean.getAvailableProcessors();
 
-        long processCpuTimeDiffInMs = TimeUnit.NANOSECONDS
+        final long processCpuTimeDiffInMs = TimeUnit.NANOSECONDS
                 .toMillis(newProcessCpuTime - processCpuTimeNs);
-        long processUpTimeDiffInMs = newProcessUpTime - processUpTimeMs;
+        final long processUpTimeDiffInMs = newProcessUpTime - processUpTimeMs;
         if (processUpTimeDiffInMs > 0) {
             // it should never be 0, but for safety, we check it
-            double processCpuUsage = (double) processCpuTimeDiffInMs / processUpTimeDiffInMs / cpuCores;
-            currentCpuUsage = Math.max(processCpuUsage, systemCpuUsage);
+            final double processCpuUsage = (double) processCpuTimeDiffInMs / processUpTimeDiffInMs / cpuCores;
+            currentCpuUsage = Math.max(processCpuUsage, newSystemCpuUsage);
+        } else {
+            log.warn("processUpTimeDiffInMs is 0, newProcessUpTime:{}, force cpu usage:{}", newProcessUpTime, newSystemCpuUsage);
+            currentCpuUsage = newSystemCpuUsage;
         }
 
         processCpuTimeNs = newProcessCpuTime;
         processUpTimeMs = newProcessUpTime;
 
-        // FIXME NaN
         if (log.isDebugEnabled()) {
             log.debug("cpuUsage:{}, loadAvg:{}, cpuCores:{}, getSystemLoadAverage:{}, getSystemCpuLoad:{}, getProcessCpuTime:{}ms, processUpTime:{}ms",
                     cpuUsage(),
                     loadAverage(),
                     cpuCores,
                     currentLoadAverage,
-                    systemCpuUsage,
-                    processCpuTimeNs / 1000_000, // ns -> ms
+                    newSystemCpuUsage,
+                    processCpuTimeNs / 1_000_000, // ns -> ms
                     processUpTimeMs);
         }
     }
