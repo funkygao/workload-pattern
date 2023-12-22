@@ -1,13 +1,21 @@
 package io.github.workload.overloading;
 
+import com.google.common.collect.ImmutableMap;
+import io.github.workload.AbstractBaseTest;
+import org.junit.jupiter.api.RepeatedTest;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInfo;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ConcurrentSkipListMap;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-class WorkloadShedderTest {
+class WorkloadShedderTest extends AbstractBaseTest {
 
     @Test
     void ConcurrentSkipListMap() {
@@ -39,6 +47,11 @@ class WorkloadShedderTest {
         }
         final int expectedAdmittedLastWindow = initialP % TumblingSampleWindow.DEFAULT_REQUEST_CYCLE;
         assertEquals(expectedAdmittedLastWindow, shedder.window.admitted());
+
+        // 没有过载，调整admission level不变化
+        shedder.adaptAdmissionLevel(false);
+        assertEquals(initialP, shedder.admissionLevel().P());
+
         // trigger overload
         shedder.adaptAdmissionLevel(true);
         int drop = (int) (expectedAdmittedLastWindow * shedder.policy.getDropRate());
@@ -47,9 +60,38 @@ class WorkloadShedderTest {
         assertEquals(initialP - expectedDrop, shedder.admissionLevel().P());
     }
 
-    @Test
-    void adaptAdmissionLevel_dropMore_() {
+    @RepeatedTest(10)
+    void adaptAdmissionLevel_dropMore_unbalanced(TestInfo testInfo) throws InterruptedException {
+        FairSafeAdmissionController admissionController = (FairSafeAdmissionController) AdmissionController.getInstance("RPC");
+        WorkloadShedder shedder = admissionController.shedderOnQueue;
+        Map<Integer, Integer> P2Requests = ImmutableMap.of(
+                5, 2,
+                10, 20,
+                20, 900,
+                40, 320,
+                41, 58,
+                58, 123
+        );
 
+        log.info("{}", testInfo.getDisplayName());
+
+        injectWorkloads(shedder, P2Requests);
+        shedder.adaptAdmissionLevel(true);
+        //assertEquals(1990, shedder.window.admitted());
+        Thread.sleep(3000);
+    }
+
+    private void injectWorkloads(WorkloadShedder shedder, Map<Integer, Integer> P2Requests) {
+        Runnable task = () -> {
+            List<Integer> priorities = new ArrayList<>(P2Requests.keySet());
+            Collections.shuffle(priorities);
+            for (int P : priorities) {
+                for (int request = 0; request < P2Requests.get(P); request++) {
+                    shedder.admit(WorkloadPriority.fromP(P));
+                }
+            }
+        };
+        concurrentRun(task);
     }
 
 }

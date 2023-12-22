@@ -29,7 +29,7 @@ class FairSafeAdmissionController implements AdmissionController {
 
     // shared singleton in JVM
     @VisibleForTesting
-    static final WorkloadShedderOnCpu shedderOnCpu = new WorkloadShedderOnCpu(CPU_USAGE_UPPER_BOUND);
+    static final WorkloadShedderOnCpu shedderOnCpu = new WorkloadShedderOnCpu(CPU_USAGE_UPPER_BOUND, CPU_OVERLOAD_COOL_OFF_SEC);
 
     private static final Map<String, FairSafeAdmissionController> instances = new ConcurrentHashMap<>(8);
 

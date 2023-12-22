@@ -58,9 +58,10 @@ abstract class WorkloadShedder {
             } finally {
                 windowSwapLock.set(false);
             }
+        } else {
+            // 窗口切换期间，并发的请求不采样
+            window.sample(workloadPriority, admitted);
         }
-
-        window.sample(workloadPriority, admitted);
     }
 
     @NotThreadSafe(serial = true)
