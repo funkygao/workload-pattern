@@ -1,6 +1,5 @@
 package io.github.workload.overloading;
 
-import io.github.workload.annotations.NotThreadSafe;
 import io.github.workload.annotations.ThreadSafe;
 import io.github.workload.annotations.VisibleForTesting;
 import lombok.AccessLevel;
@@ -9,11 +8,16 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Consumer;
 
 /**
  * 基于(时间周期，请求数量周期)的滚动窗口，用于对工作负荷采样.
+ *
+ * <p>lockless</p>
  */
 @Slf4j
 class TumblingSampleWindow {
@@ -44,29 +48,14 @@ class TumblingSampleWindow {
     private final int requestCycle;
 
     /**
-     * 当前窗口开始时间点.
-     */
-    private volatile long startNs;
-
-    /**
-     * 当前窗口的请求总量.
-     */
-    private AtomicInteger requestCounter = new AtomicInteger(0);
-
-    /**
-     * 当前窗口的放行请求总量.
-     */
-    private AtomicInteger admittedCounter = new AtomicInteger(0);
-
-    /**
      * 当前窗口所有请求的总排队时长.
      */
     private AtomicLong accumulatedQueuedNs = new AtomicLong(0);
 
-    /**
-     * 各种优先级的请求数量分布.
-     */
-    private ConcurrentSkipListMap<Integer, AtomicInteger> histogram = new ConcurrentSkipListMap<>();
+    // 确保窗口数据的原子性更新
+    private final AtomicReference<WindowData> windowDataRef;
+
+
 
     TumblingSampleWindow(long startNs, String name) {
         this(DEFAULT_TIME_CYCLE_NS, DEFAULT_REQUEST_CYCLE, startNs, name);
@@ -75,39 +64,68 @@ class TumblingSampleWindow {
     private TumblingSampleWindow(long timeCycleNs, int requestCycle, long startNs, String name) {
         this.timeCycleNs = timeCycleNs;
         this.requestCycle = requestCycle;
-        this.startNs = startNs;
         this.name = name;
+        this.windowDataRef = new AtomicReference<>(new WindowData(startNs));
         log.info("[{}] time cycle {}s, request cycle:{}", name, timeCycleNs / NS_PER_MS / 1000, requestCycle);
     }
 
     @ThreadSafe
-    boolean sample(WorkloadPriority workloadPriority, boolean admitted, long nowNs) {
-        boolean full = false;
-        if (nowNs - startNs > timeCycleNs) {
-            // 时间周期到了
-            full = true;
-        }
-        if (requestCounter.incrementAndGet() >= requestCycle) {
-            // 并发场景下，一个窗口内的实际请求数量可能超过requestCycle，这些请求被采样到当前窗口
-            full = true;
-        }
-
+    void sample(WorkloadPriority workloadPriority, boolean admitted, long nowNs, Consumer<Long> onWindowSwap) {
+        WindowData currentWindow = windowDataRef.get();
         if (admitted) {
-            admittedCounter.incrementAndGet();
+            currentWindow.admittedCounter.incrementAndGet();
         }
 
-        AtomicInteger prioritizedCounter = histogram.computeIfAbsent(workloadPriority.P(), key -> {
-            log.trace("[{}] histogram for new P:{}, admitted:{}", name, key, admitted);
-            return new AtomicInteger(0);
-        });
+        AtomicInteger prioritizedCounter = currentWindow.histogram.computeIfAbsent(workloadPriority.P(), key -> new AtomicInteger(0));
         prioritizedCounter.incrementAndGet();
-        return full;
+
+        if (currentWindow.requestCounter.incrementAndGet() >= requestCycle ||
+                nowNs - currentWindow.startNs > timeCycleNs) {
+            swapWindow(nowNs, onWindowSwap);
+        }
     }
 
+
+    /*
+     * This code uses an 'AtomicReference' to maintain the state of the current window,
+     * which allows us to atomically swap it for a new window.
+     * The 'sample' method checks if the window should be swapped and delegates the swap
+     * to the 'swapWindow' method.
+     * The 'swapWindow' method attempts to swap the window using a CAS operation on the
+     * 'windowDataRef', thus ensuring thread-safety without the use of traditional
+     * locks or synchronization blocks.
+     */
+    private void swapWindow(long nowNs, Consumer<Long> onWindowSwap) {
+        WindowData currentWindow = windowDataRef.get();
+        if (!currentWindow.swapping.compareAndSet(false, true)) {
+            log.info("9");
+            return; // Another thread is already swapping the window, no need to continue.
+        }
+
+        if (full(nowNs, currentWindow)) {
+            WindowData newWindow = new WindowData(nowNs);
+            if (windowDataRef.compareAndSet(currentWindow, newWindow)) {
+                log.info("[{}] after:{}ms, swap: {}/{}", name, currentWindow.age(nowNs), currentWindow.admitted(), currentWindow.requested());
+
+                onWindowSwap.accept(nowNs);
+                currentWindow.cleanup();
+                log.info("111");
+            } else {
+                log.info("88");
+            }
+        }
+        log.info("22");
+        currentWindow.swapping.set(false); // Done swapping, or no swap was needed.
+
+
+    }
+
+
+
     @ThreadSafe
-    boolean full(long nowNs) {
-        return nowNs - startNs > timeCycleNs // 时间满足
-                || requestCounter.get() >= requestCycle; // 请求数量满足
+    boolean full(long nowNs, WindowData currentWindow) {
+        return nowNs - currentWindow.startNs > timeCycleNs ||
+                currentWindow.requestCounter.get() >= requestCycle;
     }
 
     @ThreadSafe
@@ -117,28 +135,16 @@ class TumblingSampleWindow {
 
     @ThreadSafe
     int admitted() {
-        return admittedCounter.get();
+        return windowDataRef.get().admittedCounter.get();
     }
 
     ConcurrentSkipListMap<Integer, AtomicInteger> histogram() {
-        return histogram;
+        return windowDataRef.get().histogram;
     }
 
-    @NotThreadSafe(serial = true)
-    void restart(long nowNs) {
-        if (log.isDebugEnabled()) {
-            log.debug("[{}] restart after:{}ms, admitted:{}/{}", name, (nowNs - startNs) / NS_PER_MS, admitted(), requestCounter.get());
-        }
-
-        startNs = nowNs;
-        requestCounter.set(0);
-        admittedCounter.set(0);
-        accumulatedQueuedNs.set(0);
-        histogram.clear();
-    }
 
     long avgQueuedMs() {
-        int requests = requestCounter.get();
+        int requests = windowDataRef.get().requestCounter.get();
         if (requests == 0) {
             // avoid divide by zero
             return 0;
@@ -147,9 +153,36 @@ class TumblingSampleWindow {
         return accumulatedQueuedNs.get() / (requests * NS_PER_MS);
     }
 
-    @Override
-    public String toString() {
-        return "Window(request=" + requestCounter.get() + ",admit=" + admittedCounter.get() + ")";
-    }
 
+    private static final class WindowData {
+        final long startNs;
+        final AtomicInteger requestCounter;
+        final AtomicInteger admittedCounter;
+        final AtomicBoolean swapping;
+        final ConcurrentSkipListMap<Integer, AtomicInteger> histogram;
+
+        WindowData(long startNs) {
+            this.startNs = startNs;
+            this.requestCounter = new AtomicInteger(0);
+            this.admittedCounter = new AtomicInteger(0);
+            this.swapping = new AtomicBoolean(false);
+            this.histogram = new ConcurrentSkipListMap<>();
+        }
+
+        void cleanup() {
+            histogram.clear();
+        }
+
+        int requested() {
+            return requestCounter.get();
+        }
+
+        int admitted() {
+            return admittedCounter.get();
+        }
+
+        long age(long nowNs) {
+            return (nowNs - startNs) / NS_PER_MS;
+        }
+    }
 }

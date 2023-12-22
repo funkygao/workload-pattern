@@ -9,8 +9,8 @@ import lombok.extern.slf4j.Slf4j;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.ConcurrentSkipListMap;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Consumer;
 
 /**
  * How to shed excess workload based on {@link WorkloadPriority}.
@@ -23,21 +23,22 @@ abstract class WorkloadShedder {
     private volatile AdmissionLevel admissionLevel = AdmissionLevel.ofAdmitAll();
     protected TumblingSampleWindow window;
     protected final String name;
+    private final Consumer<Long> onWindowSwap;
     @VisibleForTesting
     final WorkloadSheddingPolicy policy = new WorkloadSheddingPolicy();
-    protected AtomicBoolean windowSwapLock = new AtomicBoolean(false);
 
     protected abstract boolean isOverloaded(long nowNs);
 
     protected WorkloadShedder(String name) {
         this.name = name;
         this.window = new TumblingSampleWindow(System.nanoTime(), name);
+        this.onWindowSwap = nowNs -> adaptAdmissionLevel(isOverloaded(nowNs));
     }
 
     @ThreadSafe
     boolean admit(@NonNull WorkloadPriority workloadPriority) {
         boolean admitted = admissionLevel.admit(workloadPriority);
-        advanceWindow(System.nanoTime(), workloadPriority, admitted);
+        window.sample(workloadPriority, admitted, System.nanoTime(), onWindowSwap);
         return admitted;
     }
 
@@ -46,39 +47,6 @@ abstract class WorkloadShedder {
         return admissionLevel;
     }
 
-    @ThreadSafe
-    private void advanceWindow(long nowNs, WorkloadPriority workloadPriority, boolean admitted) {
-        boolean full = window.sample(workloadPriority, admitted, nowNs);
-        if (!full) {
-            return;
-        }
-
-        // critical section
-        if (!windowSwapLock.compareAndSet(false, true)) {
-            // 没有拿到切换权
-            return;
-        }
-
-        try {
-            // double check to avoid swap multiple times within a cycle
-            if (window.full(nowNs)) {
-                swapWindow(nowNs);
-            }
-        } finally {
-            // 释放切换权：如果切换很快，可能导致其他并发进入的线程重新获得切换权，一个cycle内swap多次
-            windowSwapLock.set(false);
-        }
-    }
-
-    @NotThreadSafe(serial = true)
-    private void swapWindow(long nowNs) {
-        // 当前窗口 => 下个窗口的准入等级
-        adaptAdmissionLevel(isOverloaded(nowNs));
-
-        // 当前窗口数据已经使用完毕
-        // 并发情况下可能会丢失一部分采样数据，acceptable for now
-        window.restart(nowNs);
-    }
 
     // 调整策略：把下一个窗口的准入请求量控制到目标值，从而滑动准入等级游标
     // 根据当前是否过载，计算下一个窗口准入量目标值

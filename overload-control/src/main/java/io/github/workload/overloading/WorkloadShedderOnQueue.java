@@ -28,10 +28,11 @@ class WorkloadShedderOnQueue extends WorkloadShedder {
     }
 
     void addWaitingNs(long waitingNs) {
+        /*
         if (windowSwapLock.get()) {
             // 正在滑动窗口，即使计数也可能被重置
             return;
-        }
+        }*/
 
         window.sampleWaitingNs(waitingNs);
     }

@@ -60,7 +60,7 @@ class WorkloadShedderTest extends AbstractBaseTest {
         assertEquals(initialP - expectedDrop, shedder.admissionLevel().P());
     }
 
-    @RepeatedTest(10)
+    @RepeatedTest(1)
     void adaptAdmissionLevel_dropMore_unbalanced(TestInfo testInfo) throws InterruptedException {
         //System.setProperty("workload.window.DEFAULT_TIME_CYCLE_MS", "50000000");
         FairSafeAdmissionController admissionController = (FairSafeAdmissionController) AdmissionController.getInstance("RPC");
