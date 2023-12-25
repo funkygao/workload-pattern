@@ -45,22 +45,22 @@ class WorkloadShedderTest extends AbstractBaseTest {
             // 每个P发一个请求
             assertTrue(shedder.admit(WorkloadPriority.fromP(P)));
         }
-        final int expectedAdmittedLastWindow = initialP % TumblingSampleWindow.DEFAULT_REQUEST_CYCLE;
-        assertEquals(expectedAdmittedLastWindow, shedder.window.admitted());
+        final int expectedAdmittedLastWindow = initialP % WindowConfig.DEFAULT_REQUEST_CYCLE;
+        assertEquals(expectedAdmittedLastWindow, shedder.window.current().admitted());
 
         // 没有过载，调整admission level不变化
-        shedder.adaptAdmissionLevel(false);
+        shedder.adaptAdmissionLevel(false, shedder.window.current());
         assertEquals(initialP, shedder.admissionLevel().P());
 
         // trigger overload
-        shedder.adaptAdmissionLevel(true);
+        shedder.adaptAdmissionLevel(true, shedder.window.current());
         int drop = (int) (expectedAdmittedLastWindow * shedder.policy.getDropRate());
         final int expectedDrop = 95;
         assertEquals(expectedDrop, drop);
         assertEquals(initialP - expectedDrop, shedder.admissionLevel().P());
     }
 
-    @RepeatedTest(1)
+    @RepeatedTest(10)
     void adaptAdmissionLevel_dropMore_unbalanced(TestInfo testInfo) throws InterruptedException {
         //System.setProperty("workload.window.DEFAULT_TIME_CYCLE_MS", "50000000");
         FairSafeAdmissionController admissionController = (FairSafeAdmissionController) AdmissionController.getInstance("RPC");
@@ -77,7 +77,7 @@ class WorkloadShedderTest extends AbstractBaseTest {
         log.info("{} {}", testInfo.getDisplayName(), shedder);
 
         injectWorkloads(shedder, P2Requests);
-        shedder.adaptAdmissionLevel(true);
+        shedder.adaptAdmissionLevel(true, shedder.window.current());
     }
 
     private void injectWorkloads(WorkloadShedder shedder, Map<Integer, Integer> P2Requests) {

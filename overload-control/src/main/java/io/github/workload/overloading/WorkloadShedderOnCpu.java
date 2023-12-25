@@ -24,7 +24,7 @@ class WorkloadShedderOnCpu extends WorkloadShedder {
     }
 
     @Override
-    protected boolean isOverloaded(long nowNs) {
+    protected boolean isOverloaded(long nowNs, WindowState windowState) {
         if (coolOffMs > 0 && coolOffClock.currentTimeMillis() - startupMs < coolOffMs) {
             // 有静默期，而且在静默期内，永远认为不过载
             return false;

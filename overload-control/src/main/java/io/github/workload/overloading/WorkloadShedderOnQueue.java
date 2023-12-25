@@ -17,14 +17,17 @@ class WorkloadShedderOnQueue extends WorkloadShedder {
      */
     private volatile long overloadedAtNs = 0;
 
+    private final WindowConfig config;
+
     WorkloadShedderOnQueue(String name) {
         super(name);
+        this.config = window.getConfig();
     }
 
     @Override
-    protected boolean isOverloaded(long nowNs) {
-        return window.avgQueuedMs() > overloadQueuingMs // 排队时间长
-                || (nowNs - overloadedAtNs) <= window.getTimeCycleNs(); // 距离上次显式过载仍在窗口期
+    protected boolean isOverloaded(long nowNs, WindowState windowState) {
+        return windowState.avgQueuedMs() > overloadQueuingMs // 排队时间长
+                || (nowNs - overloadedAtNs) <= config.getTimeCycleNs(); // 距离上次显式过载仍在窗口期
     }
 
     void addWaitingNs(long waitingNs) {

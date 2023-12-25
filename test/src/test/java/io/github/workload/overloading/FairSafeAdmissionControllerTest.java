@@ -45,9 +45,9 @@ class FairSafeAdmissionControllerTest {
         FairSafeAdmissionController controller = (FairSafeAdmissionController) AdmissionController.getInstance("foo");
         WorkloadShedder detector = controller.shedderOnQueue;
         controller.feedback(WorkloadFeedback.ofOverloaded());
-        assertTrue(detector.isOverloaded(System.nanoTime()));
+        assertTrue(detector.isOverloaded(System.nanoTime(), detector.window.current()));
         Thread.sleep(1200); // 经过一个时间窗口
-        assertFalse(detector.isOverloaded(System.nanoTime()));
+        assertFalse(detector.isOverloaded(System.nanoTime(), detector.window.current()));
     }
 
     @RepeatedTest(10)
@@ -57,7 +57,7 @@ class FairSafeAdmissionControllerTest {
         FairSafeAdmissionController rpcController = (FairSafeAdmissionController) AdmissionController.getInstance("RPC");
         FairSafeAdmissionController webController = (FairSafeAdmissionController) AdmissionController.getInstance("Web");
         FairSafeAdmissionController.shedderOnCpu.loadProvider = new AlwaysHealthySystemLoad();
-        for (int i = 0; i < TumblingSampleWindow.DEFAULT_REQUEST_CYCLE + 1; i++) {
+        for (int i = 0; i < WindowConfig.DEFAULT_REQUEST_CYCLE + 1; i++) {
             log.info("loop: {}", i + 1);
             // 默认情况下，都放行：除非此时CPU已经高了
             WorkloadPriority mq = WorkloadPrioritizer.randomMQ();
@@ -84,7 +84,7 @@ class FairSafeAdmissionControllerTest {
         FairSafeAdmissionController rpcController = (FairSafeAdmissionController) AdmissionController.getInstance("RPC");
         FairSafeAdmissionController webController = (FairSafeAdmissionController) AdmissionController.getInstance("WEB");
         FairSafeAdmissionController.shedderOnCpu.loadProvider = systemLoadProvider;
-        int loops = TumblingSampleWindow.DEFAULT_REQUEST_CYCLE * 5;
+        int loops = WindowConfig.DEFAULT_REQUEST_CYCLE * 5;
         for (int i = 0; i < loops; i++) {
             WorkloadPriority mq = WorkloadPrioritizer.randomMQ();
             WorkloadPriority rpc = WorkloadPrioritizer.randomRpc();

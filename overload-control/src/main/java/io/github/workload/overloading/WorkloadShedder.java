@@ -1,6 +1,5 @@
 package io.github.workload.overloading;
 
-import io.github.workload.annotations.NotThreadSafe;
 import io.github.workload.annotations.ThreadSafe;
 import io.github.workload.annotations.VisibleForTesting;
 import lombok.NonNull;
@@ -10,7 +9,6 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.Consumer;
 
 /**
  * How to shed excess workload based on {@link WorkloadPriority}.
@@ -20,25 +18,27 @@ import java.util.function.Consumer;
 abstract class WorkloadShedder {
     private static final int ADMIT_ALL_P = AdmissionLevel.ofAdmitAll().P();
 
-    private volatile AdmissionLevel admissionLevel = AdmissionLevel.ofAdmitAll();
-    protected TumblingSampleWindow window;
     protected final String name;
-    private final Consumer<Long> onWindowSwap;
+    private volatile AdmissionLevel admissionLevel = AdmissionLevel.ofAdmitAll();
+
+    protected final TumblingWindow window;
+
     @VisibleForTesting
     final WorkloadSheddingPolicy policy = new WorkloadSheddingPolicy();
 
-    protected abstract boolean isOverloaded(long nowNs);
+    protected abstract boolean isOverloaded(long nowNs, WindowState windowState);
 
     protected WorkloadShedder(String name) {
         this.name = name;
-        this.window = new TumblingSampleWindow(System.nanoTime(), name);
-        this.onWindowSwap = nowNs -> adaptAdmissionLevel(isOverloaded(nowNs));
+        WindowConfig config = new WindowConfig((nowNs, windowState) -> adaptAdmissionLevel(isOverloaded(nowNs, windowState), windowState));
+        this.window = new TumblingWindow(System.nanoTime(), name, config);
     }
 
     @ThreadSafe
     boolean admit(@NonNull WorkloadPriority workloadPriority) {
         boolean admitted = admissionLevel.admit(workloadPriority);
-        window.sample(workloadPriority, admitted, System.nanoTime(), onWindowSwap);
+        final long nowNs = System.nanoTime();
+        window.advance(workloadPriority, admitted, nowNs);
         return admitted;
     }
 
@@ -47,25 +47,20 @@ abstract class WorkloadShedder {
         return admissionLevel;
     }
 
-
-    // 调整策略：把下一个窗口的准入请求量控制到目标值，从而滑动准入等级游标
-    // 根据当前是否过载，计算下一个窗口准入量目标值
-    // 服务器上维护者目前准入优先级下，过去一个周期的每个优先级的请求量
-    // 当过载时，通过消减下一个周期的请求量来减轻负载
-    @NotThreadSafe(serial = true)
     @VisibleForTesting
-    void adaptAdmissionLevel(boolean overloaded) {
+    void adaptAdmissionLevel(boolean overloaded, WindowState windowState) {
         if (overloaded) {
-            dropMore();
+            dropMore(windowState);
         } else {
-            admitMore();
+            admitMore(windowState);
         }
     }
 
-    private void dropMore() {
+    private void dropMore(WindowState windowState) {
         // 如果上个周期的准入请求非常少，那么 expectedDropNextCycle 可能为0
-        final int expectedDropNextCycle = (int) (policy.getDropRate() * window.admitted());
-        final ConcurrentSkipListMap<Integer, AtomicInteger> histogram = window.histogram();
+        final int admitted = windowState.admitted();
+        final int expectedDropNextCycle = (int) (policy.getDropRate() * admitted);
+        final ConcurrentSkipListMap<Integer, AtomicInteger> histogram = windowState.histogram();
         int accumulatedDrop = 0;
         final Iterator<Integer> descendingP = histogram.headMap(admissionLevel.P(), true).descendingKeySet().iterator();
         while (descendingP.hasNext()) {
@@ -75,7 +70,7 @@ abstract class WorkloadShedder {
             accumulatedDrop += admittedLastCycle;
             if (log.isDebugEnabled()) {
                 log.debug("[{}] drop plan(P:{} admitted:{}), last window admitted:{}, accumulated:{}/{}",
-                        name, P, admittedLastCycle, window.admitted(), accumulatedDrop, expectedDropNextCycle);
+                        name, P, admittedLastCycle, admitted, accumulatedDrop, expectedDropNextCycle);
             }
 
             if (accumulatedDrop >= expectedDropNextCycle) {
@@ -86,7 +81,7 @@ abstract class WorkloadShedder {
                     // 抛弃太多了，可能误伤
                 }
                 final WorkloadPriority target = WorkloadPriority.fromP(P);
-                log.warn("[{}] dropping more({}/{}), last window admitted:{}, {} -> {}", name, accumulatedDrop, expectedDropNextCycle, window.admitted(), admissionLevel, target);
+                log.warn("[{}] dropping more({}/{}), last window admitted:{}, {} -> {}", name, accumulatedDrop, expectedDropNextCycle, admitted, admissionLevel, target);
                 admissionLevel = admissionLevel.changeTo(target);
                 return;
             }
@@ -102,15 +97,16 @@ abstract class WorkloadShedder {
         // TODO edge case，还不够扣呢
     }
 
-    private void admitMore() {
+    private void admitMore(WindowState windowState) {
         if (ADMIT_ALL_P == admissionLevel.P()) {
             return;
         }
 
-        final int expectedAddNextCycle = (int) (policy.getRecoverRate() * window.admitted());
+        final int admitted = windowState.admitted();
+        final int expectedAddNextCycle = (int) (policy.getRecoverRate() * admitted);
         int accumulatedAdd = 0;
         // entrySet is in ascending order
-        final Iterator<Map.Entry<Integer, AtomicInteger>> ascendingP = window.histogram().tailMap(admissionLevel.P()).entrySet().iterator();
+        final Iterator<Map.Entry<Integer, AtomicInteger>> ascendingP = windowState.histogram().tailMap(admissionLevel.P()).entrySet().iterator();
         while (ascendingP.hasNext()) {
             final Map.Entry<Integer, AtomicInteger> entry = ascendingP.next();
             final int P = entry.getKey();

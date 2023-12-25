@@ -39,11 +39,11 @@ import java.util.concurrent.TimeUnit;
 @Slf4j
 public class WorkloadPriority {
     private static final long HALF_HOUR_MS = TimeUnit.MILLISECONDS.convert(30, TimeUnit.MINUTES);
+    private static final int MAX_P = ofLowestPriority().P(); // 32639
 
     private static final int MAX_VALUE = (1 << 7) - 1; // 127
-    // (B, U)的最低优先级值：值越大优先级越低
     private static final int LOWEST_PRIORITY = MAX_VALUE;
-    private static final int MAX_P = ofLowestPriority().P(); // 32639
+
     private static final int U_BITS = 8;
 
     private static Map<Integer, UState> uStates = new ConcurrentHashMap<>();
