@@ -60,7 +60,7 @@ class WindowState {
     }
 
     boolean outOfRange(long nowNs, WindowConfig config) {
-        return requestCounter.get() > config.getRequestCycle() ||
+        return requested() > config.getRequestCycle() ||
                 (nowNs - startNs) > config.getTimeCycleNs();
     }
 
@@ -69,12 +69,12 @@ class WindowState {
     }
 
     long avgQueuedMs() {
-        int requests = requestCounter.get();
-        if (requests == 0) {
+        int requested = requested();
+        if (requested == 0) {
             // avoid divide by zero
             return 0;
         }
 
-        return accumulatedQueuedNs.get() / (requests * NS_PER_MS);
+        return accumulatedQueuedNs.get() / (requested * NS_PER_MS);
     }
 }

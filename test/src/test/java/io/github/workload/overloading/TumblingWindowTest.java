@@ -11,6 +11,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicInteger;
 
 class TumblingWindowTest extends AbstractBaseTest {
@@ -20,8 +21,13 @@ class TumblingWindowTest extends AbstractBaseTest {
     static void init() {
         System.setProperty("workload.window.DEFAULT_REQUEST_CYCLE", "100");
         Logger log = LoggerFactory.getLogger(TumblingWindowTest.class);
-        WindowConfig config = new WindowConfig((nowNs, state)->{
-            log.info("request: {}", state.requested());
+        WindowConfig config = new WindowConfig((nowNs, state)-> {
+            log.info("request: {} {}", state.requested(), state.hashCode());
+            try {
+                // simulate adjust admission level overhead
+                Thread.sleep(ThreadLocalRandom.current().nextInt(20));
+            } catch (InterruptedException e) {
+            }
         });
         window = new TumblingWindow(System.nanoTime(), "test", config);
     }
@@ -47,8 +53,14 @@ class TumblingWindowTest extends AbstractBaseTest {
             for (int P : priorities) {
                 for (int request = 0; request < P2Requests.get(P); request++) {
                     WorkloadPriority priority = WorkloadPriority.fromP(P);
-                    log.info("{} {}", i.incrementAndGet(), window.current().hashCode());
+                    int n = i.incrementAndGet();
+                    int hash1 = window.current().hashCode();
                     window.advance(priority, RandomUtil.randomBoolean(), System.nanoTime());
+                    int hash2 = window.current().hashCode();
+                    if (hash1 != hash2) {
+                        log.info("{}: window swapped {} -> {}", n, hash1, hash2);
+                    }
+
                     window.sampleWaitingNs(20);
                 }
             }

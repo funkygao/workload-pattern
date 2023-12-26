@@ -36,6 +36,7 @@ class TumblingWindow {
     void advance(WorkloadPriority workloadPriority, boolean admitted, long nowNs) {
         WindowState currentWindow = current();
         currentWindow.sample(workloadPriority, admitted);
+        // 由于并发，可能采样时没有满，而计算outOfRange时已经满了：被其他线程采样进来的
         if (currentWindow.outOfRange(nowNs, config)) {
             swapWindow(nowNs, currentWindow);
         }
@@ -52,9 +53,9 @@ class TumblingWindow {
         WindowState nextWindow = new WindowState(nowNs);
         if (current.compareAndSet(currentWindow, nextWindow)) {
             if (log.isDebugEnabled()) {
-                log.debug("[{}] after:{}ms, swapped window:{}, admitted:{}/{}",
+                log.debug("[{}] after:{}ms, swapped window:{} -> {}, admitted:{}/{}",
                         name, currentWindow.ageMs(nowNs),
-                        currentWindow.hashCode(),
+                        currentWindow.hashCode(), nextWindow.hashCode(),
                         currentWindow.admitted(), currentWindow.requested());
             }
 
