@@ -4,13 +4,14 @@ import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.LongAdder;
 
 import static io.github.workload.overloading.WindowConfig.NS_PER_MS;
 
 class WindowState {
     private final long startNs;
-    private final AtomicInteger requestCounter;
-    private final AtomicInteger admittedCounter;
+    private final LongAdder requestCounter;
+    private final LongAdder admittedCounter;
     private final AtomicLong accumulatedQueuedNs;
     private final ConcurrentSkipListMap<Integer, AtomicInteger> histogram;
 
@@ -18,8 +19,8 @@ class WindowState {
 
     WindowState(long startNs) {
         this.startNs = startNs;
-        this.requestCounter = new AtomicInteger(0);
-        this.admittedCounter = new AtomicInteger(0);
+        this.requestCounter = new LongAdder();
+        this.admittedCounter = new LongAdder();
         this.accumulatedQueuedNs = new AtomicLong(0);
         this.histogram = new ConcurrentSkipListMap<>();
         this.swappingLock = new AtomicBoolean(false);
@@ -31,13 +32,14 @@ class WindowState {
 
     // enforce that only a single thread can initiate the process to swap out the current window
     boolean tryAcquireSwappingLock() {
+        // 由于窗口被原子性地切换，该锁无需释放
         return swappingLock.compareAndSet(false, true);
     }
 
     void sample(WorkloadPriority workloadPriority, boolean admitted) {
-        requestCounter.incrementAndGet();
+        requestCounter.increment();
         if (admitted) {
-            admittedCounter.incrementAndGet();
+            admittedCounter.increment();
         }
         AtomicInteger prioritizedCounter = histogram.computeIfAbsent(workloadPriority.P(), key -> new AtomicInteger(0));
         prioritizedCounter.incrementAndGet();
@@ -52,11 +54,11 @@ class WindowState {
     }
 
     int requested() {
-        return requestCounter.get();
+        return requestCounter.intValue();
     }
 
     int admitted() {
-        return admittedCounter.get();
+        return admittedCounter.intValue();
     }
 
     boolean outOfRange(long nowNs, WindowConfig config) {
