@@ -3,6 +3,7 @@ package io.github.workload.overloading;
 import io.github.workload.SystemClock;
 import io.github.workload.SystemLoadProvider;
 import io.github.workload.annotations.VisibleForTesting;
+import io.github.workload.window.WindowState;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j

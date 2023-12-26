@@ -1,4 +1,6 @@
-package io.github.workload.overloading;
+package io.github.workload.window;
+
+import lombok.Getter;
 
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -6,13 +8,15 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.LongAdder;
 
-import static io.github.workload.overloading.WindowConfig.NS_PER_MS;
+import static io.github.workload.window.WindowConfig.NS_PER_MS;
 
-class WindowState {
+public class WindowState {
+    @Getter
     private final long startNs;
     private final LongAdder requestCounter;
     private final LongAdder admittedCounter;
     private final AtomicLong accumulatedQueuedNs;
+    // key is workload priority
     private final ConcurrentSkipListMap<Integer, AtomicInteger> histogram;
 
     private final AtomicBoolean swappingLock;
@@ -26,7 +30,7 @@ class WindowState {
         this.swappingLock = new AtomicBoolean(false);
     }
 
-    ConcurrentSkipListMap<Integer, AtomicInteger> histogram() {
+    public ConcurrentSkipListMap<Integer, AtomicInteger> histogram() {
         return histogram;
     }
 
@@ -36,12 +40,18 @@ class WindowState {
         return swappingLock.compareAndSet(false, true);
     }
 
-    void sample(WorkloadPriority workloadPriority, boolean admitted) {
+    void sample(int workloadPriority) {
+        requestCounter.increment();
+        AtomicInteger prioritizedCounter = histogram.computeIfAbsent(workloadPriority, key -> new AtomicInteger(0));
+        prioritizedCounter.incrementAndGet();
+    }
+
+    void sample(int workloadPriority, boolean admitted) {
         requestCounter.increment();
         if (admitted) {
             admittedCounter.increment();
         }
-        AtomicInteger prioritizedCounter = histogram.computeIfAbsent(workloadPriority.P(), key -> new AtomicInteger(0));
+        AtomicInteger prioritizedCounter = histogram.computeIfAbsent(workloadPriority, key -> new AtomicInteger(0));
         prioritizedCounter.incrementAndGet();
     }
 
@@ -53,11 +63,11 @@ class WindowState {
         histogram.clear();
     }
 
-    int requested() {
+    public int requested() {
         return requestCounter.intValue();
     }
 
-    int admitted() {
+    public int admitted() {
         return admittedCounter.intValue();
     }
 
@@ -70,7 +80,7 @@ class WindowState {
         return (nowNs - startNs) / NS_PER_MS;
     }
 
-    long avgQueuedMs() {
+    public long avgQueuedMs() {
         int requested = requested();
         if (requested == 0) {
             // avoid divide by zero

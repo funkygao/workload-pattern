@@ -1,8 +1,8 @@
-package io.github.workload.overloading;
+package io.github.workload.window;
 
 import io.github.workload.annotations.ThreadSafe;
 import io.github.workload.annotations.VisibleForTesting;
-import lombok.AccessLevel;
+import io.github.workload.overloading.WorkloadPriority;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
@@ -12,15 +12,15 @@ import java.util.concurrent.atomic.AtomicReference;
  * 基于(时间周期，请求数量周期)的滚动窗口，用于对工作负荷采样.
  */
 @Slf4j
-class TumblingWindow {
+public class TumblingWindow {
     private final String name;
 
-    @Getter(AccessLevel.PACKAGE)
+    @Getter
     private final WindowConfig config;
 
     private final AtomicReference<WindowState> current;
 
-    TumblingWindow(long startNs, String name, WindowConfig config) {
+    public TumblingWindow(long startNs, String name, WindowConfig config) {
         this.config = config;
         this.name = name;
         this.current = new AtomicReference<>(new WindowState(startNs));
@@ -28,16 +28,25 @@ class TumblingWindow {
     }
 
     @VisibleForTesting
-    WindowState current() {
+    public WindowState current() {
         return current.get();
     }
 
-    @ThreadSafe
-    void advance(WorkloadPriority workloadPriority, boolean admitted, long nowNs) {
+    public void advance(WorkloadPriority workloadPriority) {
         WindowState currentWindow = current();
-        currentWindow.sample(workloadPriority, admitted);
+        currentWindow.sample(config.getHistogramKeyer().apply(workloadPriority));
+        // TODO nowNs
+        if (config.getRolloverStrategy().shouldRollover(currentWindow, 0, config)) {
+            trySwapWindow(0, currentWindow);
+        }
+    }
+
+    @ThreadSafe
+    public void advance(WorkloadPriority workloadPriority, boolean admitted, long nowNs) {
+        WindowState currentWindow = current();
+        currentWindow.sample(config.getHistogramKeyer().apply(workloadPriority), admitted);
         // 由于并发，可能采样时没有满，而计算outOfRange时已经满了：被其他线程采样进来的
-        if (currentWindow.outOfRange(nowNs, config)) {
+        if (config.getRolloverStrategy().shouldRollover(currentWindow, nowNs, config)) {
             trySwapWindow(nowNs, currentWindow);
         }
     }
@@ -76,7 +85,7 @@ class TumblingWindow {
     }
 
     @ThreadSafe
-    void sampleWaitingNs(long waitingNs) {
+    public void sampleWaitingNs(long waitingNs) {
         current().waitNs(waitingNs);
     }
 

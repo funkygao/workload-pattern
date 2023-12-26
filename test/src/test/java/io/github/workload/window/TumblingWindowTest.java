@@ -1,7 +1,9 @@
-package io.github.workload.overloading;
+package io.github.workload.window;
 
 import com.google.common.collect.ImmutableMap;
 import io.github.workload.AbstractBaseTest;
+import io.github.workload.overloading.RandomUtil;
+import io.github.workload.overloading.WorkloadPriority;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.RepeatedTest;
 import org.slf4j.Logger;
@@ -21,14 +23,16 @@ class TumblingWindowTest extends AbstractBaseTest {
     static void init() {
         System.setProperty("workload.window.DEFAULT_REQUEST_CYCLE", "100");
         Logger log = LoggerFactory.getLogger(TumblingWindowTest.class);
-        WindowConfig config = new WindowConfig((nowNs, state)-> {
-            log.info("onWindowSwap, request:{} window:{}", state.requested(), state.hashCode());
-            try {
-                // simulate adjust admission level overhead
-                Thread.sleep(ThreadLocalRandom.current().nextInt(20));
-            } catch (InterruptedException e) {
-            }
-        });
+        WindowConfig config = new WindowConfig(new TimeAndCountRolloverStrategy(),
+                (nowNs, state) -> {
+                    log.info("onWindowSwap, request:{} window:{}", state.requested(), state.hashCode());
+                    try {
+                        // simulate adjust admission level overhead
+                        Thread.sleep(ThreadLocalRandom.current().nextInt(20));
+                    } catch (InterruptedException e) {
+                    }
+                },
+                workloadPriority -> workloadPriority.P());
         window = new TumblingWindow(System.nanoTime(), "test", config);
     }
 

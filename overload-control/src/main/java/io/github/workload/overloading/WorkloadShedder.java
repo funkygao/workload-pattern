@@ -2,6 +2,7 @@ package io.github.workload.overloading;
 
 import io.github.workload.annotations.ThreadSafe;
 import io.github.workload.annotations.VisibleForTesting;
+import io.github.workload.window.*;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 
@@ -9,6 +10,7 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Function;
 
 /**
  * How to shed excess workload based on {@link WorkloadPriority}.
@@ -30,7 +32,9 @@ abstract class WorkloadShedder {
 
     protected WorkloadShedder(String name) {
         this.name = name;
-        WindowConfig config = new WindowConfig((nowNs, windowState) -> adaptAdmissionLevel(isOverloaded(nowNs, windowState), windowState));
+        final WindowRolloverStrategy strategy = new TimeAndCountRolloverStrategy();
+        Function<WorkloadPriority, Integer> histogramKeyer = workloadPriority -> workloadPriority.P();
+        WindowConfig config = new WindowConfig(strategy, (nowNs, lastWindow) -> adaptAdmissionLevel(isOverloaded(nowNs, lastWindow), lastWindow), histogramKeyer);
         this.window = new TumblingWindow(System.nanoTime(), name, config);
     }
 

@@ -2,6 +2,7 @@ package io.github.workload.overloading;
 
 import com.google.common.collect.ImmutableMap;
 import io.github.workload.AbstractBaseTest;
+import io.github.workload.window.WindowConfig;
 import org.junit.jupiter.api.RepeatedTest;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInfo;

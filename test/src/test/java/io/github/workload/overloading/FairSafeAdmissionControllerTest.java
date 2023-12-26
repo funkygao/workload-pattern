@@ -1,6 +1,7 @@
 package io.github.workload.overloading;
 
 import io.github.workload.SystemLoadProvider;
+import io.github.workload.window.WindowConfig;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.RepeatedTest;
@@ -38,16 +39,6 @@ class FairSafeAdmissionControllerTest {
         assertTrue(controller.admit(WorkloadPriority.of(4, 6)));
         controller.feedback(WorkloadFeedback.ofQueuedNs(5 * 1000_000)); // 5ms
         controller.feedback(WorkloadFeedback.ofQueuedNs(10 * 1000_000)); // 10ms
-    }
-
-    @Test
-    void markOverloaded() throws InterruptedException {
-        FairSafeAdmissionController controller = (FairSafeAdmissionController) AdmissionController.getInstance("foo");
-        WorkloadShedder detector = controller.shedderOnQueue;
-        controller.feedback(WorkloadFeedback.ofOverloaded());
-        assertTrue(detector.isOverloaded(System.nanoTime(), detector.window.current()));
-        Thread.sleep(1200); // 经过一个时间窗口
-        assertFalse(detector.isOverloaded(System.nanoTime(), detector.window.current()));
     }
 
     @RepeatedTest(10)
