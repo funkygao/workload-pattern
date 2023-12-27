@@ -16,11 +16,11 @@ public abstract class WindowState {
      */
     private final LongAdder requestCounter;
 
-    private final AtomicBoolean swappingLock;
+    private final AtomicBoolean rolloverLock;
 
     protected WindowState() {
         requestCounter = new LongAdder();
-        swappingLock = new AtomicBoolean(false);
+        rolloverLock = new AtomicBoolean(false);
     }
 
     /**
@@ -36,7 +36,7 @@ public abstract class WindowState {
     /**
      * 当前窗口切换到新窗口的日志输出.
      */
-    abstract void logSwapping(String prefix, long nowNs, WindowState nextWindow, WindowConfig config);
+    abstract void logRollover(String prefix, long nowNs, WindowState nextWindow, WindowConfig config);
 
     /**
      * 当前线程获取窗口切换权.
@@ -44,9 +44,9 @@ public abstract class WindowState {
      * <p>enforce that only a single thread can initiate the process to swap out the current window.</p>
      * @return true if granted
      */
-    boolean tryAcquireSwappingLock() {
+    boolean tryAcquireRolloverLock() {
         // 由于窗口被原子性地切换，该锁无需释放
-        return swappingLock.compareAndSet(false, true);
+        return rolloverLock.compareAndSet(false, true);
     }
 
     final void sample(WorkloadPriority priority, boolean admitted) {

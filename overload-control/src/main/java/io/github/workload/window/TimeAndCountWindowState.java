@@ -85,7 +85,7 @@ public class TimeAndCountWindowState extends WindowState {
     }
 
     @Override
-    void logSwapping(String prefix, long nowNs, WindowState nextWindow, WindowConfig config) {
+    void logRollover(String prefix, long nowNs, WindowState nextWindow, WindowConfig config) {
         log.debug("[{}] after:{}ms, swapped window:{} -> {}, admitted:{}/{}, delta:{}",
                 prefix, ageMs(nowNs),
                 this.hashCode(), nextWindow.hashCode(),

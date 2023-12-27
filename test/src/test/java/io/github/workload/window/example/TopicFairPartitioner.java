@@ -12,12 +12,12 @@ class TopicFairPartitioner extends AbstractBaseTest {
 
     @Test
     void demo() {
-        BiConsumer<Long, CountWindowState> onWindowSwap = (nowNs, currentWindow) -> {
+        BiConsumer<Long, CountWindowState> onRollover = (nowNs, currentWindow) -> {
             // 窗口切换时进行业务逻辑处理：这里为了演示，只是打印日志
             log.info("{} {}", currentWindow.requested(), currentWindow.histogram());
         };
         WindowConfig config = new WindowConfig(0, 2000,
-                new CountRolloverStrategy(), onWindowSwap);
+                new CountRolloverStrategy(), onRollover);
         // 创建这个核心的线程安全的滚动窗口
         TumblingWindow window = new TumblingWindow<CountWindowState>(0, "MQ", config);
         for (int i = 0; i < 1 << 20; i++) {

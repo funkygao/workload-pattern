@@ -41,10 +41,10 @@ public class WindowConfig<S extends WindowState> {
 
     private final WindowRolloverStrategy rolloverStrategy;
 
-    private final BiConsumer<Long, S> onWindowSwap;
+    private final BiConsumer<Long, S> onRollover;
 
-    public WindowConfig(@NonNull WindowRolloverStrategy rolloverStrategy, @NonNull BiConsumer<Long, S> onWindowSwap) {
-        this(DEFAULT_TIME_CYCLE_NS, DEFAULT_REQUEST_CYCLE, rolloverStrategy, onWindowSwap);
+    public WindowConfig(@NonNull WindowRolloverStrategy rolloverStrategy, @NonNull BiConsumer<Long, S> onRollover) {
+        this(DEFAULT_TIME_CYCLE_NS, DEFAULT_REQUEST_CYCLE, rolloverStrategy, onRollover);
     }
 
     @Override

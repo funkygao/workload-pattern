@@ -56,13 +56,13 @@ public class TumblingWindow<S extends WindowState> {
         S currentWindow = current();
         currentWindow.sample(priority, admitted);
         if (config.getRolloverStrategy().shouldRollover(currentWindow, nowNs, config)) {
-            trySwapWindow(nowNs, currentWindow);
+            tryRolloverWindow(nowNs, currentWindow);
         }
     }
 
     @ThreadSafe
-    private void trySwapWindow(long nowNs, S currentWindow) {
-        if (!currentWindow.tryAcquireSwappingLock()) {
+    private void tryRolloverWindow(long nowNs, S currentWindow) {
+        if (!currentWindow.tryAcquireRolloverLock()) {
             // offers an early exit to avoid unnecessary preparation for the swap
             return;
         }
@@ -77,11 +77,11 @@ public class TumblingWindow<S extends WindowState> {
                 // ThreadB，完成切换：b -> c，并且输出了日志
                 // ThreadA被调度，输出日志
                 // 如果在compareAndSet前面输出日志，那么该日志顺序与窗口切换顺序一定一致
-                currentWindow.logSwapping(name, nowNs, nextWindow, config);
+                currentWindow.logRollover(name, nowNs, nextWindow, config);
             }
 
             // 此时的 currentWindow 是该窗口的最终值
-            config.getOnWindowSwap().accept(nowNs, currentWindow);
+            config.getOnRollover().accept(nowNs, currentWindow);
             currentWindow.cleanup();
         } else {
             // should never happen

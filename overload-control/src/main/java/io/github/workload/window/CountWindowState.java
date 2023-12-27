@@ -31,7 +31,7 @@ public class CountWindowState extends WindowState {
     }
 
     @Override
-    void logSwapping(String prefix, long nowNs, WindowState nextWindow, WindowConfig config) {
+    void logRollover(String prefix, long nowNs, WindowState nextWindow, WindowConfig config) {
         log.debug("[{}] swapped window:{} -> {}, requested:{}, delta:{}",
                 prefix,
                 this.hashCode(), nextWindow.hashCode(),
