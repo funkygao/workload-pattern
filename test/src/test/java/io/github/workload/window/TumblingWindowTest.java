@@ -5,7 +5,9 @@ import io.github.workload.AbstractBaseTest;
 import io.github.workload.overloading.RandomUtil;
 import io.github.workload.overloading.WorkloadPriority;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.RepeatedTest;
+import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -66,6 +68,29 @@ class TumblingWindowTest extends AbstractBaseTest {
                     }
                 }
             }
+        };
+        concurrentRun(task);
+    }
+
+    @Test
+    @Disabled
+    void gcPressureOnCleanup() {
+        final int requestCycle = 10000;
+        WindowConfig<CountAndTimeWindowState> config = WindowConfig.create(1000 * WindowConfig.NS_PER_MS, requestCycle, new CountAndTimeRolloverStrategy(),
+                (nowNs, state) -> {
+                    //log.info("onRollover, requested:{} window:{}", state.requested(), state.hashCode());
+                });
+        window = new TumblingWindow(System.nanoTime(), "test", config);
+
+        // 并发注入大量请求，导致频繁的窗口切换，查看GC压力
+        // TODO 比较窗口切换时，不/调用 cleanup 的差异，执行时关闭日志
+        Runnable task = () -> {
+            int N = ThreadLocalRandom.current().nextInt(1 << 30);
+            log.info("{} requests will be injected", N);
+            for (int request = 0; request < N; request++) {
+                window.advance(RandomUtil.randomWorkloadPriority(), true, System.nanoTime());
+            }
+            log.info("done");
         };
         concurrentRun(task);
     }

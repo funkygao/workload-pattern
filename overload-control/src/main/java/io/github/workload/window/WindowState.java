@@ -31,6 +31,11 @@ public abstract class WindowState {
      */
     protected abstract void doSample(WorkloadPriority priority, boolean admitted);
 
+    /**
+     * 窗口被换出且不再使用情况下的资源清理.
+     *
+     * <p>虽然GC会自动清楚不再使用的资源，但窗口频繁切换情况下，不及时主动清理可能导致内存压力增大，甚至OOM</p>
+     */
     abstract void cleanup();
 
     /**

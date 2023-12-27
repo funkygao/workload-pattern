@@ -81,7 +81,7 @@ public class TumblingWindow<S extends WindowState> {
 
         // 此时的 currentWindow 是该窗口的最终值
         config.getOnRollover().accept(nowNs, currentWindow);
-        currentWindow.cleanup();
+        currentWindow.cleanup(); // TODO async?
     }
 
 }

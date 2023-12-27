@@ -27,7 +27,7 @@ public class CountWindowState extends WindowState {
 
     @Override
     void cleanup() {
-        histogram.clear(); // TODO do we need this for OOM
+        histogram.clear();
     }
 
     @Override
