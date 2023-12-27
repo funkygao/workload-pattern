@@ -1,5 +1,8 @@
 package io.github.workload.window;
 
+/**
+ * 基于请求数量的窗口切换策略.
+ */
 public class CountRolloverStrategy implements WindowRolloverStrategy<CountWindowState> {
 
     /**
