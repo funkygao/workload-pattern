@@ -5,11 +5,13 @@ package io.github.workload.window;
  */
 public class CountRolloverStrategy implements WindowRolloverStrategy<CountWindowState> {
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
-    public boolean shouldRollover(CountWindowState currentWindow, long nowNs, WindowConfig config) {
+    public boolean shouldRollover(CountWindowState currentWindow, long nowNs, WindowConfig<CountWindowState> config) {
         return currentWindow.requested() >= config.getRequestCycle();
+    }
+
+    @Override
+    public CountWindowState createWindowState(long nowNs) {
+        return new CountWindowState();
     }
 }

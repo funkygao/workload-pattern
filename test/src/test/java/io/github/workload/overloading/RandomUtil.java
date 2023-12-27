@@ -4,8 +4,11 @@ import java.util.concurrent.ThreadLocalRandom;
 
 public class RandomUtil {
     public static WorkloadPriority randomWorkloadPriority() {
-        int P = ThreadLocalRandom.current().nextInt(WorkloadPriority.ofLowestPriority().P());
-        return WorkloadPriority.fromP(P);
+        return WorkloadPriority.fromP(randomP());
+    }
+
+    public static int randomP() {
+        return ThreadLocalRandom.current().nextInt(WorkloadPriority.ofLowestPriority().P());
     }
 
     public static boolean randomBoolean() {

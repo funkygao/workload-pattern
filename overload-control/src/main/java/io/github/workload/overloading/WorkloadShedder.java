@@ -2,8 +2,8 @@ package io.github.workload.overloading;
 
 import io.github.workload.annotations.ThreadSafe;
 import io.github.workload.annotations.VisibleForTesting;
-import io.github.workload.window.TimeAndCountRolloverStrategy;
-import io.github.workload.window.TimeAndCountWindowState;
+import io.github.workload.window.CountAndTimeRolloverStrategy;
+import io.github.workload.window.CountAndTimeWindowState;
 import io.github.workload.window.TumblingWindow;
 import io.github.workload.window.WindowConfig;
 import lombok.NonNull;
@@ -25,21 +25,19 @@ abstract class WorkloadShedder {
     protected final String name;
     private volatile AdmissionLevel admissionLevel = AdmissionLevel.ofAdmitAll();
 
-    protected final TumblingWindow<TimeAndCountWindowState> window;
+    protected final TumblingWindow<CountAndTimeWindowState> window;
 
     @VisibleForTesting
     final WorkloadSheddingPolicy policy = new WorkloadSheddingPolicy();
 
-    protected abstract boolean isOverloaded(long nowNs, TimeAndCountWindowState windowState);
+    protected abstract boolean isOverloaded(long nowNs, CountAndTimeWindowState windowState);
 
     protected WorkloadShedder(String name) {
         this.name = name;
-        WindowConfig config = new WindowConfig<TimeAndCountWindowState>(
-                new TimeAndCountRolloverStrategy(),
-                (nowNs, lastWindow) -> {
-                    boolean overloaded = isOverloaded(nowNs, lastWindow);
-                    adaptAdmissionLevel(overloaded, lastWindow);
-                });
+        WindowConfig<CountAndTimeWindowState> config = WindowConfig.create(
+                new CountAndTimeRolloverStrategy(),
+                (nowNs, lastWindow) -> adaptAdmissionLevel(isOverloaded(nowNs, lastWindow), lastWindow)
+        );
         this.window = new TumblingWindow(System.nanoTime(), name, config);
     }
 
@@ -57,19 +55,19 @@ abstract class WorkloadShedder {
     }
 
     @VisibleForTesting
-    void adaptAdmissionLevel(boolean overloaded, TimeAndCountWindowState windowState) {
+    void adaptAdmissionLevel(boolean overloaded, CountAndTimeWindowState lastWindow) {
         if (overloaded) {
-            dropMore(windowState);
+            dropMore(lastWindow);
         } else {
-            admitMore(windowState);
+            admitMore(lastWindow);
         }
     }
 
-    private void dropMore(TimeAndCountWindowState windowState) {
+    private void dropMore(CountAndTimeWindowState lastWindow) {
         // 如果上个周期的准入请求非常少，那么 expectedDropNextCycle 可能为0
-        final int admitted = windowState.admitted();
+        final int admitted = lastWindow.admitted();
         final int expectedDropNextCycle = (int) (policy.getDropRate() * admitted);
-        final ConcurrentSkipListMap<Integer, AtomicInteger> histogram = windowState.histogram();
+        final ConcurrentSkipListMap<Integer, AtomicInteger> histogram = lastWindow.histogram();
         int accumulatedDrop = 0;
         final Iterator<Integer> descendingP = histogram.headMap(admissionLevel.P(), true).descendingKeySet().iterator();
         while (descendingP.hasNext()) {
@@ -106,16 +104,16 @@ abstract class WorkloadShedder {
         // TODO edge case，还不够扣呢
     }
 
-    private void admitMore(TimeAndCountWindowState windowState) {
+    private void admitMore(CountAndTimeWindowState lastWindow) {
         if (ADMIT_ALL_P == admissionLevel.P()) {
             return;
         }
 
-        final int admitted = windowState.admitted();
+        final int admitted = lastWindow.admitted();
         final int expectedAddNextCycle = (int) (policy.getRecoverRate() * admitted);
         int accumulatedAdd = 0;
         // entrySet is in ascending order
-        final Iterator<Map.Entry<Integer, AtomicInteger>> ascendingP = windowState.histogram().tailMap(admissionLevel.P()).entrySet().iterator();
+        final Iterator<Map.Entry<Integer, AtomicInteger>> ascendingP = lastWindow.histogram().tailMap(admissionLevel.P()).entrySet().iterator();
         while (ascendingP.hasNext()) {
             final Map.Entry<Integer, AtomicInteger> entry = ascendingP.next();
             final int P = entry.getKey();

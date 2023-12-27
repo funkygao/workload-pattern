@@ -23,9 +23,9 @@ class TumblingWindowTest extends AbstractBaseTest {
     static void init() {
         System.setProperty("workload.window.DEFAULT_REQUEST_CYCLE", "100");
         Logger log = LoggerFactory.getLogger(TumblingWindowTest.class);
-        WindowConfig config = new WindowConfig<TimeAndCountWindowState>(new TimeAndCountRolloverStrategy(),
+        WindowConfig<CountAndTimeWindowState> config = WindowConfig.create(new CountAndTimeRolloverStrategy(),
                 (nowNs, state) -> {
-                    log.info("onWindowSwap, request:{} window:{}", state.requested(), state.hashCode());
+                    log.info("onRollover, requested:{} window:{}", state.requested(), state.hashCode());
                     try {
                         // simulate adjust admission level overhead
                         Thread.sleep(ThreadLocalRandom.current().nextInt(20));

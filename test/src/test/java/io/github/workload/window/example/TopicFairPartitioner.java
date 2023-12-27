@@ -16,10 +16,10 @@ class TopicFairPartitioner extends AbstractBaseTest {
             // 窗口切换时进行业务逻辑处理：这里为了演示，只是打印日志
             log.info("{} {}", currentWindow.requested(), currentWindow.histogram());
         };
-        WindowConfig config = new WindowConfig(0, 2000,
+        WindowConfig<CountWindowState> config = WindowConfig.create(0, 2000,
                 new CountRolloverStrategy(), onRollover);
         // 创建这个核心的线程安全的滚动窗口
-        TumblingWindow window = new TumblingWindow<CountWindowState>(0, "MQ", config);
+        TumblingWindow<CountWindowState> window = new TumblingWindow(0, "MQ", config);
         for (int i = 0; i < 1 << 20; i++) {
             // 模拟发送一条消息
             WorkloadPriority priority = RandomUtil.randomWorkloadPriority();

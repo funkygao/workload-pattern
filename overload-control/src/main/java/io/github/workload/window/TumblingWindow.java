@@ -26,10 +26,10 @@ public class TumblingWindow<S extends WindowState> {
      */
     private final AtomicReference<S> current;
 
-    public TumblingWindow(long startNs, @NonNull String name, @NonNull WindowConfig config) {
+    public TumblingWindow(long startNs, @NonNull String name, @NonNull WindowConfig<S> config) {
         this.name = name;
         this.config = config;
-        this.current = new AtomicReference<>((S) config.createWindowState(startNs)); // TODO why cast
+        this.current = new AtomicReference<>(config.createWindowState(startNs));
         log.info("[{}] created with {}", name, config);
     }
 
@@ -56,18 +56,17 @@ public class TumblingWindow<S extends WindowState> {
         S currentWindow = current();
         currentWindow.sample(priority, admitted);
         if (config.getRolloverStrategy().shouldRollover(currentWindow, nowNs, config)) {
-            tryRolloverWindow(nowNs, currentWindow);
+            tryRollover(nowNs, currentWindow);
         }
     }
 
-    @ThreadSafe
-    private void tryRolloverWindow(long nowNs, S currentWindow) {
+    private void tryRollover(long nowNs, S currentWindow) {
         if (!currentWindow.tryAcquireRolloverLock()) {
             // offers an early exit to avoid unnecessary preparation for the swap
             return;
         }
 
-        S nextWindow = (S) config.createWindowState(nowNs); // TODO why cast
+        S nextWindow = config.createWindowState(nowNs);
         if (current.compareAndSet(currentWindow, nextWindow)) { // TODO set
             // 此后，采样数据都进入新窗口，currentWindow 内部状态不会再变化
             if (log.isDebugEnabled()) {

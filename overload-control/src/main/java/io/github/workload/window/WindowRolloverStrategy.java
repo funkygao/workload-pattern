@@ -16,4 +16,12 @@ public interface WindowRolloverStrategy<S extends WindowState> {
      * @return true if should rollover the current window to next window
      */
     boolean shouldRollover(S currentWindow, long nowNs, WindowConfig<S> config);
+
+    /**
+     * 创建新窗口状态.
+     *
+     * @param nowNs current hw clock
+     * @return a new window state
+     */
+    S createWindowState(long nowNs);
 }

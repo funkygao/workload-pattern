@@ -1,6 +1,6 @@
 package io.github.workload.overloading;
 
-import io.github.workload.window.TimeAndCountWindowState;
+import io.github.workload.window.CountAndTimeWindowState;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -26,7 +26,7 @@ class WorkloadShedderOnQueue extends WorkloadShedder {
     }
 
     @Override
-    protected boolean isOverloaded(long nowNs, TimeAndCountWindowState windowState) {
+    protected boolean isOverloaded(long nowNs, CountAndTimeWindowState windowState) {
         return windowState.avgQueuedMs() > overloadQueuingMs // 排队时间长
                 || (nowNs - overloadedAtNs) <= timeCycleNs; // 距离上次显式过载仍在窗口期
     }

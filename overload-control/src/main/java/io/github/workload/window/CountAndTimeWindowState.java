@@ -12,10 +12,10 @@ import java.util.concurrent.atomic.LongAdder;
 import static io.github.workload.window.WindowConfig.NS_PER_MS;
 
 @Slf4j
-public class TimeAndCountWindowState extends WindowState {
+public class CountAndTimeWindowState extends WindowState {
     /**
      * 窗口启动时间.
-     *
+     * <p>
      * 通过{@link System#nanoTime()}获取.
      */
     @Getter(AccessLevel.PACKAGE)
@@ -33,7 +33,7 @@ public class TimeAndCountWindowState extends WindowState {
 
     private final ConcurrentSkipListMap<Integer /* priority */, AtomicInteger /* requested */> histogram;
 
-    TimeAndCountWindowState(long startNs) {
+    CountAndTimeWindowState(long startNs) {
         super();
         this.startNs = startNs;
         this.admittedCounter = new LongAdder();
@@ -54,10 +54,6 @@ public class TimeAndCountWindowState extends WindowState {
 
     public void waitNs(long waitingNs) {
         accumulatedQueuedNs.add(waitingNs);
-    }
-
-    long ageMs(long nowNs) {
-        return (nowNs - startNs) / NS_PER_MS;
     }
 
     public long avgQueuedMs() {
@@ -87,7 +83,7 @@ public class TimeAndCountWindowState extends WindowState {
     @Override
     void logRollover(String prefix, long nowNs, WindowState nextWindow, WindowConfig config) {
         log.debug("[{}] after:{}ms, swapped window:{} -> {}, admitted:{}/{}, delta:{}",
-                prefix, ageMs(nowNs),
+                prefix, (nowNs - startNs) / NS_PER_MS,
                 this.hashCode(), nextWindow.hashCode(),
                 this.admitted(), this.requested(),
                 this.requested() - config.getRequestCycle());
