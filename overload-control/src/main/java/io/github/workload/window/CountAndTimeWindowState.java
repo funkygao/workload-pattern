@@ -63,7 +63,11 @@ public class CountAndTimeWindowState extends WindowState {
             return 0;
         }
 
-        return accumulatedQueuedNs.longValue() / (requested * NS_PER_MS);
+        // 使用long类型确保有效数值范围，并先进行除法以避免精度损失
+        long totalQueuedNs = accumulatedQueuedNs.longValue();
+        long avgQueuedNs = totalQueuedNs / requested;
+        long avgQueuedMs = avgQueuedNs / NS_PER_MS;
+        return avgQueuedMs;
     }
 
     @Override
