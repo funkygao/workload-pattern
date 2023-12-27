@@ -3,42 +3,55 @@ package io.github.workload.window;
 import io.github.workload.annotations.ThreadSafe;
 import io.github.workload.overloading.WorkloadPriority;
 import lombok.Getter;
+import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * 基于(时间周期，请求数量周期)的滚动窗口，用于对工作负荷采样.
+ *
+ * @param <S> 具体的窗口状态
  */
 @Slf4j
+@ThreadSafe
 public class TumblingWindow<S extends WindowState> {
     private final String name;
 
     @Getter
     private final WindowConfig<S> config;
 
+    /**
+     * 当前窗口状态.
+     */
     private final AtomicReference<S> current;
 
-    public TumblingWindow(long startNs, String name, WindowConfig config) {
-        this.config = config;
+    public TumblingWindow(long startNs, @NonNull String name, @NonNull WindowConfig config) {
         this.name = name;
-        this.current = new AtomicReference<>((S) config.newWindowState(startNs));
+        this.config = config;
+        this.current = new AtomicReference<>((S) config.createWindowState(startNs)); // TODO why cast
         log.info("[{}] created with {}", name, config);
     }
 
+    /**
+     * 当前窗口状态.
+     */
     public S current() {
         return current.get();
     }
 
+    /**
+     * 采样工作负荷，推动窗口前进.
+     */
     public void advance(WorkloadPriority priority) {
-        S currentWindow = current();
-        currentWindow.sample(priority);
-        if (config.getRolloverStrategy().shouldRollover(currentWindow, 0, config)) {
-            trySwapWindow(0, currentWindow);
-        }
+        advance(priority, true /* 不关心是否准入 */, 0 /* 不关心时间 */);
     }
 
-    @ThreadSafe
+    /**
+     * 采样工作负荷，推动窗口前进.
+     *
+     * <p>除了工作负荷本身，还关心时间和是否准入.</p>
+     */
     public void advance(WorkloadPriority priority, boolean admitted, long nowNs) {
         S currentWindow = current();
         currentWindow.sample(priority, admitted);
@@ -54,7 +67,7 @@ public class TumblingWindow<S extends WindowState> {
             return;
         }
 
-        S nextWindow = (S) config.newWindowState(nowNs);
+        S nextWindow = (S) config.createWindowState(nowNs); // TODO why cast
         if (current.compareAndSet(currentWindow, nextWindow)) { // TODO set
             // 此后，采样数据都进入新窗口，currentWindow 内部状态不会再变化
             if (log.isDebugEnabled()) {
@@ -64,23 +77,7 @@ public class TumblingWindow<S extends WindowState> {
                 // ThreadB，完成切换：b -> c，并且输出了日志
                 // ThreadA被调度，输出日志
                 // 如果在compareAndSet前面输出日志，那么该日志顺序与窗口切换顺序一定一致
-                if (currentWindow instanceof TimeAndCountWindowState) {
-                    TimeAndCountWindowState state = (TimeAndCountWindowState) currentWindow;
-                    log.debug("[{}] after:{}ms, swapped window:{} -> {}, admitted:{}/{}, delta:{}",
-                            name, state.ageMs(nowNs),
-                            state.hashCode(), state.hashCode(),
-                            state.admitted(), state.requested(),
-                            state.requested() - config.getRequestCycle());
-                }
-                if (currentWindow instanceof CountWindowState) {
-                    CountWindowState state = (CountWindowState) currentWindow;
-                    log.debug("[{}] swapped window:{} -> {}, requested:{}, delta:{}",
-                            name,
-                            state.hashCode(), state.hashCode(),
-                            state.requested(), state.requested() - config.getRequestCycle());
-                }
-
-
+                currentWindow.logSwapping(name, nowNs, nextWindow, config);
             }
 
             // 此时的 currentWindow 是该窗口的最终值

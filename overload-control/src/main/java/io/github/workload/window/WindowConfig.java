@@ -43,7 +43,6 @@ public class WindowConfig<S extends WindowState> {
 
     private final BiConsumer<Long, S> onWindowSwap;
 
-
     public WindowConfig(@NonNull WindowRolloverStrategy rolloverStrategy, @NonNull BiConsumer<Long, S> onWindowSwap) {
         this(DEFAULT_TIME_CYCLE_NS, DEFAULT_REQUEST_CYCLE, rolloverStrategy, onWindowSwap);
     }
@@ -53,7 +52,11 @@ public class WindowConfig<S extends WindowState> {
         return "WindowConfig(time=" + timeCycleNs / NS_PER_MS / 1000 + "s,count=" + requestCycle + ")";
     }
 
-    WindowState newWindowState(long nowNs) {
+    /**
+     * 窗口状态的工厂方法.
+     */
+    WindowState createWindowState(long nowNs) {
+        // TODO ugly instanceof
         if (rolloverStrategy instanceof CountRolloverStrategy) {
             return new CountWindowState();
         } else {

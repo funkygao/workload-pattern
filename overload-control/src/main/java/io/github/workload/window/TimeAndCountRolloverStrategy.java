@@ -4,7 +4,7 @@ public class TimeAndCountRolloverStrategy implements WindowRolloverStrategy<Time
 
     @Override
     public boolean shouldRollover(TimeAndCountWindowState currentWindow, long nowNs, WindowConfig config) {
-        return currentWindow.requested() > config.getRequestCycle() ||
-                (nowNs - currentWindow.getStartNs()) > config.getTimeCycleNs();
+        return currentWindow.requested() >= config.getRequestCycle() ||
+                (nowNs - currentWindow.getStartNs()) >= config.getTimeCycleNs();
     }
 }

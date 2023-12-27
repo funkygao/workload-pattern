@@ -7,6 +7,6 @@ public class CountRolloverStrategy implements WindowRolloverStrategy<CountWindow
      */
     @Override
     public boolean shouldRollover(CountWindowState currentWindow, long nowNs, WindowConfig config) {
-        return currentWindow.requested() > config.getRequestCycle();
+        return currentWindow.requested() >= config.getRequestCycle();
     }
 }
