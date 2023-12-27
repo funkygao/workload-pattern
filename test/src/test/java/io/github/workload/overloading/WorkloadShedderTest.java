@@ -2,6 +2,7 @@ package io.github.workload.overloading;
 
 import com.google.common.collect.ImmutableMap;
 import io.github.workload.AbstractBaseTest;
+import io.github.workload.window.WindowConfig;
 import org.junit.jupiter.api.RepeatedTest;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInfo;
@@ -45,15 +46,15 @@ class WorkloadShedderTest extends AbstractBaseTest {
             // 每个P发一个请求
             assertTrue(shedder.admit(WorkloadPriority.fromP(P)));
         }
-        final int expectedAdmittedLastWindow = initialP % TumblingSampleWindow.DEFAULT_REQUEST_CYCLE;
-        assertEquals(expectedAdmittedLastWindow, shedder.window.admitted());
+        final int expectedAdmittedLastWindow = initialP % WindowConfig.DEFAULT_REQUEST_CYCLE;
+        assertEquals(expectedAdmittedLastWindow, shedder.window.current().admitted());
 
         // 没有过载，调整admission level不变化
-        shedder.adaptAdmissionLevel(false);
+        shedder.adaptAdmissionLevel(false, shedder.window.current());
         assertEquals(initialP, shedder.admissionLevel().P());
 
         // trigger overload
-        shedder.adaptAdmissionLevel(true);
+        shedder.adaptAdmissionLevel(true, shedder.window.current());
         int drop = (int) (expectedAdmittedLastWindow * shedder.policy.getDropRate());
         final int expectedDrop = 95;
         assertEquals(expectedDrop, drop);
@@ -77,7 +78,7 @@ class WorkloadShedderTest extends AbstractBaseTest {
         log.info("{} {}", testInfo.getDisplayName(), shedder);
 
         injectWorkloads(shedder, P2Requests);
-        shedder.adaptAdmissionLevel(true);
+        shedder.adaptAdmissionLevel(true, shedder.window.current());
     }
 
     private void injectWorkloads(WorkloadShedder shedder, Map<Integer, Integer> P2Requests) {

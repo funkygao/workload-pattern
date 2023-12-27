@@ -9,7 +9,7 @@ class WorkloadShedderOnCpuTest {
     @Test
     void basic() {
         WorkloadShedderOnCpu shedder = new WorkloadShedderOnCpu(AdmissionController.CPU_USAGE_UPPER_BOUND, 0);
-        assertFalse(shedder.isOverloaded(System.nanoTime()));
+        assertFalse(shedder.isOverloaded(System.nanoTime(), null));
     }
 
     @Test
@@ -18,7 +18,7 @@ class WorkloadShedderOnCpuTest {
 
         CpuStressLoader.burnCPUs();
         for (int i = 0; i < 10; i++) {
-            if (shedder.isOverloaded(0)) {
+            if (shedder.isOverloaded(0, null)) {
                 return;
             }
 

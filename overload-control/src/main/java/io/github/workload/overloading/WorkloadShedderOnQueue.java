@@ -1,5 +1,6 @@
 package io.github.workload.overloading;
 
+import io.github.workload.window.TimeAndCountWindowState;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -17,23 +18,21 @@ class WorkloadShedderOnQueue extends WorkloadShedder {
      */
     private volatile long overloadedAtNs = 0;
 
+    private final long timeCycleNs;
+
     WorkloadShedderOnQueue(String name) {
         super(name);
+        this.timeCycleNs = window.getConfig().getTimeCycleNs();
     }
 
     @Override
-    protected boolean isOverloaded(long nowNs) {
-        return window.avgQueuedMs() > overloadQueuingMs // 排队时间长
-                || (nowNs - overloadedAtNs) <= window.getTimeCycleNs(); // 距离上次显式过载仍在窗口期
+    protected boolean isOverloaded(long nowNs, TimeAndCountWindowState windowState) {
+        return windowState.avgQueuedMs() > overloadQueuingMs // 排队时间长
+                || (nowNs - overloadedAtNs) <= timeCycleNs; // 距离上次显式过载仍在窗口期
     }
 
     void addWaitingNs(long waitingNs) {
-        if (windowSwapLock.get()) {
-            // 正在滑动窗口，即使计数也可能被重置
-            return;
-        }
-
-        window.sampleWaitingNs(waitingNs);
+        window.current().waitNs(waitingNs);
     }
 
     void overload(long overloadedAtNs) {

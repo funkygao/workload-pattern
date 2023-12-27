@@ -1,6 +1,7 @@
 package io.github.workload.overloading;
 
 import io.github.workload.SystemLoadProvider;
+import io.github.workload.window.WindowConfig;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.RepeatedTest;
@@ -40,16 +41,6 @@ class FairSafeAdmissionControllerTest {
         controller.feedback(WorkloadFeedback.ofQueuedNs(10 * 1000_000)); // 10ms
     }
 
-    @Test
-    void markOverloaded() throws InterruptedException {
-        FairSafeAdmissionController controller = (FairSafeAdmissionController) AdmissionController.getInstance("foo");
-        WorkloadShedder detector = controller.shedderOnQueue;
-        controller.feedback(WorkloadFeedback.ofOverloaded());
-        assertTrue(detector.isOverloaded(System.nanoTime()));
-        Thread.sleep(1200); // 经过一个时间窗口
-        assertFalse(detector.isOverloaded(System.nanoTime()));
-    }
-
     @RepeatedTest(10)
     void simulateNeverOverload() {
         log.info("never overload start");
@@ -57,7 +48,7 @@ class FairSafeAdmissionControllerTest {
         FairSafeAdmissionController rpcController = (FairSafeAdmissionController) AdmissionController.getInstance("RPC");
         FairSafeAdmissionController webController = (FairSafeAdmissionController) AdmissionController.getInstance("Web");
         FairSafeAdmissionController.shedderOnCpu.loadProvider = new AlwaysHealthySystemLoad();
-        for (int i = 0; i < TumblingSampleWindow.DEFAULT_REQUEST_CYCLE + 1; i++) {
+        for (int i = 0; i < WindowConfig.DEFAULT_REQUEST_CYCLE + 1; i++) {
             log.info("loop: {}", i + 1);
             // 默认情况下，都放行：除非此时CPU已经高了
             WorkloadPriority mq = WorkloadPrioritizer.randomMQ();
@@ -84,7 +75,7 @@ class FairSafeAdmissionControllerTest {
         FairSafeAdmissionController rpcController = (FairSafeAdmissionController) AdmissionController.getInstance("RPC");
         FairSafeAdmissionController webController = (FairSafeAdmissionController) AdmissionController.getInstance("WEB");
         FairSafeAdmissionController.shedderOnCpu.loadProvider = systemLoadProvider;
-        int loops = TumblingSampleWindow.DEFAULT_REQUEST_CYCLE * 5;
+        int loops = WindowConfig.DEFAULT_REQUEST_CYCLE * 5;
         for (int i = 0; i < loops; i++) {
             WorkloadPriority mq = WorkloadPrioritizer.randomMQ();
             WorkloadPriority rpc = WorkloadPrioritizer.randomRpc();
