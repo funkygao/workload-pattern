@@ -3,7 +3,7 @@ package io.github.workload.overloading;
 import io.github.workload.SystemClock;
 import io.github.workload.SystemLoadProvider;
 import io.github.workload.annotations.VisibleForTesting;
-import io.github.workload.window.WindowState;
+import io.github.workload.window.TimeAndCountWindowState;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -25,7 +25,7 @@ class WorkloadShedderOnCpu extends WorkloadShedder {
     }
 
     @Override
-    protected boolean isOverloaded(long nowNs, WindowState windowState) {
+    protected boolean isOverloaded(long nowNs, TimeAndCountWindowState windowState) {
         if (coolOffMs > 0 && coolOffClock.currentTimeMillis() - startupMs < coolOffMs) {
             // 有静默期，而且在静默期内，永远认为不过载
             return false;

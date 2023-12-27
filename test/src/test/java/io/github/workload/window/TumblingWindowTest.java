@@ -23,7 +23,7 @@ class TumblingWindowTest extends AbstractBaseTest {
     static void init() {
         System.setProperty("workload.window.DEFAULT_REQUEST_CYCLE", "100");
         Logger log = LoggerFactory.getLogger(TumblingWindowTest.class);
-        WindowConfig config = new WindowConfig(new TimeAndCountRolloverStrategy(),
+        WindowConfig config = new WindowConfig<TimeAndCountWindowState>(new TimeAndCountRolloverStrategy(),
                 (nowNs, state) -> {
                     log.info("onWindowSwap, request:{} window:{}", state.requested(), state.hashCode());
                     try {
@@ -31,8 +31,7 @@ class TumblingWindowTest extends AbstractBaseTest {
                         Thread.sleep(ThreadLocalRandom.current().nextInt(20));
                     } catch (InterruptedException e) {
                     }
-                },
-                workloadPriority -> workloadPriority.P());
+                });
         window = new TumblingWindow(System.nanoTime(), "test", config);
     }
 
@@ -65,7 +64,6 @@ class TumblingWindowTest extends AbstractBaseTest {
                     if (false && hash1 != hash2) {
                         log.info("n:{} window changed:{} -> {}", n, hash1, hash2);
                     }
-                    window.sampleWaitingNs(20);
                 }
             }
         };

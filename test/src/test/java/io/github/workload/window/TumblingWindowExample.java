@@ -12,14 +12,12 @@ class TumblingWindowExample extends AbstractBaseTest {
 
     @Test
     void forMessageQueue() {
-        WindowRolloverStrategy strategy = new CountOnlyRolloverStrategy();
-        BiConsumer<Long, WindowState> onWindowSwap = (nowNs, state) -> {
-            log.info("{} {}", state.requested(), state.histogram());
+        WindowRolloverStrategy strategy = new CountRolloverStrategy();
+        BiConsumer<Long, CountWindowState> onWindowSwap = (nowNs, state) -> {
+            //log.info("{} {}", state.requested(), state.histogram());
         };
-        WindowConfig config = new WindowConfig(0, 2000, strategy,
-                onWindowSwap,
-                workloadPriority -> workloadPriority.B());
-        TumblingWindow window = new TumblingWindow(0, "MQ", config);
+        WindowConfig config = new WindowConfig(0, 2000, strategy, onWindowSwap);
+        TumblingWindow window = new TumblingWindow<CountWindowState>(0, "MQ", config);
         for (int i = 0; i < 1 << 20; i++) {
             window.advance(RandomUtil.randomWorkloadPriority());
         }

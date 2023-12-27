@@ -1,16 +1,19 @@
 package io.github.workload.window;
 
 /**
- * 允许外部实现不同的窗口滚动逻辑.
+ * 窗口滚动策略.
+ *
+ * @param <S> 具体的窗口状态
  */
-public interface WindowRolloverStrategy {
+public interface WindowRolloverStrategy<S extends WindowState> {
 
     /**
+     * 根据{@link WindowConfig}决定当前窗口是否应该滚动.
      *
-     * @param currentWindow
-     * @param nowNs {@link System#nanoTime()}
-     * @param config
-     * @return
+     * @param currentWindow 当前窗口
+     * @param nowNs 当前系统时间，see {@link System#nanoTime()}
+     * @param config 窗口配置
+     * @return true if should rollover the current window to next window
      */
-    boolean shouldRollover(WindowState currentWindow, long nowNs, WindowConfig config);
+    boolean shouldRollover(S currentWindow, long nowNs, WindowConfig<S> config);
 }

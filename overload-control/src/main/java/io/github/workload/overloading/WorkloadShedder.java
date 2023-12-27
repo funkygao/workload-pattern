@@ -2,7 +2,10 @@ package io.github.workload.overloading;
 
 import io.github.workload.annotations.ThreadSafe;
 import io.github.workload.annotations.VisibleForTesting;
-import io.github.workload.window.*;
+import io.github.workload.window.TimeAndCountRolloverStrategy;
+import io.github.workload.window.TimeAndCountWindowState;
+import io.github.workload.window.TumblingWindow;
+import io.github.workload.window.WindowConfig;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 
@@ -10,7 +13,6 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.Function;
 
 /**
  * How to shed excess workload based on {@link WorkloadPriority}.
@@ -23,18 +25,21 @@ abstract class WorkloadShedder {
     protected final String name;
     private volatile AdmissionLevel admissionLevel = AdmissionLevel.ofAdmitAll();
 
-    protected final TumblingWindow window;
+    protected final TumblingWindow<TimeAndCountWindowState> window;
 
     @VisibleForTesting
     final WorkloadSheddingPolicy policy = new WorkloadSheddingPolicy();
 
-    protected abstract boolean isOverloaded(long nowNs, WindowState windowState);
+    protected abstract boolean isOverloaded(long nowNs, TimeAndCountWindowState windowState);
 
     protected WorkloadShedder(String name) {
         this.name = name;
-        final WindowRolloverStrategy strategy = new TimeAndCountRolloverStrategy();
-        Function<WorkloadPriority, Integer> histogramKeyer = workloadPriority -> workloadPriority.P();
-        WindowConfig config = new WindowConfig(strategy, (nowNs, lastWindow) -> adaptAdmissionLevel(isOverloaded(nowNs, lastWindow), lastWindow), histogramKeyer);
+        WindowConfig config = new WindowConfig<TimeAndCountWindowState>(
+                new TimeAndCountRolloverStrategy(),
+                (nowNs, lastWindow) -> {
+                    boolean overloaded = isOverloaded(nowNs, lastWindow);
+                    adaptAdmissionLevel(overloaded, lastWindow);
+                });
         this.window = new TumblingWindow(System.nanoTime(), name, config);
     }
 
@@ -52,7 +57,7 @@ abstract class WorkloadShedder {
     }
 
     @VisibleForTesting
-    void adaptAdmissionLevel(boolean overloaded, WindowState windowState) {
+    void adaptAdmissionLevel(boolean overloaded, TimeAndCountWindowState windowState) {
         if (overloaded) {
             dropMore(windowState);
         } else {
@@ -60,7 +65,7 @@ abstract class WorkloadShedder {
         }
     }
 
-    private void dropMore(WindowState windowState) {
+    private void dropMore(TimeAndCountWindowState windowState) {
         // 如果上个周期的准入请求非常少，那么 expectedDropNextCycle 可能为0
         final int admitted = windowState.admitted();
         final int expectedDropNextCycle = (int) (policy.getDropRate() * admitted);
@@ -101,7 +106,7 @@ abstract class WorkloadShedder {
         // TODO edge case，还不够扣呢
     }
 
-    private void admitMore(WindowState windowState) {
+    private void admitMore(TimeAndCountWindowState windowState) {
         if (ADMIT_ALL_P == admissionLevel.P()) {
             return;
         }

@@ -2,18 +2,22 @@ package io.github.workload.window;
 
 import io.github.workload.annotations.Immutable;
 import io.github.workload.annotations.VisibleForTesting;
-import io.github.workload.overloading.WorkloadPriority;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.NonNull;
 
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
-import java.util.function.Function;
 
+/**
+ * 滚动窗口的配置.
+ *
+ * @param <S> 具体的窗口状态
+ */
 @AllArgsConstructor
 @Getter
 @Immutable
-public class WindowConfig {
+public class WindowConfig<S extends WindowState> {
     static final long NS_PER_MS = TimeUnit.MILLISECONDS.toNanos(1);
 
     private static final long DEFAULT_TIME_CYCLE_NS = System.getProperty("workload.window.DEFAULT_TIME_CYCLE_MS") != null ?
@@ -37,16 +41,24 @@ public class WindowConfig {
 
     private final WindowRolloverStrategy rolloverStrategy;
 
-    private final BiConsumer<Long, WindowState> onWindowSwap;
+    private final BiConsumer<Long, S> onWindowSwap;
 
-    private final Function<WorkloadPriority, Integer> histogramKeyer;
 
-    public WindowConfig(WindowRolloverStrategy rolloverStrategy, BiConsumer<Long, WindowState> onWindowSwap, Function<WorkloadPriority, Integer> histogramKeyer) {
-        this(DEFAULT_TIME_CYCLE_NS, DEFAULT_REQUEST_CYCLE, rolloverStrategy, onWindowSwap, histogramKeyer);
+    public WindowConfig(@NonNull WindowRolloverStrategy rolloverStrategy, @NonNull BiConsumer<Long, S> onWindowSwap) {
+        this(DEFAULT_TIME_CYCLE_NS, DEFAULT_REQUEST_CYCLE, rolloverStrategy, onWindowSwap);
     }
 
     @Override
     public String toString() {
         return "WindowConfig(time=" + timeCycleNs / NS_PER_MS / 1000 + "s,count=" + requestCycle + ")";
     }
+
+    WindowState newWindowState(long nowNs) {
+        if (rolloverStrategy instanceof CountRolloverStrategy) {
+            return new CountWindowState();
+        } else {
+            return new TimeAndCountWindowState(nowNs);
+        }
+    }
+
 }
