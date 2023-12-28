@@ -80,12 +80,12 @@ public class CountAndTimeWindowState extends WindowState {
     }
 
     @Override
-    void cleanup() {
+    protected void cleanup() {
         histogram.clear();
     }
 
     @Override
-    void logRollover(String prefix, long nowNs, WindowState nextWindow, WindowConfig config) {
+    protected void logRollover(String prefix, long nowNs, WindowState nextWindow, WindowConfig config) {
         log.debug("[{}] after:{}ms, swapped window:{} -> {}, admitted:{}/{}, error:{}",
                 prefix, (nowNs - startNs) / NS_PER_MS,
                 this.hashCode(), nextWindow.hashCode(),

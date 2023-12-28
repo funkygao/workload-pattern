@@ -26,7 +26,7 @@ public class TumblingWindow<S extends WindowState> {
      */
     private final AtomicReference<S> current;
 
-    public TumblingWindow(long startNs, @NonNull String name, @NonNull WindowConfig<S> config) {
+    public TumblingWindow(@NonNull WindowConfig<S> config, @NonNull String name, long startNs) {
         this.name = name;
         this.config = config;
         this.current = new AtomicReference<>(config.createWindowState(startNs));

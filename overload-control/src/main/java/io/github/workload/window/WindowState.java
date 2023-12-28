@@ -36,12 +36,16 @@ public abstract class WindowState {
      *
      * <p>虽然GC会自动清楚不再使用的资源，但窗口频繁切换情况下，不及时主动清理可能导致内存压力增大，甚至OOM</p>
      */
-    abstract void cleanup();
+    protected void cleanup() {
+        // leave for children
+    }
 
     /**
      * 当前窗口切换到新窗口的日志输出.
      */
-    abstract void logRollover(String prefix, long nowNs, WindowState nextWindow, WindowConfig config);
+    protected void logRollover(String prefix, long nowNs, WindowState nextWindow, WindowConfig config) {
+        // leave for children
+    }
 
     /**
      * 当前线程获取窗口切换权.

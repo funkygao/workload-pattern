@@ -26,12 +26,12 @@ public class CountWindowState extends WindowState {
     }
 
     @Override
-    void cleanup() {
+    protected void cleanup() {
         histogram.clear();
     }
 
     @Override
-    void logRollover(String prefix, long nowNs, WindowState nextWindow, WindowConfig config) {
+    protected void logRollover(String prefix, long nowNs, WindowState nextWindow, WindowConfig config) {
         log.debug("[{}] swapped window:{} -> {}, requested:{}, delta:{}",
                 prefix,
                 this.hashCode(), nextWindow.hashCode(),

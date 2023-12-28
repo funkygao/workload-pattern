@@ -34,7 +34,7 @@ class TumblingWindowTest extends AbstractBaseTest {
                     } catch (InterruptedException e) {
                     }
                 });
-        window = new TumblingWindow(System.nanoTime(), "test", config);
+        window = new TumblingWindow(config, "test", System.nanoTime());
     }
 
     @RepeatedTest(1)
@@ -80,7 +80,7 @@ class TumblingWindowTest extends AbstractBaseTest {
                 (nowNs, state) -> {
                     //log.info("onRollover, requested:{} window:{}", state.requested(), state.hashCode());
                 });
-        window = new TumblingWindow(System.nanoTime(), "test", config);
+        window = new TumblingWindow(config, "test", System.nanoTime());
 
         // 并发注入大量请求，导致频繁的窗口切换，查看GC压力
         // TODO 比较窗口切换时，不/调用 cleanup 的差异，执行时关闭日志

@@ -19,7 +19,7 @@ class TopicFairPartitioner extends AbstractBaseTest {
         WindowConfig<CountWindowState> config = WindowConfig.create(0, 2000,
                 new CountRolloverStrategy(), onRollover);
         // 创建这个核心的线程安全的滚动窗口
-        TumblingWindow<CountWindowState> window = new TumblingWindow(0, "MQ", config);
+        TumblingWindow<CountWindowState> window = new TumblingWindow(config, "MQ", 0);
         for (int i = 0; i < 1 << 20; i++) {
             // 模拟发送一条消息
             WorkloadPriority priority = RandomUtil.randomWorkloadPriority();
