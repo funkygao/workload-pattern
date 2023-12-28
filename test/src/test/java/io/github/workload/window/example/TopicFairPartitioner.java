@@ -1,6 +1,6 @@
 package io.github.workload.window.example;
 
-import io.github.workload.AbstractBaseTest;
+import io.github.workload.BaseConcurrentTest;
 import io.github.workload.overloading.RandomUtil;
 import io.github.workload.overloading.WorkloadPriority;
 import io.github.workload.window.*;
@@ -8,7 +8,7 @@ import org.junit.jupiter.api.Test;
 
 import java.util.function.BiConsumer;
 
-class TopicFairPartitioner extends AbstractBaseTest {
+class TopicFairPartitioner extends BaseConcurrentTest {
 
     @Test
     void demo() {

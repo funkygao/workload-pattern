@@ -1,13 +1,13 @@
 package io.github.workload.window;
 
-import io.github.workload.AbstractBaseTest;
+import io.github.workload.BaseConcurrentTest;
 import io.github.workload.overloading.RandomUtil;
 import io.github.workload.overloading.WorkloadPriority;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-class CountAndTimeWindowStateTest extends AbstractBaseTest {
+class CountAndTimeWindowStateTest extends BaseConcurrentTest {
 
     @Test
     void basic() {

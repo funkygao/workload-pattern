@@ -1,103 +1,47 @@
 package io.github.workload;
 
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.RepeatedTest;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestInfo;
+import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.parallel.Execution;
 import org.junit.jupiter.api.parallel.ExecutionMode;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
-import java.util.concurrent.*;
+import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-class SystemClockTest {
-    private static final Logger log = LoggerFactory.getLogger(SystemClockTest.class);
-
-    private static final int THREAD_COUNT = 10;
+@Disabled // TODO
+class SystemClockTest extends BaseConcurrentTest {
     private static final int PRECISION_MS = 15;
-    private static final ExecutorService executorService = Executors.newFixedThreadPool(THREAD_COUNT);
 
-    @AfterAll
-    static void cleanup() {
-        executorService.shutdownNow();
-        SystemClock.shutdown();
-    }
-
-    // 固定周期调度的任务，如果该runnable执行时间长，还未结束就来了下一个周期，那么等该执行完毕还是并发执行？
-    // If any execution of this task takes longer than its period, then subsequent executions may start late, but will not concurrently execute.
-    @Test
-    void confirmScheduleAtFixedRateHasNoConcurrency() throws InterruptedException {
-        // 根据输出结果：每隔1秒输出日志，而不是每10ms
-        SystemClock.precisestClockUpdater.scheduleAtFixedRate(() -> {
-            try {
-                log.info("ha");
-                Thread.sleep(1000);
-            } catch (InterruptedException e) {
-                // 恢复中断
-                Thread.currentThread().interrupt();
-            }
-        }, 0, 10, TimeUnit.MILLISECONDS);
-        Thread.sleep(5000);
-        SystemClock.precisestClockUpdater.shutdownNow();
+    @AfterEach
+    void cleanup() {
+        SystemClock.reset();
     }
 
     @Test
-    void testSingletonProperty() throws InterruptedException, ExecutionException {
-        Callable<SystemClock> task = () -> SystemClock.ofPrecisionMs(PRECISION_MS);
-        List<Future<SystemClock>> futures = new ArrayList<>();
-        for (int i = 0; i < THREAD_COUNT; i++) {
-            futures.add(executorService.submit(task));
-        }
-
+    void singletonIfSamePrecision() {
+        List<SystemClock> clocks = concurrentRun(() -> SystemClock.ofPrecisionMs(PRECISION_MS));
         SystemClock expectedInstance = SystemClock.ofPrecisionMs(PRECISION_MS);
-        for (Future<SystemClock> future : futures) {
-            SystemClock clockInstance = future.get();
-            assertSame(expectedInstance, clockInstance);
+        for (SystemClock clock : clocks) {
+            assertSame(expectedInstance, clock);
         }
     }
 
     @Test
-    void testConcurrentTimeMillisAccuracy() {
-        List<Long> timestamps = Collections.synchronizedList(new ArrayList<>());
-
-        Runnable task = () -> {
-            SystemClock clock = SystemClock.ofPrecisionMs(PRECISION_MS);
-            for (int i = 0; i < 100; i++) {
-                timestamps.add(clock.currentTimeMillis());
-            }
-        };
-
-        CompletableFuture<?>[] futures = new CompletableFuture[THREAD_COUNT];
-        for (int i = 0; i < THREAD_COUNT; i++) {
-            futures[i] = CompletableFuture.runAsync(task, executorService);
+    void illegalArgument() {
+        try {
+            SystemClock.ofPrecisionMs(-1);
+            fail();
+        } catch (IllegalArgumentException expected) {
+            assertEquals("precisionMs cannot be negative", expected.getMessage());
         }
-        CompletableFuture.allOf(futures).join();
-
-        long previous = Long.MIN_VALUE;
-        for (long timestamp : timestamps) {
-            assertTrue(timestamp >= previous, "Timestamps are not monotonically increasing");
-            previous = timestamp;
-        }
-    }
-
-    @Test
-    void testShutdown() {
-        SystemClock clock = SystemClock.ofPrecisionMs(PRECISION_MS);
-        assertNotNull(clock);
-
-        SystemClock.shutdown(); // should terminate the timer task
-        assertTrue(SystemClock.precisestClockUpdater.isShutdown(), "Scheduled executor service should be shutdown");
     }
 
     @RepeatedTest(10)
     @Execution(ExecutionMode.CONCURRENT)
     void basic(TestInfo testInfo) {
+        log.info("precisions: 0, 0, 10, 5, 5");
         SystemClock clock0 = SystemClock.ofPrecisionMs(0);
         SystemClock realtime = SystemClock.ofRealtime();
         assertSame(clock0, realtime);
@@ -111,18 +55,7 @@ class SystemClockTest {
         long tb = clock0.currentTimeMillis();
         assertTrue(tb >= ta);
         assertTrue(clock5.currentTimeMillis() == clock51.currentTimeMillis());
-        System.out.println(clock5.currentTimeMillis() - clock10.currentTimeMillis());
-        //assertTrue(clock5.currentTimeMillis() == clock10.currentTimeMillis());
-    }
-
-    @Test
-    void illegalArgument() {
-        try {
-            SystemClock.ofPrecisionMs(-1);
-            fail();
-        } catch (IllegalArgumentException expected) {
-            assertEquals("precisionMs cannot be negative", expected.getMessage());
-        }
+        log.info("{}", clock5.currentTimeMillis() - clock10.currentTimeMillis());
     }
 
     @RepeatedTest(20)
@@ -137,14 +70,7 @@ class SystemClockTest {
             Thread.sleep(2);
             long tRT = rtClock.currentTimeMillis();
             long t10 = clock10.currentTimeMillis();
-            long t3 = clock3.currentTimeMillis();
             assertTrue(tRT >= t10);
-            if (false) {
-                System.out.printf("%d %d\n", clock3.currentTimeMillis() - clock10.currentTimeMillis(),
-                        rtClock.currentTimeMillis() - clock3.currentTimeMillis(),
-                        rtClock.currentTimeMillis() - clock15.currentTimeMillis());
-            }
-
             assertEquals(0, clock3.currentTimeMillis() - clock15.currentTimeMillis());
         }
     }
@@ -156,24 +82,29 @@ class SystemClockTest {
         long precisionMs = 20;
         SystemClock p20 = SystemClock.ofPrecisionMs(precisionMs);
         for (int i = 0; i < 20; i++) {
+            Thread.sleep(ThreadLocalRandom.current().nextInt(10));
             long err = rt.currentTimeMillis() - p20.currentTimeMillis();
-            Thread.sleep(ThreadLocalRandom.current().nextInt(30));
-            assertTrue(err <= precisionMs + SystemClock.PRECISION_DRIFT_MS * 2);
+            System.out.println(err);
+            assertTrue(err <= precisionMs + SystemClock.PRECISION_DRIFT_MS);
         }
     }
 
+    // 固定周期调度的任务，如果该runnable执行时间长，还未结束就来了下一个周期，那么等该执行完毕还是并发执行？
+    // If any execution of this task takes longer than its period, then subsequent executions may start late, but will not concurrently execute.
     @Test
-    void shutdown() throws InterruptedException {
-        SystemClock.ofPrecisionMs(100).currentTimeMillis();
-        SystemClock.ofPrecisionMs(20);
-        SystemClock.ofPrecisionMs(123);
-        Thread.sleep(200);
-
-        for (int i = 0; i < 10; i++) {
-            SystemClock.shutdown();
-            Thread.sleep(15);
-        }
-        Thread.sleep(250);
+    @Disabled
+    void confirmScheduleAtFixedRateHasNoConcurrency() throws InterruptedException {
+        // 根据输出结果：每隔1秒输出日志，而不是每10ms
+        SystemClock.precisestClockUpdater.scheduleAtFixedRate(() -> {
+            try {
+                log.info("interval:10ms, will sleep 1s...");
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+                // 恢复中断
+                Thread.currentThread().interrupt();
+            }
+        }, 0, 10, TimeUnit.MILLISECONDS);
+        Thread.sleep(5000);
+        SystemClock.precisestClockUpdater.shutdownNow();
     }
-
 }

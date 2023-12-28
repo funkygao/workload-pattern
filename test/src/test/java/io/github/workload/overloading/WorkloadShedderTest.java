@@ -1,7 +1,7 @@
 package io.github.workload.overloading;
 
 import com.google.common.collect.ImmutableMap;
-import io.github.workload.AbstractBaseTest;
+import io.github.workload.BaseConcurrentTest;
 import io.github.workload.window.WindowConfig;
 import org.junit.jupiter.api.RepeatedTest;
 import org.junit.jupiter.api.Test;
@@ -16,7 +16,7 @@ import java.util.concurrent.ConcurrentSkipListMap;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-class WorkloadShedderTest extends AbstractBaseTest {
+class WorkloadShedderTest extends BaseConcurrentTest {
 
     @Test
     void ConcurrentSkipListMap() {

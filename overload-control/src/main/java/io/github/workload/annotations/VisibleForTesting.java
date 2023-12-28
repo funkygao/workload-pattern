@@ -9,4 +9,5 @@ import static java.lang.annotation.RetentionPolicy.SOURCE;
 @Target({TYPE, FIELD, METHOD, CONSTRUCTOR})
 @Retention(SOURCE)
 public @interface VisibleForTesting {
+    String value() default "";
 }

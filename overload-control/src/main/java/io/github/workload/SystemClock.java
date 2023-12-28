@@ -69,13 +69,23 @@ public class SystemClock {
         clocksLock.lock();
         try {
             return clocks.computeIfAbsent(precisionMs, key -> {
-                log.info("register new clock, precision:{}ms", key);
+                log.info("register new clock, precision:{}ms, present clocks:{}", key, clocks.size());
                 rescheduleTimerIfNec(key);
                 return new SystemClock(key);
             });
         } finally {
             clocksLock.unlock();
         }
+    }
+
+    @VisibleForTesting("共享状态清理，以便测试用例隔离")
+    static void reset() {
+        if (timerTask != null) {
+            timerTask.cancel(true);
+            timerTask = null;
+        }
+        clocks.clear();
+        minPrecisionMs = Long.MAX_VALUE;
     }
 
     /**

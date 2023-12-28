@@ -1,7 +1,7 @@
 package io.github.workload.window;
 
 import com.google.common.collect.ImmutableMap;
-import io.github.workload.AbstractBaseTest;
+import io.github.workload.BaseConcurrentTest;
 import io.github.workload.overloading.RandomUtil;
 import io.github.workload.overloading.WorkloadPriority;
 import org.junit.jupiter.api.BeforeAll;
@@ -18,7 +18,7 @@ import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicInteger;
 
-class TumblingWindowTest extends AbstractBaseTest {
+class TumblingWindowTest extends BaseConcurrentTest {
     private static TumblingWindow window;
 
     @BeforeAll
