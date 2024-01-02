@@ -14,13 +14,14 @@ class WorkloadShedderOnCpu extends WorkloadShedder {
     private final long startupMs;
 
     @VisibleForTesting
-    SystemLoadProvider loadProvider = SystemLoad.getInstance();
+    SystemLoadProvider loadProvider;
 
     WorkloadShedderOnCpu(double cpuUsageUpperBound, long coolOffSec) {
         super("CPU");
         this.cpuUsageUpperBound = cpuUsageUpperBound;
         this.coolOffMs = coolOffSec * 1000;
         this.startupMs = coolOffClock.currentTimeMillis();
+        this.loadProvider = SystemLoad.getInstance(coolOffSec);
         log.info("[{}] created with upper bound:{}, cool off:{}sec", this.name, cpuUsageUpperBound, coolOffSec);
     }
 

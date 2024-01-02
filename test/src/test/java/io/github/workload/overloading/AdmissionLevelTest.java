@@ -13,7 +13,7 @@ class AdmissionLevelTest {
         assertTrue(level.admit(WorkloadPriority.ofLowestPriority()));
         assertTrue(level.admit(WorkloadPriority.of(1, 2)));
         assertTrue(level.admit(WorkloadPriority.timeRandomU(90, "foo".hashCode(), 100)));
-        assertEquals(32639, level.P());
+        assertEquals(WorkloadPriority.MAX_P, level.P());
     }
 
     @Test
@@ -48,9 +48,9 @@ class AdmissionLevelTest {
     @Test
     void testToString() {
         AdmissionLevel level = AdmissionLevel.ofAdmitAll();
-        assertEquals("AdmissionLevel(B=127,U=127;P=32639)", level.toString());
+        assertEquals("AdmissionLevel(B=127,U=127;P=16383)", level.toString());
         level = level.changeTo(WorkloadPriority.of(5, 9));
-        assertEquals("AdmissionLevel(B=5,U=9;P=1289)", level.toString());
+        assertEquals("AdmissionLevel(B=5,U=9;P=649)", level.toString());
     }
 }
 

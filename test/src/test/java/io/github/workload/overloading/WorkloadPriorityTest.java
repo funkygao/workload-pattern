@@ -2,6 +2,9 @@ package io.github.workload.overloading;
 
 import org.junit.jupiter.api.Test;
 
+import java.util.HashSet;
+import java.util.Set;
+
 import static org.junit.jupiter.api.Assertions.*;
 
 class WorkloadPriorityTest {
@@ -22,30 +25,58 @@ class WorkloadPriorityTest {
             assertEquals("Out of range for B or U", expected.getMessage());
         }
 
+        try {
+            WorkloadPriority.of(0, -1);
+            fail();
+        } catch (IllegalArgumentException expected) {
+            assertEquals("Out of range for B or U", expected.getMessage());
+        }
+
+        try {
+            WorkloadPriority.of(-88, 1);
+            fail();
+        } catch (IllegalArgumentException expected) {
+            assertEquals("Out of range for B or U", expected.getMessage());
+        }
+
         WorkloadPriority.of(8, 36);
+        WorkloadPriority.of(0, 0);
+        WorkloadPriority.of(127, 127);
     }
 
     @Test
     void P() {
         WorkloadPriority p1 = WorkloadPriority.of(5, 3);
         WorkloadPriority p2 = WorkloadPriority.of(8, 10);
-        assertEquals(1283, p1.P());
-        assertEquals(2048 + 10, p2.P());
+        assertEquals(643, p1.P());
+        assertEquals(1024 + 10, p2.P());
         assertFalse(p1.equals(p2));
         assertTrue(p1.equals(WorkloadPriority.of(5, 3)));
+        assertNotSame(p1, WorkloadPriority.of(5, 3));
         assertEquals(p1, WorkloadPriority.of(5, 3));
+    }
+
+    @Test
+    void test_immutable() {
+        WorkloadPriority p1 = WorkloadPriority.fromP(234);
+        assertNotSame(p1, WorkloadPriority.fromP(234));
+        assertEquals(p1, WorkloadPriority.fromP(234));
+
+        p1 = WorkloadPriority.ofUid(6, 345);
+        assertNotSame(p1, WorkloadPriority.ofUid(6, 345));
+        assertEquals(p1, WorkloadPriority.ofUid(6, 345));
     }
 
     @Test
     void fromP() {
         WorkloadPriority priority = WorkloadPriority.fromP(1894);
-        assertEquals(7, priority.B());
+        assertEquals(14, priority.B());
         assertEquals(102, priority.U());
         assertEquals(1894, priority.P());
         priority = WorkloadPriority.fromP(0);
         assertEquals(0, priority.B());
         assertEquals(0, priority.U());
-        priority = WorkloadPriority.fromP(32639);
+        priority = WorkloadPriority.fromP(WorkloadPriority.MAX_P);
         assertEquals(127, priority.B());
         assertEquals(127, priority.U());
         try {
@@ -61,32 +92,57 @@ class WorkloadPriorityTest {
             assertEquals("Invalid P", expected.getMessage());
         }
 
-        // 随机数来验证fromP解析出来的(B, U)在合法区间
+        // 随机数来验证fromP解析出来的(B, U)在合法区间，只要不抛出异常即可
         for (int i = 0; i < 1000; i++) {
             RandomUtil.randomWorkloadPriority();
         }
+
+        // 验证 P 是连续的
+        assertEquals(16383, WorkloadPriority.MAX_P);
+        Set<WorkloadPriority> uniqueSet = new HashSet<>();
+        for (int P = 0; P < WorkloadPriority.MAX_P; P++) {
+            uniqueSet.add(WorkloadPriority.fromP(P));
+            assertEquals(P, WorkloadPriority.fromP(P).P());
+        }
+        assertEquals(16383, uniqueSet.size());
+
+        priority = WorkloadPriority.fromP(0);
+        assertEquals(0, priority.P());
+        assertEquals(0, priority.B());
+        assertEquals(0, priority.U());
+        priority = WorkloadPriority.fromP(128);
+        assertEquals(128, priority.P());
+        assertEquals(1, priority.B());
+        assertEquals(0, priority.U());
+        priority = WorkloadPriority.fromP(129);
+        assertEquals(1, priority.B());
+        assertEquals(1, priority.U());
     }
 
     @Test
     void consistentEncodeDecode() {
         for (int B = 0; B < 128; B++) {
             for (int U = 0; U < 128; U++) {
-                WorkloadPriority priority = WorkloadPriority.of(B, U);
-                WorkloadPriority priority1 = WorkloadPriority.fromP(priority.P());
-                assertEquals(priority, priority1);
+                // 根据 (B, U)进行序列化
+                WorkloadPriority coded = WorkloadPriority.of(B, U);
+                // 反向，反序列化
+                WorkloadPriority decoded = WorkloadPriority.fromP(coded.P());
+                // 验证序列化后可反序列化
+                assertEquals(coded, decoded, String.format("B=%d, U=%d", B, U));
             }
         }
     }
 
     @Test
     void ofUid() {
-        WorkloadPriority priority = WorkloadPriority.ofUid(2, "34_2323".hashCode());
+        WorkloadPriority priority = WorkloadPriority.ofUid(2, "94_238230".hashCode());
         assertEquals(2, priority.B());
         priority = WorkloadPriority.ofUid(5, 0);
+        assertEquals(5, priority.B());
         priority = WorkloadPriority.ofUid(9, -1);
+        assertEquals(9, priority.B());
         priority = WorkloadPriority.ofUid(10, Integer.MIN_VALUE);
-        priority = WorkloadPriority.ofUid(10, Integer.MAX_VALUE);
-
+        assertEquals(10, priority.B());
         priority = WorkloadPriority.ofUid(0, 1);
         assertEquals(0, priority.B());
         priority = WorkloadPriority.ofUid("listBooks".hashCode(), 5);
@@ -95,6 +151,7 @@ class WorkloadPriorityTest {
         assertEquals(0, priority.B());
         priority = WorkloadPriority.ofUid(-10, 1);
         assertEquals(125, priority.B());
+        // ofUid 允许 B 超过127：它会取模到[0, 127]
         priority = WorkloadPriority.ofUid(Integer.MAX_VALUE, 1);
         assertEquals(7, priority.B());
         priority = WorkloadPriority.ofUid(Integer.MIN_VALUE, 1);
@@ -111,13 +168,16 @@ class WorkloadPriorityTest {
             assertEquals(priority.U(), priority1.U());
             assertEquals(priority.B(), priority1.B());
             assertEquals(2, priority1.B());
+            assertEquals(priority, priority1);
         }
     }
 
     @Test
     void testToString() {
         WorkloadPriority priority = WorkloadPriority.ofLowestPriority();
-        assertEquals("WorkloadPriority(B=127, U=127)", priority.toString());
+        assertEquals("WorkloadPriority(B=127, U=127, P=16383)", priority.toString());
+        priority = WorkloadPriority.fromP(198);
+        assertEquals("WorkloadPriority(B=1, U=70, P=198)", priority.toString());
     }
 
 }
