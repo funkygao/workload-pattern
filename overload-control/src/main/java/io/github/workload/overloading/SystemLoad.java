@@ -27,31 +27,29 @@ import java.util.concurrent.TimeUnit;
  */
 @Slf4j
 class SystemLoad implements SystemLoadProvider {
-    private static SystemLoad singleton = new SystemLoad();
-
     private volatile double currentLoadAverage = -1;
     private volatile double currentCpuUsage = -1;
 
     private long processCpuTimeNs = 0; // 当前进程累计占用CPU时长
     private long processUpTimeMs = 0; // 当前进程累计运行时长
 
-    static SystemLoad getInstance() {
-        return singleton;
+    static SystemLoad getInstance(long coolOffSec) {
+        return new SystemLoad(coolOffSec);
     }
 
-    private SystemLoad() {
+    private SystemLoad(long coolOffSec) {
         ScheduledExecutorService timer = Executors.newSingleThreadScheduledExecutor(new NamedThreadFactory(SystemLoad.class.getSimpleName()));
         // 60s后再开始刷新数据：JVM启动时CPU往往很高
-        timer.scheduleAtFixedRate(() -> refresh(), 60, 1, TimeUnit.SECONDS);
+        timer.scheduleAtFixedRate(() -> refresh(), coolOffSec, 1, TimeUnit.SECONDS);
     }
 
-    static double loadAverage() {
-        return singleton.currentLoadAverage;
+    double loadAverage() {
+        return currentLoadAverage;
     }
 
     @Override
     public double cpuUsage() {
-        return singleton.currentCpuUsage;
+        return currentCpuUsage;
     }
 
     private void refresh() {
