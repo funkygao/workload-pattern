@@ -51,6 +51,11 @@ class FairSafeAdmissionController implements AdmissionController {
         });
     }
 
+    @VisibleForTesting("清除共享的静态变量，以便隔离单元测试")
+    static void reset() {
+        instances.clear();
+    }
+
     @Override
     public boolean admit(@NonNull WorkloadPriority workloadPriority) {
         // 进程级准入，全局采样

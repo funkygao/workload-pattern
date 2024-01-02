@@ -57,13 +57,12 @@ class AdmissionLevel {
         return new AdmissionLevel(WorkloadPriority.ofLowestPriority());
     }
 
-    AdmissionLevel switchTo(WorkloadPriority priority) {
-        int delta = priority.P() - this.P();
-        if (delta == 0) {
+    AdmissionLevel switchTo(int targetP) {
+        if (targetP == this.P()) {
             return this;
         }
 
-        return new AdmissionLevel(priority);
+        return new AdmissionLevel(WorkloadPriority.fromP(targetP));
     }
 
     boolean admit(WorkloadPriority workloadPriority) {

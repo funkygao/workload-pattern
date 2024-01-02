@@ -24,27 +24,27 @@ class AdmissionLevelTest {
         AdmissionLevel level = AdmissionLevel.ofAdmitAll();
         assertNotSame(level, AdmissionLevel.ofAdmitAll());
         int P = level.P();
-        level.switchTo(WorkloadPriority.of(1, 2));
+        level.switchTo(WorkloadPriority.of(1, 2).P());
         assertEquals(P, level.P());
-        assertNotEquals(P, level.switchTo(WorkloadPriority.of(1, 2)).P());
+        assertNotEquals(P, level.switchTo(WorkloadPriority.of(1, 2).P()).P());
         assertEquals(WorkloadPriority.ofLowestPriority().P(), level.P());
-        assertEquals(WorkloadPriority.of(5, 6).P(), level.switchTo(WorkloadPriority.of(5, 6)).P());
+        assertEquals(WorkloadPriority.of(5, 6).P(), level.switchTo(WorkloadPriority.of(5, 6).P()).P());
     }
 
     @Test
     void switchTo() {
         AdmissionLevel level = AdmissionLevel.ofAdmitAll();
         // P 没变，则返回当前实例
-        assertSame(level, level.switchTo(WorkloadPriority.ofLowestPriority()));
+        assertSame(level, level.switchTo(WorkloadPriority.ofLowestPriority().P()));
         WorkloadPriority priority = WorkloadPriority.ofPeriodicRandomFromUID(1, 1, 120);
         assertTrue(level.admit(priority));
-        level.switchTo(WorkloadPriority.of(0, 0));
+        level.switchTo(WorkloadPriority.of(0, 0).P());
         // changeTo will not change level, but return a new level
         assertEquals(WorkloadPriority.ofLowestPriority().P(), level.P());
-        AdmissionLevel level1 = level.switchTo(WorkloadPriority.of(0, 0));
+        AdmissionLevel level1 = level.switchTo(WorkloadPriority.of(0, 0).P());
         assertEquals(0, level1.P());
 
-        level = level.switchTo(WorkloadPriority.of(3, 20));
+        level = level.switchTo(WorkloadPriority.of(3, 20).P());
         assertTrue(level.admit(WorkloadPriority.of(3, 19)));
         assertFalse(level.admit(WorkloadPriority.of(3, 21)));
         assertTrue(level.admit(WorkloadPriority.of(1, 19)));
@@ -69,7 +69,7 @@ class AdmissionLevelTest {
     void testToString() {
         AdmissionLevel level = AdmissionLevel.ofAdmitAll();
         assertEquals("AdmissionLevel(B=127,U=127;P=16383)", level.toString());
-        level = level.switchTo(WorkloadPriority.of(5, 9));
+        level = level.switchTo(WorkloadPriority.of(5, 9).P());
         assertEquals("AdmissionLevel(B=5,U=9;P=649)", level.toString());
     }
 }

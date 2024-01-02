@@ -41,6 +41,9 @@ public class CountAndTimeWindowState extends WindowState {
         this.histogram = new ConcurrentSkipListMap<>();
     }
 
+    /**
+     * 各个{@link WorkloadPriority}的请求数量分布.
+     */
     public ConcurrentSkipListMap<Integer, AtomicInteger> histogram() {
         return histogram;
     }

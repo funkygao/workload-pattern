@@ -21,6 +21,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 @ThreadSafe
 abstract class WorkloadShedder {
     private static final int ADMIT_ALL_P = AdmissionLevel.ofAdmitAll().P();
+    private static final double ERROR_RATE_BOUND = 1.0d; // 100%
 
     protected final String name;
     private volatile AdmissionLevel admissionLevel = AdmissionLevel.ofAdmitAll();
@@ -64,48 +65,67 @@ abstract class WorkloadShedder {
     }
 
     private void dropMore(CountAndTimeWindowState lastWindow) {
-        // 如果上个周期的准入请求非常少，那么 expectedDropNextCycle 可能为0
         final int admitted = lastWindow.admitted();
-        final int expectedDropNextCycle = (int) (policy.getDropRate() * admitted);
+        final int expectedToDrop = (int) (policy.getDropRate() * admitted);
+        if (expectedToDrop == 0) {
+            // 上个周期的准入量太少，无法决策抛弃哪个
+            log.info("[{}] unable to drop more: too few window admitted {}", admitted);
+            return;
+        }
+
+        final int currentP = admissionLevel.P();
         final ConcurrentSkipListMap<Integer, AtomicInteger> histogram = lastWindow.histogram();
-        int accumulatedDrop = 0;
-        final Iterator<Integer> descendingP = histogram.headMap(admissionLevel.P(), true).descendingKeySet().iterator();
+        int accumulatedToDrop = 0;
+        // histogram: (6, 3) -> (9, 10) -> ... -> (112, 2) -> (195, 11) -> (1894, 3)
+        // expectedDropNextCycle:4, admissionLevel.P可能值: 2/8/1894/1999，它是预测值，histogram是实际值
+        // admissionLevel.P=1999/1894, 要切换到112，但195是过度抛弃了，error=(11+3-4)=10
+        // TODO should we respect currentP?
+        final Iterator<Integer> descendingP = histogram.headMap(currentP, true).descendingKeySet().iterator();
         while (descendingP.hasNext()) {
-            // TODO inclusive logic
-            final int P = descendingP.next();
-            final int admittedLastCycle = histogram.get(P).get();
-            accumulatedDrop += admittedLastCycle;
+            // once loop entered, will converge inside the loop
+            final int candidateP = descendingP.next();
+            final int candidateRequested = histogram.get(candidateP).get();
+            accumulatedToDrop += candidateRequested;
             if (log.isDebugEnabled()) {
-                log.debug("[{}] drop plan(P:{} admitted:{}), last window admitted:{}, accumulated:{}/{}",
-                        name, P, admittedLastCycle, admitted, accumulatedDrop, expectedDropNextCycle);
+                log.debug("[{}] drop candidate(P:{} requested:{}), window admitted:{}, accumulated:{}/{}",
+                        name, candidateP, candidateRequested, admitted, accumulatedToDrop, expectedToDrop);
             }
 
-            if (accumulatedDrop >= expectedDropNextCycle) {
-                // TODO if expectedDropNextCycle is 0? drop the admitted lowest priority
-                // FIXME level 应该是下一个 level
-                // FIXME AdmissionLevel(B=20,U=122;P=5242) -> WorkloadPriority(B=20, U=122, P=5242)
-                if (accumulatedDrop - expectedDropNextCycle > 100) {
-                    // 抛弃太多了，可能误伤
+            if (accumulatedToDrop >= expectedToDrop) {
+                double errorRate = (double) (accumulatedToDrop - expectedToDrop) / expectedToDrop;
+                int targetP;
+                if (descendingP.hasNext() && errorRate < ERROR_RATE_BOUND) {
+                    // 误差率可接受，and candidate is not head
+                    targetP = descendingP.next();
+                    log.warn("[{}] dropping more({}/{}), error:{}, window admitted:{}, {} -> {}", name, accumulatedToDrop, expectedToDrop, errorRate, admitted, admissionLevel, targetP);
+                } else {
+                    if (candidateP == currentP) {
+                        log.warn("[{}] error:{}, tail P has too many requests, await next cycle to drop", name, errorRate);
+                        return;
+                    }
+
+                    targetP = candidateP;
+                    log.warn("[{}] limited dropping more({}/{}), error:{}, window admitted:{}, {} -> {}", name, accumulatedToDrop, expectedToDrop, errorRate, admitted, admissionLevel, targetP);
                 }
-                final WorkloadPriority target = WorkloadPriority.fromP(P);
-                log.warn("[{}] dropping more({}/{}), last window admitted:{}, {} -> {}", name, accumulatedDrop, expectedDropNextCycle, admitted, admissionLevel, target);
-                admissionLevel = admissionLevel.switchTo(target);
+                admissionLevel = admissionLevel.switchTo(targetP);
                 return;
             }
 
             if (!descendingP.hasNext()) {
-                // head of histogram, we should never drop all
-                log.warn("[{}] HEAD ALREADY", name);
+                // 还不够扣呢，但已经没有可扣的了：we should never drop all
+                log.warn("[{}] head reached, dropping with best effort({}/{}), window admitted:{}, {} -> {}", name, accumulatedToDrop, expectedToDrop, admitted, admissionLevel, candidateP);
+                admissionLevel = admissionLevel.switchTo(candidateP);
+                return;
             }
         }
 
-        // already at head of histogram
-        log.warn("[{}] already head", name);
-        // TODO edge case，还不够扣呢
+        // already at head of histogram，while loop not entered
+        log.warn("[{}] nothing to drop", name);
     }
 
     private void admitMore(CountAndTimeWindowState lastWindow) {
-        if (ADMIT_ALL_P == admissionLevel.P()) {
+        final int currentP = admissionLevel.P();
+        if (ADMIT_ALL_P == currentP) {
             return;
         }
 
@@ -113,18 +133,17 @@ abstract class WorkloadShedder {
         final int expectedAddNextCycle = (int) (policy.getRecoverRate() * admitted);
         int accumulatedAdd = 0;
         // entrySet is in ascending order
-        final Iterator<Map.Entry<Integer, AtomicInteger>> ascendingP = lastWindow.histogram().tailMap(admissionLevel.P()).entrySet().iterator();
+        final Iterator<Map.Entry<Integer, AtomicInteger>> ascendingP = lastWindow.histogram().tailMap(currentP, true).entrySet().iterator();
         while (ascendingP.hasNext()) {
             final Map.Entry<Integer, AtomicInteger> entry = ascendingP.next();
-            final int P = entry.getKey();
+            final int candidateP = entry.getKey();
             final int droppedLastCycle = entry.getValue().get();
             accumulatedAdd += droppedLastCycle;
-            log.debug("[{}] admit plan(P:{} dropped:{}), accumulated:{}/{}", name, P, droppedLastCycle, accumulatedAdd, expectedAddNextCycle);
+            log.debug("[{}] admit candidate(P:{} dropped:{}), accumulated:{}/{}", name, candidateP, droppedLastCycle, accumulatedAdd, expectedAddNextCycle);
 
             if (accumulatedAdd >= expectedAddNextCycle) {
-                final WorkloadPriority target = WorkloadPriority.fromP(P);
-                log.warn("[{}] admitting more({}/{}), {} -> {}", name, accumulatedAdd, expectedAddNextCycle, admissionLevel, target);
-                admissionLevel = admissionLevel.switchTo(target);
+                log.warn("[{}] admitting more({}/{}), {} -> {}", name, accumulatedAdd, expectedAddNextCycle, admissionLevel, candidateP);
+                admissionLevel = admissionLevel.switchTo(candidateP);
                 return;
             }
 
