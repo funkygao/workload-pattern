@@ -66,14 +66,14 @@ public class WorkloadPriority {
     }
 
     /**
-     * 基于{@link #U}定时随机生成优先级，但{@link #B}不变.
+     * 基于{@link #U}特征值，定时随机生成优先级，但{@link #B}不变.
      *
      * @param b   {@link #B()}
      * @param uid u值特征，例如 {@code "foo".hashCode()}
      * @return 一个{@link #U}随机的优先级
      */
-    public static WorkloadPriority ofUid(int b, int uid) {
-        return timeRandomU(b, uid, HALF_HOUR_MS);
+    public static WorkloadPriority ofPeriodicRandomFromUID(int b, int uid) {
+        return ofPeriodicRandomFromUID(b, uid, HALF_HOUR_MS);
     }
 
     static WorkloadPriority ofLowestPriority() {
@@ -138,7 +138,7 @@ public class WorkloadPriority {
     }
 
     @VisibleForTesting
-    static WorkloadPriority timeRandomU(int b, int uid, long timeWindowMs) {
+    static WorkloadPriority ofPeriodicRandomFromUID(int b, int uid, long timeWindowMs) {
         int normalizedStableU = (uid & Integer.MAX_VALUE) % MAX_7BIT_VALUE;
         long nowMs = SystemClock.ofPrecisionMs(timeWindowMs).currentTimeMillis();
         UState us = uStates.compute(normalizedStableU, (key, presentValue) -> {

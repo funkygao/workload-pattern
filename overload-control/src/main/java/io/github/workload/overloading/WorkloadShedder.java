@@ -89,7 +89,7 @@ abstract class WorkloadShedder {
                 }
                 final WorkloadPriority target = WorkloadPriority.fromP(P);
                 log.warn("[{}] dropping more({}/{}), last window admitted:{}, {} -> {}", name, accumulatedDrop, expectedDropNextCycle, admitted, admissionLevel, target);
-                admissionLevel = admissionLevel.changeTo(target);
+                admissionLevel = admissionLevel.switchTo(target);
                 return;
             }
 
@@ -124,7 +124,7 @@ abstract class WorkloadShedder {
             if (accumulatedAdd >= expectedAddNextCycle) {
                 final WorkloadPriority target = WorkloadPriority.fromP(P);
                 log.warn("[{}] admitting more({}/{}), {} -> {}", name, accumulatedAdd, expectedAddNextCycle, admissionLevel, target);
-                admissionLevel = admissionLevel.changeTo(target);
+                admissionLevel = admissionLevel.switchTo(target);
                 return;
             }
 

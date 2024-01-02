@@ -39,17 +39,17 @@ public class WorkloadPrioritizer {
 
     static WorkloadPriority randomMQ() {
         int b = SHEDDABLE_PLUS;
-        return WorkloadPriority.ofUid(b, randomUid());
+        return WorkloadPriority.ofPeriodicRandomFromUID(b, randomUid());
     }
 
     static WorkloadPriority randomRpc() {
         int b = CRITICAL;
-        return WorkloadPriority.ofUid(b, randomUid());
+        return WorkloadPriority.ofPeriodicRandomFromUID(b, randomUid());
     }
 
     static WorkloadPriority randomWeb() {
         int b = CRITICAL_PLUS;
-        return WorkloadPriority.ofUid(b, randomUid());
+        return WorkloadPriority.ofPeriodicRandomFromUID(b, randomUid());
     }
 
 }

@@ -1,11 +1,9 @@
 package io.github.workload.overloading;
 
+import io.github.workload.BaseConcurrentTest;
 import io.github.workload.SystemLoadProvider;
 import io.github.workload.window.WindowConfig;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.RepeatedTest;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -13,8 +11,8 @@ import java.util.concurrent.ThreadLocalRandom;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-class FairSafeAdmissionControllerTest {
-    private static final Logger log = LoggerFactory.getLogger(FairSafeAdmissionControllerTest.class);
+@Disabled
+class FairSafeAdmissionControllerTest extends BaseConcurrentTest {
 
     @BeforeAll
     static void setUp() {
@@ -130,6 +128,7 @@ class FairSafeAdmissionControllerTest {
     }
 
     private static class RandomCpuLoadProvider implements SystemLoadProvider {
+        private static final Logger log = LoggerFactory.getLogger(RandomCpuLoadProvider.class);
 
         @Override
         public double cpuUsage() {

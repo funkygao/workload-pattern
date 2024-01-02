@@ -1,8 +1,8 @@
 package io.github.workload.overloading;
 
 import io.github.workload.annotations.Immutable;
-import io.github.workload.annotations.ThreadSafe;
-import lombok.EqualsAndHashCode;
+import io.github.workload.annotations.VisibleForTesting;
+import lombok.NonNull;
 
 /**
  * 准入等级水位线.
@@ -37,7 +37,6 @@ import lombok.EqualsAndHashCode;
  * 移动该游标，向左意味着负载加剧，向右意味着负载减轻
  * </pre>
  */
-@EqualsAndHashCode
 @Immutable
 class AdmissionLevel {
 
@@ -46,10 +45,10 @@ class AdmissionLevel {
      *
      * <p>优先级低于门槛值的请求都应该拒绝.</p>
      */
-    @ThreadSafe("一个线程写，多个线程并发读")
     private final WorkloadPriority breakwater;
 
-    private AdmissionLevel(WorkloadPriority breakwater) {
+    @VisibleForTesting
+    AdmissionLevel(@NonNull WorkloadPriority breakwater) {
         this.breakwater = breakwater;
     }
 
@@ -58,7 +57,7 @@ class AdmissionLevel {
         return new AdmissionLevel(WorkloadPriority.ofLowestPriority());
     }
 
-    AdmissionLevel changeTo(WorkloadPriority priority) {
+    AdmissionLevel switchTo(WorkloadPriority priority) {
         int delta = priority.P() - this.P();
         if (delta == 0) {
             return this;
@@ -67,7 +66,6 @@ class AdmissionLevel {
         return new AdmissionLevel(priority);
     }
 
-    @ThreadSafe
     boolean admit(WorkloadPriority workloadPriority) {
         return workloadPriority.P() <= this.P();
     }
@@ -82,6 +80,25 @@ class AdmissionLevel {
     @Override
     public String toString() {
         return "AdmissionLevel(B=" + breakwater.B() + ",U=" + breakwater.U() + ";P=" + breakwater.P() + ")";
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (o == this) {
+            return true;
+        }
+
+        if (!(o instanceof AdmissionLevel)) {
+            return false;
+        }
+
+        AdmissionLevel that = (AdmissionLevel) o;
+        return that.breakwater.equals(this.breakwater);
+    }
+
+    @Override
+    public int hashCode() {
+        return breakwater.P();
     }
 
 }

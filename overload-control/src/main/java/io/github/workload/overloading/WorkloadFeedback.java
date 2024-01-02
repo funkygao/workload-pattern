@@ -1,7 +1,7 @@
 package io.github.workload.overloading;
 
 /**
- * 工作负荷的反馈：显式，隐式.
+ * 工作负荷的反馈.
  */
 public interface WorkloadFeedback {
 

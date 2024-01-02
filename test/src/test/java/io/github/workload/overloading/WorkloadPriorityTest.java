@@ -62,9 +62,9 @@ class WorkloadPriorityTest {
         assertNotSame(p1, WorkloadPriority.fromP(234));
         assertEquals(p1, WorkloadPriority.fromP(234));
 
-        p1 = WorkloadPriority.ofUid(6, 345);
-        assertNotSame(p1, WorkloadPriority.ofUid(6, 345));
-        assertEquals(p1, WorkloadPriority.ofUid(6, 345));
+        p1 = WorkloadPriority.ofPeriodicRandomFromUID(6, 345);
+        assertNotSame(p1, WorkloadPriority.ofPeriodicRandomFromUID(6, 345));
+        assertEquals(p1, WorkloadPriority.ofPeriodicRandomFromUID(6, 345));
     }
 
     @Test
@@ -134,36 +134,36 @@ class WorkloadPriorityTest {
     }
 
     @Test
-    void ofUid() {
-        WorkloadPriority priority = WorkloadPriority.ofUid(2, "94_238230".hashCode());
+    void ofPeriodicRandomFromUID() {
+        WorkloadPriority priority = WorkloadPriority.ofPeriodicRandomFromUID(2, "94_238230".hashCode());
         assertEquals(2, priority.B());
-        priority = WorkloadPriority.ofUid(5, 0);
+        priority = WorkloadPriority.ofPeriodicRandomFromUID(5, 0);
         assertEquals(5, priority.B());
-        priority = WorkloadPriority.ofUid(9, -1);
+        priority = WorkloadPriority.ofPeriodicRandomFromUID(9, -1);
         assertEquals(9, priority.B());
-        priority = WorkloadPriority.ofUid(10, Integer.MIN_VALUE);
+        priority = WorkloadPriority.ofPeriodicRandomFromUID(10, Integer.MIN_VALUE);
         assertEquals(10, priority.B());
-        priority = WorkloadPriority.ofUid(0, 1);
+        priority = WorkloadPriority.ofPeriodicRandomFromUID(0, 1);
         assertEquals(0, priority.B());
-        priority = WorkloadPriority.ofUid("listBooks".hashCode(), 5);
+        priority = WorkloadPriority.ofPeriodicRandomFromUID("listBooks".hashCode(), 5);
         assertEquals(1, priority.B());
-        priority = WorkloadPriority.ofUid("getBook".hashCode(), 5);
+        priority = WorkloadPriority.ofPeriodicRandomFromUID("getBook".hashCode(), 5);
         assertEquals(0, priority.B());
-        priority = WorkloadPriority.ofUid(-10, 1);
+        priority = WorkloadPriority.ofPeriodicRandomFromUID(-10, 1);
         assertEquals(125, priority.B());
-        // ofUid 允许 B 超过127：它会取模到[0, 127]
-        priority = WorkloadPriority.ofUid(Integer.MAX_VALUE, 1);
+        // 允许 B 超过127：它会取模到[0, 127]
+        priority = WorkloadPriority.ofPeriodicRandomFromUID(Integer.MAX_VALUE, 1);
         assertEquals(7, priority.B());
-        priority = WorkloadPriority.ofUid(Integer.MIN_VALUE, 1);
+        priority = WorkloadPriority.ofPeriodicRandomFromUID(Integer.MIN_VALUE, 1);
         assertEquals(0, priority.B());
     }
 
     @Test
     void randomUnchangedWithinHour() {
         String uIdentifier = "34_2323";
-        WorkloadPriority priority = WorkloadPriority.ofUid(2, uIdentifier.hashCode());
+        WorkloadPriority priority = WorkloadPriority.ofPeriodicRandomFromUID(2, uIdentifier.hashCode());
         for (int i = 0; i < 1000; i++) {
-            WorkloadPriority priority1 = WorkloadPriority.ofUid(2, uIdentifier.hashCode());
+            WorkloadPriority priority1 = WorkloadPriority.ofPeriodicRandomFromUID(2, uIdentifier.hashCode());
             // 这些肯定在1h内执行完毕，1h内U不变
             assertEquals(priority.U(), priority1.U());
             assertEquals(priority.B(), priority1.B());

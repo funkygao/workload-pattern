@@ -29,6 +29,8 @@ public interface AdmissionController {
      * 获取指定类型的准入控制器实例.
      *
      * <p>对于相同的类型，返回的是同一份实例：以类型为单位的单例.</p>
+     *
+     * @param name name(or type) of the admission control
      */
     static AdmissionController getInstance(@NonNull String name) {
         return FairSafeAdmissionController.getInstance(name);
@@ -49,6 +51,6 @@ public interface AdmissionController {
      *
      * @param feedback 反馈
      */
-    void feedback(WorkloadFeedback feedback);
+    void feedback(@NonNull WorkloadFeedback feedback);
 
 }
