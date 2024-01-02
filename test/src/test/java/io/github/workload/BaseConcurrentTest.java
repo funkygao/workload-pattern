@@ -1,5 +1,7 @@
 package io.github.workload;
 
+import org.apache.logging.log4j.Level;
+import org.apache.logging.log4j.core.config.Configurator;
 import org.junit.jupiter.api.AfterAll;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -20,6 +22,7 @@ public abstract class BaseConcurrentTest {
     @AfterAll
     static void shutdown() {
         threadPool.shutdownNow();
+        Configurator.setLevel("io.github.workload", Level.DEBUG);
     }
 
     protected void concurrentRun(Runnable runnable) {
@@ -46,5 +49,9 @@ public abstract class BaseConcurrentTest {
             results.add(future.join());
         }
         return results;
+    }
+
+    protected void setLogLevel(Level level) {
+        Configurator.setLevel("io.github.workload", level);
     }
 }
