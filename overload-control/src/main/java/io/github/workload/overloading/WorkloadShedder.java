@@ -86,7 +86,7 @@ abstract class WorkloadShedder {
         final int expectedToDrop = (int) (policy.getDropRate() * admitted);
         if (expectedToDrop == 0) {
             // 上个周期的准入量太少，无法决策抛弃哪个 TODO
-            log.info("[{}] unable to shed more: too few window admitted {}", admitted);
+            log.info("[{}] unable to shed more: too few window admitted {}", name, admitted);
             return;
         }
 
@@ -97,6 +97,7 @@ abstract class WorkloadShedder {
         // expectedDropNextCycle:4
         // admissionLevel.P=1999/1894, 要切换到112，但195是过度抛弃了，errorRate=(11+3-4)/4=10/4=2.5
         // TODO should we respect currentP?
+        // TODO Iterator<Map.Entry<Integer, AtomicInteger>>
         final Iterator<Integer> descendingP = histogram.headMap(currentP, true).descendingKeySet().iterator();
         if (!descendingP.hasNext()) {
             log.warn("[{}] P:{} beyond histogram, nothing to shed", name, currentP);
@@ -147,32 +148,41 @@ abstract class WorkloadShedder {
         }
 
         final int admitted = lastWindow.admitted();
-        final int expectedAddNextCycle = (int) (policy.getRecoverRate() * admitted);
-        int accumulatedAdd = 0;
-        // entrySet is in ascending order
-        final Iterator<Map.Entry<Integer, AtomicInteger>> ascendingP = lastWindow.histogram().tailMap(currentP, true).entrySet().iterator();
+        final int expectedToAdmit = (int) (policy.getRecoverRate() * admitted);
+        if (expectedToAdmit == 0) {
+            log.info("[{}] unable to admit more: too few window admitted {}", name, admitted);
+            return;
+        }
+
+        int accumulatedToAdmit = 0;
+        final Iterator<Map.Entry<Integer, AtomicInteger>> ascendingP = lastWindow.histogram().tailMap(currentP, false).entrySet().iterator();
+        if (!ascendingP.hasNext()) {
+            log.warn("[{}] beyond tail of histogram, {} -> {}", name, admissionLevel, AdmissionLevel.ofAdmitAll());
+            admissionLevel = AdmissionLevel.ofAdmitAll();
+            return;
+        }
+
         while (ascendingP.hasNext()) {
             final Map.Entry<Integer, AtomicInteger> entry = ascendingP.next();
             final int candidateP = entry.getKey();
-            final int droppedLastCycle = entry.getValue().get();
-            accumulatedAdd += droppedLastCycle;
-            log.debug("[{}] admit candidate(P:{} dropped:{}), accumulated:{}/{}", name, candidateP, droppedLastCycle, accumulatedAdd, expectedAddNextCycle);
+            final int candidateRequested = entry.getValue().get();
+            accumulatedToAdmit += candidateRequested;
+            if (log.isDebugEnabled()) {
+                log.debug("[{}] admit candidate(P:{} requested:{}), window admitted:{}, accumulated:{}/{}", name, candidateP, candidateRequested, admitted, accumulatedToAdmit, expectedToAdmit);
+            }
 
-            if (accumulatedAdd >= expectedAddNextCycle) {
-                log.warn("[{}] admitting more({}/{}), {} -> {}", name, accumulatedAdd, expectedAddNextCycle, admissionLevel, candidateP);
+            if (accumulatedToAdmit >= expectedToAdmit) { // TODO error rate
+                log.warn("[{}] admit more({}/{}), window admitted:{}, {} -> {}", name, accumulatedToAdmit, expectedToAdmit, admitted, admissionLevel, candidateP);
                 admissionLevel = admissionLevel.changeBar(candidateP);
                 return;
             }
 
             if (!ascendingP.hasNext()) {
-                log.warn("[{}] tail reached but still not enough for admit more: happy to admit all", name);
+                log.warn("[{}] histogram tail reached but still not enough for admit more: happy to admit all", name);
                 admissionLevel = AdmissionLevel.ofAdmitAll();
                 return;
             }
         }
-
-        // already at tail of histogram
-        log.debug("[{}] already at histogram tail", name);
     }
 
 }
