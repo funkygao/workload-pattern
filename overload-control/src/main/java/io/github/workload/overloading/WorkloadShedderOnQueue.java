@@ -22,7 +22,7 @@ class WorkloadShedderOnQueue extends WorkloadShedder {
 
     WorkloadShedderOnQueue(String name) {
         super(name);
-        this.timeCycleNs = window.getConfig().getTimeCycleNs();
+        this.timeCycleNs = windowConfig().getTimeCycleNs();
     }
 
     @Override
@@ -32,7 +32,7 @@ class WorkloadShedderOnQueue extends WorkloadShedder {
     }
 
     void addWaitingNs(long waitingNs) {
-        window.current().waitNs(waitingNs);
+        currentWindow().waitNs(waitingNs);
     }
 
     void overload(long overloadedAtNs) {

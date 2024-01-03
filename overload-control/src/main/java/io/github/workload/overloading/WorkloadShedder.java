@@ -26,10 +26,8 @@ abstract class WorkloadShedder {
     protected final String name;
     private volatile AdmissionLevel admissionLevel = AdmissionLevel.ofAdmitAll();
 
-    protected final TumblingWindow<CountAndTimeWindowState> window;
-
-    @VisibleForTesting
-    final WorkloadSheddingPolicy policy = new WorkloadSheddingPolicy();
+    private final TumblingWindow<CountAndTimeWindowState> window;
+    private final WorkloadSheddingPolicy policy = new WorkloadSheddingPolicy();
 
     protected abstract boolean isOverloaded(long nowNs, CountAndTimeWindowState windowState);
 
@@ -40,6 +38,11 @@ abstract class WorkloadShedder {
                 (nowNs, lastWindow) -> adaptAdmissionLevel(isOverloaded(nowNs, lastWindow), lastWindow)
         );
         this.window = new TumblingWindow(config, name, System.nanoTime());
+    }
+
+    @VisibleForTesting
+    double dropRate() {
+        return policy.getDropRate();
     }
 
     @VisibleForTesting
@@ -68,6 +71,14 @@ abstract class WorkloadShedder {
         } else {
             admitMore(lastWindow);
         }
+    }
+
+    protected CountAndTimeWindowState currentWindow() {
+        return window.current();
+    }
+
+    protected WindowConfig<CountAndTimeWindowState> windowConfig() {
+        return window.getConfig();
     }
 
     private void shedMore(CountAndTimeWindowState lastWindow) {
