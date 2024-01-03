@@ -12,7 +12,7 @@ class AdmissionLevelTest {
     @Test
     void ofAdmitAll() {
         AdmissionLevel level = AdmissionLevel.ofAdmitAll();
-        assertNotSame(level, AdmissionLevel.ofAdmitAll());
+        assertSame(level, AdmissionLevel.ofAdmitAll());
         assertTrue(level.admit(WorkloadPriority.ofLowestPriority()));
         assertTrue(level.admit(WorkloadPriority.of(1, 2)));
         assertTrue(level.admit(WorkloadPriority.ofPeriodicRandomFromUID(90, "foo".hashCode(), 100)));
@@ -22,7 +22,6 @@ class AdmissionLevelTest {
     @Test
     void immutable() {
         AdmissionLevel level = AdmissionLevel.ofAdmitAll();
-        assertNotSame(level, AdmissionLevel.ofAdmitAll());
         int P = level.P();
         level.changeBar(WorkloadPriority.of(1, 2).P());
         assertEquals(P, level.P());

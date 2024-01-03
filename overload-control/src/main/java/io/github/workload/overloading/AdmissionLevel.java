@@ -39,6 +39,7 @@ import lombok.NonNull;
  */
 @Immutable
 class AdmissionLevel {
+    private static final AdmissionLevel ADMIT_ALL = new AdmissionLevel(WorkloadPriority.ofLowestPriority());
 
     /**
      * 准入门槛，在一个窗口期内不变.
@@ -53,8 +54,7 @@ class AdmissionLevel {
     }
 
     static AdmissionLevel ofAdmitAll() {
-        // 只防住最低优先级，意味着全放行
-        return new AdmissionLevel(WorkloadPriority.ofLowestPriority());
+        return ADMIT_ALL;
     }
 
     AdmissionLevel changeBar(int targetP) {
