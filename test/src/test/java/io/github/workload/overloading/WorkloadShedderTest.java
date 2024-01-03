@@ -5,9 +5,7 @@ import io.github.workload.BaseConcurrentTest;
 import io.github.workload.window.CountAndTimeWindowState;
 import io.github.workload.window.WindowConfig;
 import org.apache.logging.log4j.Level;
-import org.junit.jupiter.api.RepeatedTest;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestInfo;
+import org.junit.jupiter.api.*;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentSkipListMap;
@@ -72,6 +70,11 @@ class WorkloadShedderTest extends BaseConcurrentTest {
         assertEquals("[3, 2, 1, 0]", histogram.headMap(3, true).descendingKeySet().toString());
         // 默认是 not inclusive
         assertEquals(histogram.headMap(3), histogram.headMap(3, false));
+
+        final Iterator<Map.Entry<Integer, String>> descendingEntries = histogram.headMap(5, true).descendingMap().entrySet().iterator();
+        while (descendingEntries.hasNext()) {
+            log.info("key:{}", descendingEntries.next().getKey());
+        }
     }
 
     @Test
@@ -94,6 +97,7 @@ class WorkloadShedderTest extends BaseConcurrentTest {
     }
 
     @RepeatedTest(1)
+    @DisplayName("模拟过载后的 workload shed")
     void adaptAdmissionLevel_overloaded_false_true(TestInfo testInfo) {
         log.info("{}", testInfo.getDisplayName());
 
@@ -164,7 +168,8 @@ class WorkloadShedderTest extends BaseConcurrentTest {
         shedder.adaptAdmissionLevel(true, currentWindow2);
     }
 
-    @RepeatedTest(1)
+    @RepeatedTest(10)
+    @DisplayName("先过载，再恢复")
     void adaptAdmissionLevel_shedMore_then_admitMore(TestInfo testInfo) {
         log.info("{}", testInfo.getDisplayName());
 
@@ -214,6 +219,7 @@ class WorkloadShedderTest extends BaseConcurrentTest {
         int admittingTimes = 0;
         List<Integer> admitHistory = new LinkedList<>();
         admitHistory.add(lastLevel.P());
+        boolean everAdmitted = false;
         for (int i = 0; i < Integer.MAX_VALUE; i++) {
             // 未过载
             shedder.adaptAdmissionLevel(false, currentWindow);
@@ -227,6 +233,12 @@ class WorkloadShedderTest extends BaseConcurrentTest {
             assertTrue(shedder.admissionLevel().P() >= lastLevel.P());
             lastLevel = shedder.admissionLevel();
             admitHistory.add(lastLevel.P());
+            everAdmitted = true;
+        }
+
+        if (everAdmitted) {
+            // 完全恢复
+            assertEquals(WorkloadPriority.MAX_P, shedder.admissionLevel().P());
         }
 
         log.info("shed:{}, admit:{}", shedHistory, admitHistory);
@@ -243,6 +255,7 @@ class WorkloadShedderTest extends BaseConcurrentTest {
     }
 
     @RepeatedTest(10)
+    @DisplayName("固定请求分布的并发测试")
     void adaptAdmissionLevel_dropMore_unbalanced(TestInfo testInfo) throws InterruptedException {
         //System.setProperty("workload.window.DEFAULT_TIME_CYCLE_MS", "50000000");
         FairSafeAdmissionController admissionController = (FairSafeAdmissionController) AdmissionController.getInstance("RPC");

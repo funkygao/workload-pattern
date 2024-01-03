@@ -97,16 +97,16 @@ abstract class WorkloadShedder {
         // expectedDropNextCycle:4
         // admissionLevel.P=1999/1894, 要切换到112，但195是过度抛弃了，errorRate=(11+3-4)/4=10/4=2.5
         // TODO should we respect currentP?
-        // TODO Iterator<Map.Entry<Integer, AtomicInteger>>
-        final Iterator<Integer> descendingP = histogram.headMap(currentP, true).descendingKeySet().iterator();
-        if (!descendingP.hasNext()) {
+        final Iterator<Map.Entry<Integer, AtomicInteger>> descendingEntries = histogram.headMap(currentP, true).descendingMap().entrySet().iterator();
+        if (!descendingEntries.hasNext()) {
             log.warn("[{}] P:{} beyond histogram, nothing to shed", name, currentP);
             return;
         }
 
-        while (descendingP.hasNext()) {
-            final int candidateP = descendingP.next();
-            final int candidateRequested = histogram.get(candidateP).get();
+        while (descendingEntries.hasNext()) {
+            final Map.Entry<Integer, AtomicInteger> entry = descendingEntries.next();
+            final int candidateP = entry.getKey();
+            final int candidateRequested = entry.getValue().get();
             accumulatedToDrop += candidateRequested;
             if (log.isDebugEnabled()) {
                 log.debug("[{}] shed candidate(P:{} requested:{}), window admitted:{}, accumulated:{}/{}",
@@ -116,9 +116,9 @@ abstract class WorkloadShedder {
             if (accumulatedToDrop >= expectedToDrop) {
                 double errorRate = (double) (accumulatedToDrop - expectedToDrop) / expectedToDrop;
                 int targetP;
-                if (descendingP.hasNext() && errorRate < ERROR_RATE_BOUND) {
+                if (descendingEntries.hasNext() && errorRate < ERROR_RATE_BOUND) {
                     // 误差率可接受，and candidate is not head, candidate will shed workload
-                    targetP = descendingP.next();
+                    targetP = descendingEntries.next().getKey();
                     log.warn("[{}] shed more({}/{}), error:{}, window admitted:{}, {} -> {}", name, accumulatedToDrop, expectedToDrop, errorRate, admitted, admissionLevel, targetP);
                 } else {
                     targetP = candidateP; // this candidate wil not shed workload
@@ -132,7 +132,7 @@ abstract class WorkloadShedder {
                 return;
             }
 
-            if (!descendingP.hasNext()) {
+            if (!descendingEntries.hasNext()) {
                 // 还不够扣呢，但已经没有可扣的了：we should never shed all
                 log.warn("[{}] histogram head reached, degraded shed more({}/{}), window admitted:{}, {} -> {}", name, accumulatedToDrop, expectedToDrop, admitted, admissionLevel, candidateP);
                 admissionLevel = admissionLevel.changeBar(candidateP);
