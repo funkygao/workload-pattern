@@ -1,6 +1,7 @@
 package io.github.workload.window;
 
 import io.github.workload.annotations.ThreadSafe;
+import io.github.workload.annotations.VisibleForTesting;
 import io.github.workload.overloading.WorkloadPriority;
 
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -45,6 +46,12 @@ public abstract class WindowState {
      */
     protected void logRollover(String prefix, long nowNs, WindowState nextWindow, WindowConfig config) {
         // leave for children
+    }
+
+    @VisibleForTesting
+    protected void resetForTesting() {
+        requestCounter.reset();
+        rolloverLock.set(false);
     }
 
     /**

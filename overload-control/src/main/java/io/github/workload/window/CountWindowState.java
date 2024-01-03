@@ -37,4 +37,10 @@ public class CountWindowState extends WindowState {
                 this.hashCode(), nextWindow.hashCode(),
                 this.requested(), this.requested() - config.getRequestCycle());
     }
+
+    @Override
+    protected void resetForTesting() {
+        super.resetForTesting();
+        histogram.clear();
+    }
 }

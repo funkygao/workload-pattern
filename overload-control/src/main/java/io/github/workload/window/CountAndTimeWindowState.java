@@ -95,4 +95,12 @@ public class CountAndTimeWindowState extends WindowState {
                 this.admitted(), this.requested(),
                 this.requested() - config.getRequestCycle());
     }
+
+    @Override
+    protected void resetForTesting() {
+        super.resetForTesting();
+        histogram.clear();
+        this.admittedCounter.reset();
+        this.accumulatedQueuedNs.reset();
+    }
 }

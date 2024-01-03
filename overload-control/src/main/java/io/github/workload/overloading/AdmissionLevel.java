@@ -13,7 +13,7 @@ import lombok.NonNull;
  *             ┌──┐
  *     ∧       │  │ reject
  *     │       │──┘
- * breakwater ─│──┐
+ *    bar ─────│──┐
  *     │       │  │
  *     ∨       │  │
  *             │  │ admit
@@ -45,11 +45,11 @@ class AdmissionLevel {
      *
      * <p>优先级低于门槛值的请求都应该拒绝.</p>
      */
-    private final WorkloadPriority breakwater;
+    private final WorkloadPriority bar;
 
     @VisibleForTesting
-    AdmissionLevel(@NonNull WorkloadPriority breakwater) {
-        this.breakwater = breakwater;
+    AdmissionLevel(@NonNull WorkloadPriority bar) {
+        this.bar = bar;
     }
 
     static AdmissionLevel ofAdmitAll() {
@@ -57,7 +57,7 @@ class AdmissionLevel {
         return new AdmissionLevel(WorkloadPriority.ofLowestPriority());
     }
 
-    AdmissionLevel switchTo(int targetP) {
+    AdmissionLevel changeBar(int targetP) {
         if (targetP == this.P()) {
             return this;
         }
@@ -70,15 +70,15 @@ class AdmissionLevel {
     }
 
     /**
-     * The normalized breakwater priority value.
+     * The normalized bar priority value.
      */
     int P() {
-        return breakwater.P();
+        return bar.P();
     }
 
     @Override
     public String toString() {
-        return "AdmissionLevel(B=" + breakwater.B() + ",U=" + breakwater.U() + ";P=" + breakwater.P() + ")";
+        return "AdmissionLevel(B=" + bar.B() + ",U=" + bar.U() + ";P=" + bar.P() + ")";
     }
 
     @Override
@@ -92,12 +92,12 @@ class AdmissionLevel {
         }
 
         AdmissionLevel that = (AdmissionLevel) o;
-        return that.breakwater.equals(this.breakwater);
+        return that.bar.equals(this.bar);
     }
 
     @Override
     public int hashCode() {
-        return breakwater.P();
+        return bar.P();
     }
 
 }

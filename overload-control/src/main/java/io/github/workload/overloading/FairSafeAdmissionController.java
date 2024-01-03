@@ -52,7 +52,7 @@ class FairSafeAdmissionController implements AdmissionController {
     }
 
     @VisibleForTesting("清除共享的静态变量，以便隔离单元测试")
-    static void reset() {
+    static void resetForTesting() {
         instances.clear();
     }
 

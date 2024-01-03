@@ -21,7 +21,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 @ThreadSafe
 abstract class WorkloadShedder {
     private static final int ADMIT_ALL_P = AdmissionLevel.ofAdmitAll().P();
-    private static final double ERROR_RATE_BOUND = 1.0d; // 100%
+    private static final double ERROR_RATE_BOUND = 1.01d; // 101%
 
     protected final String name;
     private volatile AdmissionLevel admissionLevel = AdmissionLevel.ofAdmitAll();
@@ -42,6 +42,12 @@ abstract class WorkloadShedder {
         this.window = new TumblingWindow(config, name, System.nanoTime());
     }
 
+    @VisibleForTesting
+    void resetForTesting() {
+        this.window.resetForTesting();
+        this.admissionLevel = this.admissionLevel.changeBar(WorkloadPriority.MAX_P);
+    }
+
     @ThreadSafe
     boolean admit(@NonNull WorkloadPriority workloadPriority) {
         boolean admitted = admissionLevel.admit(workloadPriority);
@@ -58,18 +64,18 @@ abstract class WorkloadShedder {
     @VisibleForTesting
     void adaptAdmissionLevel(boolean overloaded, CountAndTimeWindowState lastWindow) {
         if (overloaded) {
-            dropMore(lastWindow);
+            shedMore(lastWindow);
         } else {
             admitMore(lastWindow);
         }
     }
 
-    private void dropMore(CountAndTimeWindowState lastWindow) {
+    private void shedMore(CountAndTimeWindowState lastWindow) {
         final int admitted = lastWindow.admitted();
         final int expectedToDrop = (int) (policy.getDropRate() * admitted);
         if (expectedToDrop == 0) {
-            // 上个周期的准入量太少，无法决策抛弃哪个
-            log.info("[{}] unable to drop more: too few window admitted {}", admitted);
+            // 上个周期的准入量太少，无法决策抛弃哪个 TODO
+            log.info("[{}] unable to shed more: too few window admitted {}", admitted);
             return;
         }
 
@@ -77,17 +83,21 @@ abstract class WorkloadShedder {
         final ConcurrentSkipListMap<Integer, AtomicInteger> histogram = lastWindow.histogram();
         int accumulatedToDrop = 0;
         // histogram: (6, 3) -> (9, 10) -> ... -> (112, 2) -> (195, 11) -> (1894, 3)
-        // expectedDropNextCycle:4, admissionLevel.P可能值: 2/8/1894/1999，它是预测值，histogram是实际值
-        // admissionLevel.P=1999/1894, 要切换到112，但195是过度抛弃了，error=(11+3-4)=10
+        // expectedDropNextCycle:4
+        // admissionLevel.P=1999/1894, 要切换到112，但195是过度抛弃了，errorRate=(11+3-4)/4=10/4=2.5
         // TODO should we respect currentP?
         final Iterator<Integer> descendingP = histogram.headMap(currentP, true).descendingKeySet().iterator();
+        if (!descendingP.hasNext()) {
+            log.warn("[{}] P:{} beyond histogram, nothing to shed", name, currentP);
+            return;
+        }
+
         while (descendingP.hasNext()) {
-            // once loop entered, will converge inside the loop
             final int candidateP = descendingP.next();
             final int candidateRequested = histogram.get(candidateP).get();
             accumulatedToDrop += candidateRequested;
             if (log.isDebugEnabled()) {
-                log.debug("[{}] drop candidate(P:{} requested:{}), window admitted:{}, accumulated:{}/{}",
+                log.debug("[{}] shed candidate(P:{} requested:{}), window admitted:{}, accumulated:{}/{}",
                         name, candidateP, candidateRequested, admitted, accumulatedToDrop, expectedToDrop);
             }
 
@@ -95,32 +105,28 @@ abstract class WorkloadShedder {
                 double errorRate = (double) (accumulatedToDrop - expectedToDrop) / expectedToDrop;
                 int targetP;
                 if (descendingP.hasNext() && errorRate < ERROR_RATE_BOUND) {
-                    // 误差率可接受，and candidate is not head
+                    // 误差率可接受，and candidate is not head, candidate will shed workload
                     targetP = descendingP.next();
-                    log.warn("[{}] dropping more({}/{}), error:{}, window admitted:{}, {} -> {}", name, accumulatedToDrop, expectedToDrop, errorRate, admitted, admissionLevel, targetP);
+                    log.warn("[{}] shed more({}/{}), error:{}, window admitted:{}, {} -> {}", name, accumulatedToDrop, expectedToDrop, errorRate, admitted, admissionLevel, targetP);
                 } else {
-                    if (candidateP == currentP) {
-                        log.warn("[{}] error:{}, tail P has too many requests, await next cycle to drop", name, errorRate);
-                        return;
-                    }
-
-                    targetP = candidateP;
-                    log.warn("[{}] limited dropping more({}/{}), error:{}, window admitted:{}, {} -> {}", name, accumulatedToDrop, expectedToDrop, errorRate, admitted, admissionLevel, targetP);
+                    targetP = candidateP; // this candidate wil not shed workload
+                    // 备选项并没有被shed，提前加上去的退回来
+                    accumulatedToDrop -= candidateRequested;
+                    // errRate might be negative: below expectation
+                    errorRate = (double) (accumulatedToDrop - expectedToDrop) / expectedToDrop;
+                    log.warn("[{}] degraded shed more({}/{}), error:{}, window admitted:{}, {} -> {}", name, accumulatedToDrop, expectedToDrop, errorRate, admitted, admissionLevel, targetP);
                 }
-                admissionLevel = admissionLevel.switchTo(targetP);
+                admissionLevel = admissionLevel.changeBar(targetP);
                 return;
             }
 
             if (!descendingP.hasNext()) {
-                // 还不够扣呢，但已经没有可扣的了：we should never drop all
-                log.warn("[{}] head reached, dropping with best effort({}/{}), window admitted:{}, {} -> {}", name, accumulatedToDrop, expectedToDrop, admitted, admissionLevel, candidateP);
-                admissionLevel = admissionLevel.switchTo(candidateP);
+                // 还不够扣呢，但已经没有可扣的了：we should never shed all
+                log.warn("[{}] histogram head reached, degraded shed more({}/{}), window admitted:{}, {} -> {}", name, accumulatedToDrop, expectedToDrop, admitted, admissionLevel, candidateP);
+                admissionLevel = admissionLevel.changeBar(candidateP);
                 return;
             }
         }
-
-        // already at head of histogram，while loop not entered
-        log.warn("[{}] nothing to drop", name);
     }
 
     private void admitMore(CountAndTimeWindowState lastWindow) {
@@ -143,7 +149,7 @@ abstract class WorkloadShedder {
 
             if (accumulatedAdd >= expectedAddNextCycle) {
                 log.warn("[{}] admitting more({}/{}), {} -> {}", name, accumulatedAdd, expectedAddNextCycle, admissionLevel, candidateP);
-                admissionLevel = admissionLevel.switchTo(candidateP);
+                admissionLevel = admissionLevel.changeBar(candidateP);
                 return;
             }
 

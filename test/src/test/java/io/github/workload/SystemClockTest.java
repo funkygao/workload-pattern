@@ -16,7 +16,7 @@ class SystemClockTest extends BaseConcurrentTest {
 
     @AfterEach
     void cleanup() {
-        SystemClock.reset();
+        SystemClock.resetForTesting();
     }
 
     @Test

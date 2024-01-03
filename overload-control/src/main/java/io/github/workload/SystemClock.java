@@ -79,7 +79,7 @@ public class SystemClock {
     }
 
     @VisibleForTesting("共享状态清理，以便测试用例隔离")
-    static void reset() {
+    static void resetForTesting() {
         if (timerTask != null) {
             timerTask.cancel(true);
             timerTask = null;

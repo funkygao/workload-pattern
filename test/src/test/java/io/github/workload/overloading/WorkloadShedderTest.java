@@ -9,50 +9,69 @@ import org.junit.jupiter.api.RepeatedTest;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInfo;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.ConcurrentSkipListMap;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
 class WorkloadShedderTest extends BaseConcurrentTest {
 
     @Test
     void ConcurrentSkipListMap_headMap() {
-        ConcurrentSkipListMap<Integer, String> map = new ConcurrentSkipListMap();
+        ConcurrentSkipListMap<Integer, String> histogram = new ConcurrentSkipListMap();
+        assertFalse(histogram.headMap(1, true).descendingKeySet().iterator().hasNext());
+
+        histogram.put(8, "");
+        histogram.put(10, "");
         for (int i = 0; i <= 5; i++) {
-            map.put(i, "");
+            histogram.put(i, "");
         }
-        map.put(8, "");
-        map.put(10, "");
+
+        // what kind of key is beyond histogram: {0=, 1=, 2=, 3=, 4=, 5=, 8=, 10=}
+        // 0/10 within histogram
+        assertTrue(histogram.headMap(0, true).descendingKeySet().iterator().hasNext());
+        assertTrue(histogram.headMap(10, true).descendingKeySet().iterator().hasNext());
+        // 9，该key不存在，但在histogram范围内
+        assertTrue(histogram.headMap(9, true).descendingKeySet().iterator().hasNext());
+        // 11，超过该范围，它取得的尾部key是10
+        assertTrue(histogram.headMap(11, true).descendingKeySet().iterator().hasNext());
+        Integer key = histogram.headMap(11, true).descendingKeySet().iterator().next();
+        assertEquals(10, key);
+        key = histogram.headMap(111, true).descendingKeySet().iterator().next();
+        assertEquals(10, key);
+        // -1, beyond histogram
+        assertFalse(histogram.headMap(-1, true).descendingKeySet().iterator().hasNext());
+        try {
+            key = histogram.headMap(-1, true).descendingKeySet().iterator().next();
+            fail();
+        } catch (NoSuchElementException expected) {
+        }
+        // conclusion: headMap，只有给定的key超过的histogram最左侧值(exclusive)，iterator 才 !hasNext()
 
 
         // headMap里的toKey并不在map里，降序
-        assertEquals("[10, 8, 5, 4, 3, 2, 1, 0]", map.headMap(100, true).descendingKeySet().toString());
-        assertEquals("[10, 8, 5, 4, 3, 2, 1, 0]", map.headMap(100, false).descendingKeySet().toString());
+        assertEquals("[10, 8, 5, 4, 3, 2, 1, 0]", histogram.headMap(100, true).descendingKeySet().toString());
+        assertEquals("[10, 8, 5, 4, 3, 2, 1, 0]", histogram.headMap(100, false).descendingKeySet().toString());
         // edge case: 内部值，存在该值
-        assertEquals("[8, 5, 4, 3, 2, 1, 0]", map.headMap(8, true).descendingKeySet().toString());
+        assertEquals("[8, 5, 4, 3, 2, 1, 0]", histogram.headMap(8, true).descendingKeySet().toString());
         // edge case: 内部值，不存在该值
-        assertEquals("[5, 4, 3, 2, 1, 0]", map.headMap(7, true).descendingKeySet().toString());
-        assertEquals("[5, 4, 3, 2, 1, 0]", map.headMap(6, true).descendingKeySet().toString());
+        assertEquals("[5, 4, 3, 2, 1, 0]", histogram.headMap(7, true).descendingKeySet().toString());
+        assertEquals("[5, 4, 3, 2, 1, 0]", histogram.headMap(6, true).descendingKeySet().toString());
         // edge case: 边界值，右侧
-        assertEquals("[10, 8, 5, 4, 3, 2, 1, 0]", map.headMap(10, true).descendingKeySet().toString());
-        assertEquals("[8, 5, 4, 3, 2, 1, 0]", map.headMap(10, false).descendingKeySet().toString());
+        assertEquals("[10, 8, 5, 4, 3, 2, 1, 0]", histogram.headMap(10, true).descendingKeySet().toString());
+        assertEquals("[8, 5, 4, 3, 2, 1, 0]", histogram.headMap(10, false).descendingKeySet().toString());
         // edge case: 边界值，左侧
-        assertEquals("[]", map.headMap(-1, true).descendingKeySet().toString());
-        assertEquals("[]", map.headMap(-1, false).descendingKeySet().toString());
-        assertEquals("[]", map.headMap(0, false).descendingKeySet().toString());
-        assertEquals("[0]", map.headMap(0, true).descendingKeySet().toString());
+        assertEquals("[]", histogram.headMap(-1, true).descendingKeySet().toString());
+        assertEquals("[]", histogram.headMap(-1, false).descendingKeySet().toString());
+        assertEquals("[]", histogram.headMap(0, false).descendingKeySet().toString());
+        assertEquals("[0]", histogram.headMap(0, true).descendingKeySet().toString());
         // keySet是升序
-        assertEquals("[0, 1, 2, 3, 4, 5, 8, 10]", map.headMap(100, true).keySet().toString());
+        assertEquals("[0, 1, 2, 3, 4, 5, 8, 10]", histogram.headMap(100, true).keySet().toString());
 
-        assertEquals("[0, 1, 2, 3]", map.headMap(3, true).keySet().toString());
-        assertEquals("[3, 2, 1, 0]", map.headMap(3, true).descendingKeySet().toString());
+        assertEquals("[0, 1, 2, 3]", histogram.headMap(3, true).keySet().toString());
+        assertEquals("[3, 2, 1, 0]", histogram.headMap(3, true).descendingKeySet().toString());
         // 默认是 not inclusive
-        assertEquals(map.headMap(3), map.headMap(3, false));
+        assertEquals(histogram.headMap(3), histogram.headMap(3, false));
     }
 
     @Test
@@ -66,49 +85,50 @@ class WorkloadShedderTest extends BaseConcurrentTest {
         assertEquals("[5, 6, 7, 8, 9]", map.tailMap(5).keySet().toString());
     }
 
-    @RepeatedTest(100)
-    void adaptAdmissionLevel_overloaded_false_true() {
+    @RepeatedTest(1000)
+    void adaptAdmissionLevel_overloaded_false_true(TestInfo testInfo) {
+        log.info("{}", testInfo.getDisplayName());
+
         // 为了排除运行速度的影响，把窗口的时间周期放大：只以请求次数为周期
         System.setProperty("workload.window.DEFAULT_TIME_CYCLE_MS", "50000000");
 
         setLogLevel(Level.INFO);
 
-        FairSafeAdmissionController.reset();
+        FairSafeAdmissionController.resetForTesting();
         FairSafeAdmissionController admissionController = (FairSafeAdmissionController) AdmissionController.getInstance("RPC");
-        WorkloadShedder shedder = admissionController.shedderOnQueue;
+        final WorkloadShedder shedder = admissionController.shedderOnQueue;
         // 刚启动时，P为最大值(最低优先级)
         final int initialP = shedder.admissionLevel().P();
         assertEquals(initialP, shedder.admissionLevel().P());
         assertEquals(WorkloadPriority.MAX_P, initialP);
 
         PrioritizedRequestGenerator generator = new PrioritizedRequestGenerator().fullyRandomize(50);
-        for (int P : generator.priorities()) {
-            final int requests = generator.requestsOfP(P);
-            final WorkloadPriority priority = WorkloadPriority.fromP(P);
-            for (int i = 0; i < requests; i++) {
-                assertTrue(shedder.admit(priority));
+        for (Map.Entry<WorkloadPriority, Integer> entry : generator) {
+            for (int i = 0; i < entry.getValue(); i++) {
+                assertTrue(shedder.admit(entry.getKey()));
             }
         }
-        //setLogLevel(Level.DEBUG);
         log.info("total requests: {}, window already rollover many times", generator.totalRequests());
 
-        CountAndTimeWindowState currentWindow = shedder.window.current();
+        final CountAndTimeWindowState currentWindow = shedder.window.current();
         final int expectedAdmittedLastWindow = generator.totalRequests() % WindowConfig.DEFAULT_REQUEST_CYCLE;
         assertEquals(expectedAdmittedLastWindow, currentWindow.admitted());
         // 没有过载，因此：请求数=放行数
         assertEquals(currentWindow.requested(), currentWindow.admitted());
 
         log.info("没有过载，调整admission level不变化");
-        shedder.adaptAdmissionLevel(false, currentWindow);
-        assertEquals(initialP, shedder.admissionLevel().P());
+        for (int i = 0; i < 10; i++) {
+            shedder.adaptAdmissionLevel(false, currentWindow);
+            assertEquals(initialP, shedder.admissionLevel().P());
+        }
 
-        log.info("显式过载，看看调整到哪个优先级 histogram size:{}, {}", currentWindow.histogram().size(), currentWindow.histogram());
+        log.info("显式过载，看看调整到哪个优先级。当前窗口，histogram size:{}, {}", currentWindow.histogram().size(), currentWindow.histogram());
         AdmissionLevel lastLevel = shedder.admissionLevel();
         for (int i = 0; i < (1 / shedder.policy.getDropRate()); i++) {
             shedder.adaptAdmissionLevel(true, currentWindow);
-            log.info("adapted {}: {} -> {}", lastLevel.P() - shedder.admissionLevel().P(), lastLevel, shedder.admissionLevel());
+            log.debug("adapted {}: {} -> {}", lastLevel.P() - shedder.admissionLevel().P(), lastLevel, shedder.admissionLevel());
             if (lastLevel.equals(shedder.admissionLevel())) {
-                log.info("admission level cannot be adapted any more");
+                log.info("admission level cannot be adapted any more, STOPPED!");
                 break;
             }
 
@@ -117,7 +137,24 @@ class WorkloadShedderTest extends BaseConcurrentTest {
             lastLevel = shedder.admissionLevel();
         }
 
-        // 模拟当前窗口请求量低于100的场景
+
+        generator.reset().generateFewRequests();
+        shedder.resetForTesting();
+        for (Map.Entry<WorkloadPriority, Integer> entry : generator) {
+            for (int i = 0; i < entry.getValue(); i++) {
+                assertTrue(shedder.admit(entry.getKey()));
+            }
+        }
+        final CountAndTimeWindowState currentWindow1 = shedder.window.current();
+        log.info("模拟当前窗口请求量低于100的场景 histogram:{}", currentWindow1.histogram());
+        shedder.adaptAdmissionLevel(true, currentWindow1);
+        shedder.adaptAdmissionLevel(true, currentWindow1);
+
+        shedder.resetForTesting();
+        final CountAndTimeWindowState currentWindow2 = shedder.window.current();
+        log.info("模拟当前窗口1个请求都没有的场景 histogram:{}", currentWindow2.histogram());
+        shedder.adaptAdmissionLevel(true, currentWindow2);
+        shedder.adaptAdmissionLevel(true, currentWindow2);
     }
 
     @RepeatedTest(10)
