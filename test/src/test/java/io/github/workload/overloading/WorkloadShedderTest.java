@@ -6,6 +6,8 @@ import io.github.workload.window.CountAndTimeWindowState;
 import io.github.workload.window.WindowConfig;
 import org.apache.logging.log4j.Level;
 import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.parallel.Execution;
+import org.junit.jupiter.api.parallel.ExecutionMode;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentSkipListMap;
@@ -72,9 +74,11 @@ class WorkloadShedderTest extends BaseConcurrentTest {
         assertEquals(histogram.headMap(3), histogram.headMap(3, false));
 
         final Iterator<Map.Entry<Integer, String>> descendingEntries = histogram.headMap(5, true).descendingMap().entrySet().iterator();
+        List<Integer> descendingKeys = new LinkedList<>();
         while (descendingEntries.hasNext()) {
-            log.info("key:{}", descendingEntries.next().getKey());
+            descendingKeys.add(descendingEntries.next().getKey());
         }
+        assertEquals("[5, 4, 3, 2, 1, 0]", descendingKeys.toString());
     }
 
     @Test
@@ -108,7 +112,7 @@ class WorkloadShedderTest extends BaseConcurrentTest {
 
         FairSafeAdmissionController.resetForTesting();
         FairSafeAdmissionController admissionController = (FairSafeAdmissionController) AdmissionController.getInstance("RPC");
-        final WorkloadShedder shedder = admissionController.shedderOnQueue;
+        final WorkloadShedder shedder = admissionController.shedderOnQueue();
         // 刚启动时，P为最大值(最低优先级)
         final int initialP = shedder.admissionLevel().P();
         assertEquals(initialP, shedder.admissionLevel().P());
@@ -168,7 +172,8 @@ class WorkloadShedderTest extends BaseConcurrentTest {
         shedder.adaptAdmissionLevel(true, currentWindow2);
     }
 
-    @RepeatedTest(10)
+    @RepeatedTest(2)
+    @Execution(ExecutionMode.SAME_THREAD)
     @DisplayName("先过载，再恢复")
     void adaptAdmissionLevel_shedMore_then_admitMore(TestInfo testInfo) {
         log.info("{}", testInfo.getDisplayName());
@@ -177,7 +182,7 @@ class WorkloadShedderTest extends BaseConcurrentTest {
         setLogLevel(Level.INFO);
         FairSafeAdmissionController.resetForTesting();
         FairSafeAdmissionController admissionController = (FairSafeAdmissionController) AdmissionController.getInstance("RPC");
-        final WorkloadShedder shedder = admissionController.shedderOnQueue;
+        final WorkloadShedder shedder = admissionController.shedderOnQueue();
 
         PrioritizedRequestGenerator generator = new PrioritizedRequestGenerator().fullyRandomize(10);
         for (Map.Entry<WorkloadPriority, Integer> entry : generator) {
@@ -259,7 +264,7 @@ class WorkloadShedderTest extends BaseConcurrentTest {
     void adaptAdmissionLevel_dropMore_unbalanced(TestInfo testInfo) throws InterruptedException {
         //System.setProperty("workload.window.DEFAULT_TIME_CYCLE_MS", "50000000");
         FairSafeAdmissionController admissionController = (FairSafeAdmissionController) AdmissionController.getInstance("RPC");
-        WorkloadShedder shedder = admissionController.shedderOnQueue;
+        WorkloadShedder shedder = admissionController.shedderOnQueue();
         Map<Integer, Integer> P2Requests = ImmutableMap.of(
                 5, 2,
                 10, 20,

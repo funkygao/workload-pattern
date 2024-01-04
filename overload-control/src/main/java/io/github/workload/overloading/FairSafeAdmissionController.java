@@ -24,12 +24,10 @@ import java.util.concurrent.ConcurrentHashMap;
 @Slf4j
 @ThreadSafe
 class FairSafeAdmissionController implements AdmissionController {
-    @VisibleForTesting
-    final WorkloadShedderOnQueue shedderOnQueue;
+    private final WorkloadShedderOnQueue shedderOnQueue;
 
     // shared singleton in JVM
-    @VisibleForTesting
-    static final WorkloadShedderOnCpu shedderOnCpu = new WorkloadShedderOnCpu(CPU_USAGE_UPPER_BOUND, CPU_OVERLOAD_COOL_OFF_SEC);
+    private static final WorkloadShedderOnCpu shedderOnCpu = new WorkloadShedderOnCpu(CPU_USAGE_UPPER_BOUND, CPU_OVERLOAD_COOL_OFF_SEC);
 
     private static final Map<String, FairSafeAdmissionController> instances = new ConcurrentHashMap<>(8);
 
@@ -49,11 +47,6 @@ class FairSafeAdmissionController implements AdmissionController {
             log.info("register new admission controller:{}", name);
             return new FairSafeAdmissionController(name);
         });
-    }
-
-    @VisibleForTesting("清除共享的静态变量，以便隔离单元测试")
-    static void resetForTesting() {
-        instances.clear();
     }
 
     @Override
@@ -78,6 +71,21 @@ class FairSafeAdmissionController implements AdmissionController {
         if (feedback instanceof WorkloadFeedbackQueued) {
             shedderOnQueue.addWaitingNs(((WorkloadFeedbackQueued) feedback).getQueuedNs());
         }
+    }
+
+    @VisibleForTesting
+    WorkloadShedderOnQueue shedderOnQueue() {
+        return shedderOnQueue;
+    }
+
+    @VisibleForTesting
+    static WorkloadShedderOnCpu shedderOnCpu() {
+        return shedderOnCpu;
+    }
+
+    @VisibleForTesting("清除共享的静态变量，以便隔离单元测试")
+    static void resetForTesting() {
+        instances.clear();
     }
 
 }

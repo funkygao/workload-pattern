@@ -40,37 +40,11 @@ abstract class WorkloadShedder {
         this.window = new TumblingWindow(config, name, System.nanoTime());
     }
 
-    @VisibleForTesting
-    double dropRate() {
-        return policy.getDropRate();
-    }
-
-    @VisibleForTesting
-    void resetForTesting() {
-        this.window.resetForTesting();
-        this.admissionLevel = this.admissionLevel.changeBar(WorkloadPriority.MAX_P);
-    }
-
-    @ThreadSafe
     boolean admit(@NonNull WorkloadPriority workloadPriority) {
         boolean admitted = admissionLevel.admit(workloadPriority);
         final long nowNs = System.nanoTime();
         window.advance(workloadPriority, admitted, nowNs);
         return admitted;
-    }
-
-    @VisibleForTesting
-    AdmissionLevel admissionLevel() {
-        return admissionLevel;
-    }
-
-    @VisibleForTesting
-    void adaptAdmissionLevel(boolean overloaded, CountAndTimeWindowState lastWindow) {
-        if (overloaded) {
-            shedMore(lastWindow);
-        } else {
-            admitMore(lastWindow);
-        }
     }
 
     protected CountAndTimeWindowState currentWindow() {
@@ -182,6 +156,31 @@ abstract class WorkloadShedder {
                 admissionLevel = AdmissionLevel.ofAdmitAll();
                 return;
             }
+        }
+    }
+
+    @VisibleForTesting
+    double dropRate() {
+        return policy.getDropRate();
+    }
+
+    @VisibleForTesting
+    void resetForTesting() {
+        this.window.resetForTesting();
+        this.admissionLevel = this.admissionLevel.changeBar(WorkloadPriority.MAX_P);
+    }
+
+    @VisibleForTesting
+    AdmissionLevel admissionLevel() {
+        return admissionLevel;
+    }
+
+    @VisibleForTesting
+    void adaptAdmissionLevel(boolean overloaded, CountAndTimeWindowState lastWindow) {
+        if (overloaded) {
+            shedMore(lastWindow);
+        } else {
+            admitMore(lastWindow);
         }
     }
 

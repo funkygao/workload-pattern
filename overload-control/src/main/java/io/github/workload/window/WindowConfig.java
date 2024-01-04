@@ -1,7 +1,6 @@
 package io.github.workload.window;
 
 import io.github.workload.annotations.Immutable;
-import io.github.workload.annotations.VisibleForTesting;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -19,13 +18,12 @@ import java.util.function.BiConsumer;
 @Immutable
 @Getter(AccessLevel.PACKAGE)
 public class WindowConfig<S extends WindowState> {
-    static final long NS_PER_MS = TimeUnit.MILLISECONDS.toNanos(1);
+    public static final long NS_PER_MS = TimeUnit.MILLISECONDS.toNanos(1);
 
-    private static final long DEFAULT_TIME_CYCLE_NS = System.getProperty("workload.window.DEFAULT_TIME_CYCLE_MS") != null ?
+    public static final long DEFAULT_TIME_CYCLE_NS = System.getProperty("workload.window.DEFAULT_TIME_CYCLE_MS") != null ?
             TimeUnit.MILLISECONDS.toNanos(Long.valueOf(System.getProperty("workload.window.DEFAULT_TIME_CYCLE_MS"))) :
             TimeUnit.MILLISECONDS.toNanos(1000); // 1s
 
-    @VisibleForTesting
     public static final int DEFAULT_REQUEST_CYCLE = System.getProperty("workload.window.DEFAULT_REQUEST_CYCLE") != null ?
             Integer.valueOf(System.getProperty("workload.window.DEFAULT_REQUEST_CYCLE")) :
             2 << 10; // 2K
