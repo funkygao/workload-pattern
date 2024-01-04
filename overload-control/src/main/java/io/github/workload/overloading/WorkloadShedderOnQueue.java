@@ -1,6 +1,8 @@
 package io.github.workload.overloading;
 
+import io.github.workload.annotations.VisibleForTesting;
 import io.github.workload.window.CountAndTimeWindowState;
+import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -8,10 +10,8 @@ class WorkloadShedderOnQueue extends WorkloadShedder {
 
     /**
      * 配置：平均排队时长多大被认为过载.
-     *
-     * <p>由于是配置，没有加{@code volatile}</p>
      */
-    private final long overloadQueuingMs = 200;
+    public static final long AVG_QUEUED_MS_UPPER_BOUND = 200;
 
     /**
      * 最近一次显式过载的时间.
@@ -26,9 +26,16 @@ class WorkloadShedderOnQueue extends WorkloadShedder {
     }
 
     @Override
-    protected boolean isOverloaded(long nowNs, CountAndTimeWindowState windowState) {
-        return windowState.avgQueuedMs() > overloadQueuingMs // 排队时间长
-                || (nowNs - overloadedAtNs) <= timeCycleNs; // 距离上次显式过载仍在窗口期
+    protected boolean isOverloaded(long nowNs, @NonNull CountAndTimeWindowState windowState) {
+        // 距离上次显式过载仍在窗口期
+        boolean stillExplicitOverloaded = nowNs > 0 && overloadedAtNs > 0
+                && (nowNs - overloadedAtNs) <= timeCycleNs;
+        boolean overloaded = stillExplicitOverloaded
+                || windowState.avgQueuedMs() > AVG_QUEUED_MS_UPPER_BOUND; // 排队时间长
+        if (overloaded) {
+            log.warn("[{}] overloaded: {}", name, stillExplicitOverloaded ? "within explicit overload interval" : "too large avg queued time");
+        }
+        return overloaded;
     }
 
     void addWaitingNs(long waitingNs) {
@@ -38,6 +45,13 @@ class WorkloadShedderOnQueue extends WorkloadShedder {
     void overload(long overloadedAtNs) {
         log.trace("[{}] got explicit overload event", name);
         this.overloadedAtNs = overloadedAtNs;
+    }
+
+    @VisibleForTesting
+    @Override
+    void resetForTesting() {
+        super.resetForTesting();
+        overloadedAtNs = 0;
     }
 
 }
