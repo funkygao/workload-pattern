@@ -21,7 +21,6 @@ public abstract class BaseConcurrentTest {
 
     @AfterAll
     static void shutdown() {
-        threadPool.shutdownNow();
         Configurator.setLevel("io.github.workload", Level.DEBUG);
     }
 
