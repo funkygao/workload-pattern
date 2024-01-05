@@ -17,7 +17,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * <li>safe: embedded JVM scope CPU overload shedding mechanism</li>
  * </ul>
  * <ul>局限性，无法解决这类问题:
- * <li>某个请求导致CPU瞬间从低暴涨到100%，例如某个bug导致死循环：shuffle sharding可以，但前提是区分出隔离维度</li>
+ * <li>某个请求导致CPU瞬间从低暴涨到100%，例如某个bug导致死循环：shuffle sharding可以</li>
  * <li>只卸除新请求，已接受的请求(已经在执行，在{@link BlockingQueue}里等待执行)即使耗尽CPU也无法卸除</li>
  * </ul>
  */
@@ -50,15 +50,15 @@ class FairSafeAdmissionController implements AdmissionController {
     }
 
     @Override
-    public boolean admit(@NonNull WorkloadPriority workloadPriority) {
+    public boolean admit(@NonNull WorkloadPriority priority) {
         // 进程级准入，全局采样
-        if (!shedderOnCpu.admit(workloadPriority)) {
-            log.debug("CPU overloaded, might reject {}", workloadPriority);
+        if (!shedderOnCpu.admit(priority)) {
+            log.debug("CPU overloaded, might reject {}", priority);
             return false;
         }
 
         // 具体类型的业务准入，局部采样
-        return shedderOnQueue.admit(workloadPriority);
+        return shedderOnQueue.admit(priority);
     }
 
     @Override

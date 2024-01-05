@@ -65,8 +65,8 @@ class AdmissionLevel {
         return new AdmissionLevel(WorkloadPriority.fromP(targetP));
     }
 
-    boolean admit(WorkloadPriority workloadPriority) {
-        return workloadPriority.P() <= this.P();
+    boolean admit(WorkloadPriority priority) {
+        return priority.P() <= this.P();
     }
 
     /**

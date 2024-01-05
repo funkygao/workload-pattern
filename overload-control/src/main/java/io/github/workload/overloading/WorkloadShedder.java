@@ -40,10 +40,10 @@ abstract class WorkloadShedder {
         this.window = new TumblingWindow(config, name, System.nanoTime());
     }
 
-    boolean admit(@NonNull WorkloadPriority workloadPriority) {
-        boolean admitted = admissionLevel.admit(workloadPriority);
+    boolean admit(@NonNull WorkloadPriority priority) {
+        boolean admitted = admissionLevel.admit(priority);
         final long nowNs = System.nanoTime();
-        window.advance(workloadPriority, admitted, nowNs);
+        window.advance(priority, admitted, nowNs);
         return admitted;
     }
 
