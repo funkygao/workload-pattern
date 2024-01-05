@@ -1,5 +1,6 @@
 package io.github.workload.overloading;
 
+import io.github.workload.helper.CpuStressLoader;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 

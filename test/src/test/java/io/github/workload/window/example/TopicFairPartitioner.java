@@ -1,7 +1,7 @@
 package io.github.workload.window.example;
 
 import io.github.workload.BaseConcurrentTest;
-import io.github.workload.overloading.RandomUtil;
+import io.github.workload.helper.RandomUtil;
 import io.github.workload.overloading.WorkloadPriority;
 import io.github.workload.window.*;
 import org.junit.jupiter.api.Test;

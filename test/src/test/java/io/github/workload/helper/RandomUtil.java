@@ -1,4 +1,6 @@
-package io.github.workload.overloading;
+package io.github.workload.helper;
+
+import io.github.workload.overloading.WorkloadPriority;
 
 import java.util.concurrent.ThreadLocalRandom;
 
@@ -8,7 +10,7 @@ public class RandomUtil {
     }
 
     public static int randomP() {
-        return ThreadLocalRandom.current().nextInt(WorkloadPriority.ofLowestPriority().P());
+        return ThreadLocalRandom.current().nextInt(WorkloadPriority.MAX_P);
     }
 
     public static boolean randomBoolean() {

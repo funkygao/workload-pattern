@@ -1,6 +1,6 @@
 package io.github.workload.window;
 
-import io.github.workload.overloading.RandomUtil;
+import io.github.workload.helper.RandomUtil;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;

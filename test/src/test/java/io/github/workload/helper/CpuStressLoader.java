@@ -1,12 +1,12 @@
-package io.github.workload.overloading;
+package io.github.workload.helper;
 
 import java.util.ArrayList;
 import java.util.List;
 
-class CpuStressLoader {
+public class CpuStressLoader {
     private static final List<BusyThread> threads = new ArrayList<>(Runtime.getRuntime().availableProcessors());
 
-    static void burnCPUs() {
+    public static void burnCPUs() {
         int numThreads = Runtime.getRuntime().availableProcessors();
         for (int i = 0; i < numThreads; i++) {
             BusyThread thread = new BusyThread();
@@ -15,7 +15,7 @@ class CpuStressLoader {
         }
     }
 
-    static void stop() {
+    public static void stop() {
         for (BusyThread thread : threads) {
             thread.interrupt();
         }

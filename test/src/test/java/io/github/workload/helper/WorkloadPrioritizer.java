@@ -1,4 +1,6 @@
-package io.github.workload.overloading;
+package io.github.workload.helper;
+
+import io.github.workload.overloading.WorkloadPriority;
 
 import java.util.concurrent.ThreadLocalRandom;
 
@@ -37,19 +39,23 @@ public class WorkloadPrioritizer {
         return ThreadLocalRandom.current().nextInt(Integer.MAX_VALUE);
     }
 
-    static WorkloadPriority randomMQ() {
+    public static WorkloadPriority randomMQ() {
         int b = SHEDDABLE_PLUS;
         return WorkloadPriority.ofPeriodicRandomFromUID(b, randomUid());
     }
 
-    static WorkloadPriority randomRpc() {
+    public static WorkloadPriority randomRpc() {
         int b = CRITICAL;
         return WorkloadPriority.ofPeriodicRandomFromUID(b, randomUid());
     }
 
-    static WorkloadPriority randomWeb() {
+    public static WorkloadPriority randomWeb() {
         int b = CRITICAL_PLUS;
         return WorkloadPriority.ofPeriodicRandomFromUID(b, randomUid());
+    }
+
+    public static WorkloadPriority randomLowPriority() {
+        return WorkloadPriority.ofPeriodicRandomFromUID(SHEDDABLE, randomUid());
     }
 
 }

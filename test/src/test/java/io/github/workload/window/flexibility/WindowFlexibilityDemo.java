@@ -1,6 +1,6 @@
 package io.github.workload.window.flexibility;
 
-import io.github.workload.overloading.RandomUtil;
+import io.github.workload.helper.RandomUtil;
 import io.github.workload.window.TumblingWindow;
 import io.github.workload.window.WindowConfig;
 import org.junit.jupiter.api.Test;

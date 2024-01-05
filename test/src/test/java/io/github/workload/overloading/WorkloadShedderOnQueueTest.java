@@ -2,6 +2,8 @@ package io.github.workload.overloading;
 
 import io.github.workload.BaseConcurrentTest;
 import io.github.workload.SystemClock;
+import io.github.workload.helper.PrioritizedRequestGenerator;
+import io.github.workload.helper.RandomUtil;
 import io.github.workload.window.WindowConfig;
 import org.junit.jupiter.api.Test;
 
@@ -41,7 +43,7 @@ class WorkloadShedderOnQueueTest extends BaseConcurrentTest {
         shedder.resetForTesting();
         assertFalse(shedder.isOverloaded(System.nanoTime(), shedder.currentWindow()));
 
-        PrioritizedRequestGenerator generator = new PrioritizedRequestGenerator().fullyRandomize(15);
+        PrioritizedRequestGenerator generator = new PrioritizedRequestGenerator().generateFullyRandom(15);
         for (Map.Entry<WorkloadPriority, Integer> entry : generator) {
             for (int i = 0; i < entry.getValue(); i++) {
                 shedder.admit(entry.getKey()); // 会不停地

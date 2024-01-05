@@ -1,5 +1,6 @@
 package io.github.workload.overloading;
 
+import io.github.workload.helper.RandomUtil;
 import org.junit.jupiter.api.Test;
 
 import java.util.HashSet;

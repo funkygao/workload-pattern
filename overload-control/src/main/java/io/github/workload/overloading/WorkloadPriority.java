@@ -43,8 +43,7 @@ public class WorkloadPriority {
     private static final int PRIORITY_BITS = 7;
     private static final int MAX_7BIT_VALUE = (1 << PRIORITY_BITS) - 1;
 
-    @VisibleForTesting
-    static final int MAX_P = ofLowestPriority().P(); // 16383
+    public static final int MAX_P = ofLowestPriority().P(); // 16383
 
     private static Map<Integer, UState> uStates = new ConcurrentHashMap<>();
 

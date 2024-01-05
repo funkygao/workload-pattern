@@ -2,6 +2,7 @@ package io.github.workload.overloading;
 
 import com.google.common.collect.ImmutableMap;
 import io.github.workload.BaseConcurrentTest;
+import io.github.workload.helper.PrioritizedRequestGenerator;
 import io.github.workload.window.CountAndTimeWindowState;
 import io.github.workload.window.WindowConfig;
 import org.apache.logging.log4j.Level;
@@ -118,7 +119,7 @@ class WorkloadShedderTest extends BaseConcurrentTest {
         assertEquals(initialP, shedder.admissionLevel().P());
         assertEquals(WorkloadPriority.MAX_P, initialP);
 
-        PrioritizedRequestGenerator generator = new PrioritizedRequestGenerator().fullyRandomize(50);
+        PrioritizedRequestGenerator generator = new PrioritizedRequestGenerator().generateFullyRandom(50);
         for (Map.Entry<WorkloadPriority, Integer> entry : generator) {
             for (int i = 0; i < entry.getValue(); i++) {
                 assertTrue(shedder.admit(entry.getKey()));
@@ -184,7 +185,7 @@ class WorkloadShedderTest extends BaseConcurrentTest {
         FairSafeAdmissionController admissionController = (FairSafeAdmissionController) AdmissionController.getInstance("RPC");
         final WorkloadShedder shedder = admissionController.shedderOnQueue();
 
-        PrioritizedRequestGenerator generator = new PrioritizedRequestGenerator().fullyRandomize(10);
+        PrioritizedRequestGenerator generator = new PrioritizedRequestGenerator().generateFullyRandom(10);
         for (Map.Entry<WorkloadPriority, Integer> entry : generator) {
             for (int i = 0; i < entry.getValue(); i++) {
                 shedder.admit(entry.getKey());
@@ -255,6 +256,31 @@ class WorkloadShedderTest extends BaseConcurrentTest {
                 assertEquals(1, admittingTimes);
             } else {
                 //assertTrue(admittingTimes > 2 * sheddingTimes, String.format("%d %d", sheddingTimes, admittingTimes));
+            }
+        }
+    }
+
+    @RepeatedTest(1)
+    void simulateRpc() {
+        FairSafeAdmissionController admissionController = (FairSafeAdmissionController) AdmissionController.getInstance("RPC");
+        WorkloadShedder shedder = admissionController.shedderOnQueue();
+        PrioritizedRequestGenerator generator = new PrioritizedRequestGenerator().simulateRpcRequests(1 << 20);
+        for (Map.Entry<WorkloadPriority, Integer> entry : generator) {
+            for (int i = 0; i < entry.getValue(); i++) {
+                shedder.admit(entry.getKey());
+            }
+        }
+    }
+
+    @RepeatedTest(1)
+    void simulateMixedScenario() {
+        FairSafeAdmissionController admissionController = (FairSafeAdmissionController) AdmissionController.getInstance("RPC");
+        WorkloadShedder shedder = admissionController.shedderOnQueue();
+        PrioritizedRequestGenerator generator = new PrioritizedRequestGenerator().simulateMixedRequests(1 << 20);
+        for (Map.Entry<WorkloadPriority, Integer> entry : generator) {
+            for (int i = 0; i < entry.getValue(); i++) {
+                log.info("{}", entry.getKey());
+                shedder.admit(entry.getKey());
             }
         }
     }
