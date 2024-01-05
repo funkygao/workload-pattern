@@ -1,4 +1,4 @@
-package io.github.workload.window.example;
+package io.github.workload.window.kafka;
 
 import io.github.workload.overloading.WorkloadPriority;
 import io.github.workload.window.CountRolloverStrategy;

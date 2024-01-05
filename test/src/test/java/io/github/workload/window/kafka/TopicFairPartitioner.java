@@ -1,4 +1,4 @@
-package io.github.workload.window.example;
+package io.github.workload.window.kafka;
 
 import io.github.workload.BaseConcurrentTest;
 import io.github.workload.helper.RandomUtil;
