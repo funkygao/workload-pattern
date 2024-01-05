@@ -1,7 +1,7 @@
 package io.github.workload.tailtolerant;
 
 /**
- * 对冲请求，用来消除长尾延迟.
+ * 对冲请求，用来消除长尾延迟，Handling within-request variability.
  *
  * <p>In short: the client first sends one request, but then sends an additional request after a timeout if the previous hasn't returned an answer in the expected time.</p>
  */

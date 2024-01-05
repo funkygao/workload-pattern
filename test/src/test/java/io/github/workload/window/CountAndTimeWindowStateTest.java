@@ -52,6 +52,12 @@ class CountAndTimeWindowStateTest extends BaseConcurrentTest {
         }
         assertEquals(waits.length, state.requested());
         assertEquals(5, state.avgQueuedMs()); // 22/4 => 5.5
+
+        // 0和负数，被抛弃，不影响。但如果请求数量变化了，最终均值还是会变的
+        state.waitNs(0);
+        assertEquals(5, state.avgQueuedMs());
+        state.waitNs(-100 * WindowConfig.NS_PER_MS);
+        assertEquals(5, state.avgQueuedMs());
     }
 
     @Test

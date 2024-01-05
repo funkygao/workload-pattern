@@ -56,7 +56,9 @@ public class CountAndTimeWindowState extends WindowState {
     }
 
     public void waitNs(long waitingNs) {
-        accumulatedQueuedNs.add(waitingNs);
+        if (waitingNs > 0) {
+            accumulatedQueuedNs.add(waitingNs);
+        }
     }
 
     public long avgQueuedMs() {

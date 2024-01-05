@@ -175,6 +175,14 @@ abstract class WorkloadShedder {
         return admissionLevel;
     }
 
+    /**
+     * Cross request adaptation.
+     *
+     * <ul>
+     * <li>examine recent behavior</li>
+     * <li>take action to improve latency of future requests</li>
+     * </ul>
+     */
     @VisibleForTesting
     void adaptAdmissionLevel(boolean overloaded, CountAndTimeWindowState lastWindow) {
         if (overloaded) {
