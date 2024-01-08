@@ -1,7 +1,7 @@
 package io.github.workload.overloading;
 
 /**
- * Value smoother for phenomenon burr.
+ * Value smoother to prevent phenomenon burrs.
  */
 interface ValueSmoother {
 
