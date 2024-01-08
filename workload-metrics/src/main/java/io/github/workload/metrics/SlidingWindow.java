@@ -3,6 +3,8 @@ package io.github.workload.metrics;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicReferenceArray;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -58,14 +60,34 @@ public abstract class SlidingWindow<T> {
         return time - bucket.windowStartMillis() > (bucketLengthInMs * bucketCount);
     }
 
+    public List<WindowBucket<T>> list(long validTime) {
+        List<WindowBucket<T>> result = new ArrayList<>(bucketCount);
+
+        for (int i = 0; i < bucketCount; i++) {
+            WindowBucket<T> bucket = buckets.get(i);
+            if (bucket == null || isWindowDeprecated(validTime, bucket)) {
+                continue;
+            }
+            result.add(bucket);
+        }
+
+        return result;
+    }
+
+
     public WindowBucket<T> currentWindow(long timeMillis) {
         if (timeMillis < 0) {
             return null;
         }
 
+        /*
+         * 使用了环形数组后，带来2个问题：
+         * 1) 怎么根据时间定位到对应的下标？
+         * 2) 数组里的数据是新的还是旧的？
+         */
         int bucketIdx = calculateBucketIdx(timeMillis);
         long windowStartMillis = calculateWindowStartMillis(timeMillis);
-        log.trace("bucket:{}, windowStart:{}", bucketIdx, windowStartMillis);
+        log.trace("{}, bucket:{}, windowStart:{}", timeMillis, bucketIdx, windowStartMillis);
         while (true) {
             WindowBucket<T> present = buckets.get(bucketIdx);
             if (present == null) {
@@ -73,19 +95,18 @@ public abstract class SlidingWindow<T> {
                 // 采样乐观锁CAS保证线程安全
                 if (buckets.compareAndSet(bucketIdx, null, bucket)) {
                     // CAS ok
-                    log.trace("created:{}", bucket);
+                    log.trace("create {}", bucket);
                     return bucket;
                 } else {
                     Thread.yield();
                 }
             } else if (windowStartMillis == present.windowStartMillis()) {
-                log.trace("bingo:{}", present);
+                log.trace("reuse {}", present);
                 return present;
             } else if (windowStartMillis > present.windowStartMillis()) {
-                // reuse the stale bucket
                 if (updateLock.tryLock()) {
                     try {
-                        log.trace("blah");
+                        log.trace("reuse stale {}", present);
                         return resetWindowTo(present, windowStartMillis);
                     } finally {
                         updateLock.unlock();
