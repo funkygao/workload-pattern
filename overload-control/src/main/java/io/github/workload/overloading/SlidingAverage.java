@@ -11,7 +11,7 @@ class SlidingAverage implements ValueSmoother {
      * Vt = β⋅Vt-1 + (1-β)⋅θt.
      *
      * <ul>beta
-     * <li>0: Vt = θt</li>
+     * <li>0: Vt = θt，相当于没有使用移动平均</li>
      * <li>0.9: Vt is approximately the average of the last 10 θt values</li>
      * <li>0.99: Vt is approximately the average of the last 100 θt values</li>
      * </ul>

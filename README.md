@@ -27,7 +27,7 @@ The following metrics are often used as scheduling objectives for a workload sch
 
 ## References
 
-- [https://github.com/zeromicro/go-zero/blob/master/core/load/adaptiveshedder.go](go-zero adaptive load shedding)
+- [go-zero adaptive load shedding](https://github.com/zeromicro/go-zero/blob/master/core/load/adaptiveshedder.go)
    - (CPU load, 当前并发请求数超过max concurrency)则drop request
       - max concurrency = max requests (qps) * min response time (rt)
    - 没有`priority`概念
