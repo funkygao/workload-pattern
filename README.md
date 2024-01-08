@@ -25,3 +25,8 @@ The following metrics are often used as scheduling objectives for a workload sch
 
 ### Tail Latency
 
+## References
+
+- [https://github.com/zeromicro/go-zero/blob/master/core/load/adaptiveshedder.go](go-zero adaptive load shedding)
+   - 仅仅以SlidingAverage CPU load作为过载
+   - 没有`priority`概念
