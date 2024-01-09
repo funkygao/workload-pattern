@@ -1,6 +1,7 @@
 package io.github.workload.metrics;
 
 import lombok.NonNull;
+import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.ArrayList;
@@ -13,19 +14,22 @@ import java.util.concurrent.locks.ReentrantLock;
  *
  * <p>Borrowed from alibaba Sentinel LeapArray, with some tweaks for understanding.</p>
  *
- * @param <T> type of statistic data
+ * @param <StatisticData> type of statistic data
  */
 @Slf4j
-public abstract class SlidingWindow<T> {
+@ToString
+public abstract class SlidingWindow<StatisticData> {
     protected final int bucketCount; // how many buckets in the sliding window
     protected final int bucketLengthInMs; // time span of each bucket
-    protected final AtomicReferenceArray<WindowBucket<T>> buckets; // circular array
+    @ToString.Exclude
+    protected final AtomicReferenceArray<WindowBucket<StatisticData>> buckets; // CAS circular array
 
+    @ToString.Exclude
     private final ReentrantLock updateLock = new ReentrantLock();
 
-    public abstract T newEmptyBucket(long timeMillis);
+    protected abstract StatisticData newEmptyBucket(long timeMillis);
 
-    protected abstract WindowBucket<T> resetWindowTo(WindowBucket<T> bucket, long startTimeMillis);
+    protected abstract WindowBucket<StatisticData> resetBucket(WindowBucket<StatisticData> bucket, long startTimeMillis);
 
     public SlidingWindow(int bucketCount, int intervalInMs) {
         this.bucketCount = bucketCount;
@@ -38,34 +42,34 @@ public abstract class SlidingWindow<T> {
         return (int) (timeId % buckets.length());
     }
 
-    protected long calculateWindowStartMillis(long timeMillis) {
+    protected long calculateBucketStartMillis(long timeMillis) {
         return timeMillis - timeMillis % bucketLengthInMs;
     }
 
-    public T getWindowValue(long timeMillis) {
+    public StatisticData getWindowData(long timeMillis) {
         if (timeMillis < 0) {
             return null;
         }
 
         int bucketIdx = calculateBucketIdx(timeMillis);
-        WindowBucket<T> bucket = buckets.get(bucketIdx);
-        if (bucket == null || !bucket.isTimeInWindow(timeMillis)) {
+        WindowBucket<StatisticData> bucket = buckets.get(bucketIdx);
+        if (bucket == null || !bucket.isTimeInBucket(timeMillis)) {
             return null;
         }
 
-        return bucket.value();
+        return bucket.data();
     }
 
-    public boolean isWindowDeprecated(long time, @NonNull WindowBucket<T> bucket) {
-        return time - bucket.windowStartMillis() > (bucketLengthInMs * bucketCount);
+    public boolean isBucketDeprecated(long timeMillis, @NonNull WindowBucket<StatisticData> bucket) {
+        return timeMillis - bucket.startMillis() > (bucketLengthInMs * bucketCount);
     }
 
-    public List<WindowBucket<T>> list(long validTime) {
-        List<WindowBucket<T>> result = new ArrayList<>(bucketCount);
+    public List<WindowBucket<StatisticData>> list(long timeMillis) {
+        List<WindowBucket<StatisticData>> result = new ArrayList<>(bucketCount);
 
         for (int i = 0; i < bucketCount; i++) {
-            WindowBucket<T> bucket = buckets.get(i);
-            if (bucket == null || isWindowDeprecated(validTime, bucket)) {
+            WindowBucket<StatisticData> bucket = buckets.get(i);
+            if (bucket == null || isBucketDeprecated(timeMillis, bucket)) {
                 continue;
             }
             result.add(bucket);
@@ -74,50 +78,42 @@ public abstract class SlidingWindow<T> {
         return result;
     }
 
-
-    public WindowBucket<T> currentWindow(long timeMillis) {
+    public WindowBucket<StatisticData> currentBucket(long timeMillis) {
         if (timeMillis < 0) {
             return null;
         }
 
-        /*
-         * 使用了环形数组后，带来2个问题：
-         * 1) 怎么根据时间定位到对应的下标？
-         * 2) 数组里的数据是新的还是旧的？
-         */
         int bucketIdx = calculateBucketIdx(timeMillis);
-        long windowStartMillis = calculateWindowStartMillis(timeMillis);
-        log.trace("{}, bucket:{}, windowStart:{}", timeMillis, bucketIdx, windowStartMillis);
+        long bucketStartMillis = calculateBucketStartMillis(timeMillis);
+        log.trace("{}, bucket:{}, windowStart:{}", timeMillis, bucketIdx, bucketStartMillis);
         while (true) {
-            WindowBucket<T> present = buckets.get(bucketIdx);
+            WindowBucket<StatisticData> present = buckets.get(bucketIdx);
             if (present == null) {
-                WindowBucket<T> bucket = new WindowBucket<>(bucketLengthInMs, windowStartMillis, newEmptyBucket(timeMillis));
-                // 采样乐观锁CAS保证线程安全
+                WindowBucket<StatisticData> bucket = new WindowBucket<>(bucketLengthInMs, bucketStartMillis, newEmptyBucket(timeMillis));
+                // 采用乐观锁CAS保证线程安全
                 if (buckets.compareAndSet(bucketIdx, null, bucket)) {
-                    // CAS ok
                     log.trace("create {}", bucket);
                     return bucket;
                 } else {
                     Thread.yield();
                 }
-            } else if (windowStartMillis == present.windowStartMillis()) {
+            } else if (bucketStartMillis == present.startMillis()) {
                 log.trace("reuse {}", present);
                 return present;
-            } else if (windowStartMillis > present.windowStartMillis()) {
+            } else if (bucketStartMillis > present.startMillis()) {
                 if (updateLock.tryLock()) {
                     try {
                         log.trace("reuse stale {}", present);
-                        return resetWindowTo(present, windowStartMillis);
+                        return resetBucket(present, bucketStartMillis);
                     } finally {
                         updateLock.unlock();
                     }
                 } else {
                     Thread.yield();
                 }
-            } else if (windowStartMillis < present.windowStartMillis()) {
-                // should never happen
-                log.trace("should never happen");
-                return new WindowBucket<>(bucketLengthInMs, windowStartMillis, newEmptyBucket(timeMillis));
+            } else if (bucketStartMillis < present.startMillis()) {
+                log.warn("should never happen, {}", this);
+                return new WindowBucket<>(bucketLengthInMs, bucketStartMillis, newEmptyBucket(timeMillis));
             }
         }
     }

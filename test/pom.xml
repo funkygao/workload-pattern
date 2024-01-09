@@ -69,7 +69,7 @@
         </dependency>
         <dependency>
             <groupId>io.github.workload</groupId>
-            <artifactId>workload-metrics</artifactId>
+            <artifactId>workload-core</artifactId>
             <version>${project.version}</version>
         </dependency>
 

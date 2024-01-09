@@ -7,8 +7,8 @@
         <version>1.0.0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>workload-metrics</artifactId>
+    <artifactId>workload-core</artifactId>
     <packaging>jar</packaging>
-    <name>Workload :: Metrics</name>
+    <name>Workload :: Core</name>
 
 </project>

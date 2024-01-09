@@ -12,4 +12,12 @@
     <name>Workload :: OverloadControl</name>
     <description>过载保护算法</description>
 
+    <dependencies>
+        <dependency>
+            <groupId>io.github.workload</groupId>
+            <artifactId>workload-core</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+    </dependencies>
+
 </project>

@@ -16,9 +16,9 @@ class SimpleErrorSlidingWindow extends SlidingWindow<SimpleErrorSlidingWindow.Si
     }
 
     @Override
-    protected WindowBucket<SimpleErrorCounter> resetWindowTo(WindowBucket<SimpleErrorCounter> bucket, long startTimeMillis) {
+    protected WindowBucket<SimpleErrorCounter> resetBucket(WindowBucket<SimpleErrorCounter> bucket, long startTimeMillis) {
         bucket.resetStartTimeMillis(startTimeMillis);
-        bucket.value().reset();
+        bucket.data().reset();
         return bucket;
     }
 
