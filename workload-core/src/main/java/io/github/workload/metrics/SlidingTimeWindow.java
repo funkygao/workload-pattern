@@ -34,7 +34,7 @@ public abstract class SlidingTimeWindow<StatisticData> {
     @ToString.Exclude
     private final ReentrantLock updateLock = new ReentrantLock();
 
-    protected abstract StatisticData newEmptyBucket(long timeMillis);
+    protected abstract StatisticData newEmptyBucketData(long timeMillis);
 
     @NotThreadSafe(serial = true)
     protected abstract Bucket<StatisticData> resetBucket(Bucket<StatisticData> bucket, long startTimeMillis);
@@ -90,7 +90,7 @@ public abstract class SlidingTimeWindow<StatisticData> {
         while (true) {
             Bucket<StatisticData> present = buckets.get(bucketIdx);
             if (present == null) {
-                Bucket<StatisticData> bucket = new Bucket<>(bucketLengthInMs, bucketStartMillis, newEmptyBucket(timeMillis));
+                Bucket<StatisticData> bucket = new Bucket<>(bucketLengthInMs, bucketStartMillis, newEmptyBucketData(timeMillis));
                 // 采用乐观锁CAS保证环形数组更新的原子性
                 if (buckets.compareAndSet(bucketIdx, null, bucket)) {
                     log.trace("create {}", bucket);
@@ -107,6 +107,7 @@ public abstract class SlidingTimeWindow<StatisticData> {
                 if (updateLock.tryLock()) { // 利用锁保护reset的原子性
                     try {
                         log.trace("reuse stale {}", present);
+                        present.resetStartTimeMillis(bucketStartMillis);
                         return resetBucket(present, bucketStartMillis);
                     } finally {
                         updateLock.unlock();
@@ -117,7 +118,7 @@ public abstract class SlidingTimeWindow<StatisticData> {
             } else if (bucketStartMillis < present.startMillis()) {
                 // 提供的时间落后于当前bucket开始时间，通常是NTP时钟回拨导致
                 log.warn("should never happen, clock drift? {}", this);
-                return new Bucket<>(bucketLengthInMs, bucketStartMillis, newEmptyBucket(timeMillis));
+                return new Bucket<>(bucketLengthInMs, bucketStartMillis, newEmptyBucketData(timeMillis));
             }
         }
     }

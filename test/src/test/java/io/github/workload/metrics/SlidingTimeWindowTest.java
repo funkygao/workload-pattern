@@ -23,6 +23,27 @@ class SlidingTimeWindowTest extends BaseConcurrentTest {
         }
     }
 
+    @Test
+    void has_only_one_bucket() {
+        final int intervalMs = 1000;
+        SlidingTimeWindow<Object> window = new SlidingTimeWindow<Object>(1, intervalMs) {
+            @Override
+            protected Object newEmptyBucketData(long timeMillis) {
+                return "";
+            }
+
+            @Override
+            protected Bucket<Object> resetBucket(Bucket<Object> bucket, long startTimeMillis) {
+                return bucket;
+            }
+        };
+
+        setLogLevel(Level.TRACE);
+        for (int timeMillis = 10; timeMillis < 10_000; timeMillis += intervalMs) {
+            assertTrue(window.currentBucket(timeMillis).isTimeInBucket(timeMillis));
+        }
+    }
+
     @RepeatedTest(1)
     void basic() {
         setLogLevel(Level.TRACE);

@@ -11,13 +11,12 @@ class SimpleErrorSlidingTimeWindow extends SlidingTimeWindow<SimpleErrorSlidingT
     }
 
     @Override
-    public SimpleErrorCounter newEmptyBucket(long timeMillis) {
+    public SimpleErrorCounter newEmptyBucketData(long timeMillis) {
         return new SimpleErrorCounter();
     }
 
     @Override
     protected Bucket<SimpleErrorCounter> resetBucket(Bucket<SimpleErrorCounter> bucket, long startTimeMillis) {
-        bucket.resetStartTimeMillis(startTimeMillis);
         bucket.data().reset();
         return bucket;
     }
