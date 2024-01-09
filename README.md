@@ -27,26 +27,20 @@ The following metrics are often used as scheduling objectives for a workload sch
 
 ## References
 
-### [go-zero adaptive load shedding](https://github.com/zeromicro/go-zero/blob/9a671f6059791206b20cd3f1fa1f437c87b7b8ea/core/load/adaptiveshedder.go#L119)
+### Sentinel自适应限流算法
 
-#### Under the hood
+priority是boolean类型，系统写死了两个shedder：优先的，不优先的，区别是优先的CPU阈值更高(容忍更高的负载)，根据REST请求的打标决定使用哪一个shedder。
 
-```golang
-// 写死了2个优先级，它们的CPU阈值不同，根据REST请求的打标决定使用哪一个shedder
-// 即 priority=true，则它被drop的CPU负载条件更宽松：默认情况下，非优先要求50%，优先可以撑到75%
-func newEngine(c RestConf) *engine {
-    if c.CpuThreshold > 0 {
-        engine.shedder = load.NewAdaptiveShedder(load.WithCpuThreshold(c.CpuThreshold))
-        engine.priorityShedder = load.NewAdaptiveShedder(load.WithCpuThreshold((c.CpuThreshold + 1000) / 2))
-    }
-}
-```
-
-[SheddingHandler](https://github.com/zeromicro/go-zero/blob/master/rest/handler/sheddinghandler.go)，责任链模式来处理REST请求，来了解该机制是如何集成到REST请求处理过程的。
+典型应用：
+- [Sentinel BBR](https://github.com/alibaba/Sentinel/blob/a524ab3bb3364818e292e1255480d20845e77c89/sentinel-core/src/main/java/com/alibaba/csp/sentinel/slots/system/SystemRuleManager.java#L290)
+   - [文档](https://github.com/alibaba/Sentinel/wiki/%E7%B3%BB%E7%BB%9F%E8%87%AA%E9%80%82%E5%BA%94%E9%99%90%E6%B5%81)
+- [go-zero adaptive load shedding](https://github.com/zeromicro/go-zero/blob/9a671f6059791206b20cd3f1fa1f437c87b7b8ea/core/load/adaptiveshedder.go#L119)
+   - [SheddingHandler责任链处理REST请求](https://github.com/zeromicro/go-zero/blob/master/rest/handler/sheddinghandler.go)
+- [Kratos核心算法](https://github.com/go-kratos/aegis/blob/99110a3f05f44234f21d65f79be71d1e2706937d/ratelimit/bbr/bbr.go#L120)
 
 #### Conclusion
 
-默认情况下，SlidingWindow(与Sentinel的LeapArray基本相同)保存最近5s数据，切分成50个bucket，即每个bucket 100ms，每秒10个bucket。
+默认情况下，SlidingWindow保存最近5s数据，切分成50个bucket，即每个bucket 100ms，每秒10个bucket。
 如何判断当前可以处理的max inflight requests per second？
 
 假设，某1个bucket成功处理的请求数量最大，为30；某1个bucket平均RT最小，为60ms，那么当下可接受的inflight request数：
@@ -58,15 +52,5 @@ func newEngine(c RestConf) *engine {
 ```
 QPS(TPS) = 并发数 / 平均响应时长 => 并发数 = QPS * 平均响应时长
 ```
-
-### [Kratos](https://github.com/go-kratos/kratos)
-
-[核心算法](https://github.com/go-kratos/aegis/blob/99110a3f05f44234f21d65f79be71d1e2706937d/ratelimit/bbr/bbr.go#L120)，是Sentinal的一个golang实现。
-
-### [Sentinel自适应限流](https://github.com/alibaba/Sentinel/wiki/%E7%B3%BB%E7%BB%9F%E8%87%AA%E9%80%82%E5%BA%94%E9%99%90%E6%B5%81)
-
-- [SystemRuleManager](https://github.com/alibaba/Sentinel/blob/a524ab3bb3364818e292e1255480d20845e77c89/sentinel-core/src/main/java/com/alibaba/csp/sentinel/slots/system/SystemRuleManager.java#L290)
-   - 人为设定的阈值(qps, maxThread, 平均响应时长, cpuUsage, cpuLoad)
-- [TrafficShapingController](https://github.com/alibaba/Sentinel/blob/master/sentinel-core/src/main/java/com/alibaba/csp/sentinel/slots/block/flow/TrafficShapingController.java)
 
 ### [K8S APF](https://github.com/kubernetes/enhancements/blob/master/keps/sig-api-machinery/1040-priority-and-fairness/README.md)
