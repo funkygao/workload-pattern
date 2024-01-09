@@ -279,7 +279,6 @@ class WorkloadShedderTest extends BaseConcurrentTest {
         PrioritizedRequestGenerator generator = new PrioritizedRequestGenerator().simulateMixedRequests(1 << 20);
         for (Map.Entry<WorkloadPriority, Integer> entry : generator) {
             for (int i = 0; i < entry.getValue(); i++) {
-                log.info("{}", entry.getKey());
                 shedder.admit(entry.getKey());
             }
         }
