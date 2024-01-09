@@ -33,12 +33,10 @@ priority是boolean类型，系统写死了两个shedder：优先的，不优先�
 
 典型应用：
 - [Sentinel BBR](https://github.com/alibaba/Sentinel/blob/a524ab3bb3364818e292e1255480d20845e77c89/sentinel-core/src/main/java/com/alibaba/csp/sentinel/slots/system/SystemRuleManager.java#L290)
-   - [文档](https://github.com/alibaba/Sentinel/wiki/%E7%B3%BB%E7%BB%9F%E8%87%AA%E9%80%82%E5%BA%94%E9%99%90%E6%B5%81)
+   - [设计文档](https://github.com/alibaba/Sentinel/wiki/%E7%B3%BB%E7%BB%9F%E8%87%AA%E9%80%82%E5%BA%94%E9%99%90%E6%B5%81)
 - [go-zero adaptive load shedding](https://github.com/zeromicro/go-zero/blob/9a671f6059791206b20cd3f1fa1f437c87b7b8ea/core/load/adaptiveshedder.go#L119)
    - [SheddingHandler责任链处理REST请求](https://github.com/zeromicro/go-zero/blob/master/rest/handler/sheddinghandler.go)
 - [Kratos核心算法](https://github.com/go-kratos/aegis/blob/99110a3f05f44234f21d65f79be71d1e2706937d/ratelimit/bbr/bbr.go#L120)
-
-#### Conclusion
 
 默认情况下，SlidingWindow保存最近5s数据，切分成50个bucket，即每个bucket 100ms，每秒10个bucket。
 如何判断当前可以处理的max inflight requests per second？
