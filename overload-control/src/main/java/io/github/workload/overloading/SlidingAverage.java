@@ -8,7 +8,7 @@ import io.github.workload.annotations.ThreadSafe;
 @ThreadSafe
 class SlidingAverage implements ValueSmoother {
     /**
-     * Vt = β⋅Vt-1 + (1-β)⋅θt.
+     * Vᵗ = β⋅Vᵗ⁻¹ + (1-β)⋅θᵗ.
      *
      * <ul>beta
      * <li>0: Vt = θt，相当于没有使用移动平均</li>
