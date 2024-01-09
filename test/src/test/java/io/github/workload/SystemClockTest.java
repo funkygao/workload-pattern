@@ -38,6 +38,28 @@ class SystemClockTest extends BaseConcurrentTest {
         }
     }
 
+    @RepeatedTest(5)
+    @Disabled("25ns/op")
+    void benchmark_currentTimeMillis() {
+        final long N = Integer.MAX_VALUE / 20;
+        long t0 = System.nanoTime();
+        for (long i = 0; i < N; i++) {
+            System.currentTimeMillis();
+        }
+        log.info("System.currentTimeMillis(): {}ns/op", (System.nanoTime() - t0) / N);
+    }
+
+    @RepeatedTest(5)
+    @Disabled("30ns/op")
+    void benchmark_nanoTime() {
+        final long N = Integer.MAX_VALUE / 20;
+        long t0 = System.nanoTime();
+        for (long i = 0; i < N; i++) {
+            System.nanoTime();
+        }
+        log.info("System.nanoTime(): {}ns/op", (System.nanoTime() - t0) / N);
+    }
+
     @RepeatedTest(10)
     @Execution(ExecutionMode.CONCURRENT)
     void basic(TestInfo testInfo) {
