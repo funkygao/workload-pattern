@@ -7,17 +7,8 @@
         <version>1.0.0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>overload-control</artifactId>
+    <artifactId>workload-core</artifactId>
     <packaging>jar</packaging>
-    <name>Workload :: OverloadControl</name>
-    <description>过载保护算法</description>
-
-    <dependencies>
-        <dependency>
-            <groupId>io.github.workload</groupId>
-            <artifactId>workload-core</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-    </dependencies>
+    <name>Workload :: Core</name>
 
 </project>
