@@ -54,7 +54,16 @@ func newEngine(c RestConf) *engine {
 30(bucketMaxQPS) * 10(buckets per second) * 60(bucketMinAvgRt) / 1000(1s has 1000ms) = 18
 ```
 
-### [Sentinel](https://github.com/alibaba/Sentinel/)
+它的理论依据是`Little's Law`在系统吞度量方面的应用：
+```
+QPS(TPS) = 并发数 / 平均响应时长 => 并发数 = QPS * 平均响应时长
+```
+
+### [Kratos](https://github.com/go-kratos/kratos)
+
+[核心算法](https://github.com/go-kratos/aegis/blob/99110a3f05f44234f21d65f79be71d1e2706937d/ratelimit/bbr/bbr.go#L120)，是Sentinal的一个golang实现。
+
+### [Sentinel自适应限流](https://github.com/alibaba/Sentinel/wiki/%E7%B3%BB%E7%BB%9F%E8%87%AA%E9%80%82%E5%BA%94%E9%99%90%E6%B5%81)
 
 - [SystemRuleManager](https://github.com/alibaba/Sentinel/blob/a524ab3bb3364818e292e1255480d20845e77c89/sentinel-core/src/main/java/com/alibaba/csp/sentinel/slots/system/SystemRuleManager.java#L290)
    - 人为设定的阈值(qps, maxThread, 平均响应时长, cpuUsage, cpuLoad)
