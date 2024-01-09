@@ -3,7 +3,7 @@ package io.github.workload.window;
 /**
  * 基于时间和请求数量的窗口切换策略.
  */
-public class CountAndTimeRolloverStrategy implements WindowRolloverStrategy<CountAndTimeWindowState> {
+public abstract class CountAndTimeRolloverStrategy implements WindowRolloverStrategy<CountAndTimeWindowState> {
 
     @Override
     public boolean shouldRollover(CountAndTimeWindowState currentWindow, long nowNs, WindowConfig<CountAndTimeWindowState> config) {

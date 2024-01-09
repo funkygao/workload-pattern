@@ -17,6 +17,7 @@ import java.util.concurrent.atomic.AtomicReference;
 @Slf4j
 @ThreadSafe
 public class TumblingWindow<S extends WindowState> {
+    @Getter
     private final String name;
 
     @Getter
@@ -86,7 +87,7 @@ public class TumblingWindow<S extends WindowState> {
         }
 
         // 此时的 currentWindow 是该窗口的最终值
-        config.getOnRollover().accept(nowNs, currentWindow);
+        config.getRolloverStrategy().onRollover(nowNs, currentWindow, this);
         currentWindow.cleanup(); // TODO async?
     }
 

@@ -24,4 +24,13 @@ public interface WindowRolloverStrategy<S extends WindowState> {
      * @return a new window state
      */
     S createWindowState(long nowNs);
+
+    /**
+     * 窗口滑动的回调方法.
+     *
+     * @param nowNs current time with {@link System#nanoTime()}
+     * @param state the last immutable window state snapshot
+     * @param window the tumbling window, owner of the state
+     */
+    void onRollover(long nowNs, S state, TumblingWindow<S> window);
 }

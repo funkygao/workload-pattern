@@ -13,7 +13,6 @@ import org.apache.kafka.common.PartitionInfo;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
-import java.util.function.BiConsumer;
 
 @Slf4j
 class PriorityFairPartitioner implements Partitioner {
@@ -42,11 +41,13 @@ class PriorityFairPartitioner implements Partitioner {
 
     @Override
     public void configure(Map<String, ?> configs) {
-        BiConsumer<Long, CountWindowState> onRollover = (nowNs, currentWindow) -> {
-            // 调整不同优先级消息的partition分配策略
-        };
         WindowConfig<CountWindowState> config = WindowConfig.create(0, 2000,
-                new CountRolloverStrategy(), onRollover);
+                new CountRolloverStrategy() {
+                    @Override
+                    public void onRollover(long nowNs, CountWindowState state, TumblingWindow<CountWindowState> window) {
+                        // 调整不同优先级消息的partition分配策略
+                    }
+                });
         window = new TumblingWindow(config, "MQ", 0);
     }
 

@@ -34,8 +34,12 @@ abstract class WorkloadShedder {
     protected WorkloadShedder(String name) {
         this.name = name;
         WindowConfig<CountAndTimeWindowState> config = WindowConfig.create(
-                new CountAndTimeRolloverStrategy(),
-                (nowNs, lastWindow) -> adaptAdmissionLevel(isOverloaded(nowNs, lastWindow), lastWindow)
+                new CountAndTimeRolloverStrategy() {
+                    @Override
+                    public void onRollover(long nowNs, CountAndTimeWindowState state, TumblingWindow<CountAndTimeWindowState> window) {
+                        adaptAdmissionLevel(isOverloaded(nowNs, state), state);
+                    }
+                }
         );
         this.window = new TumblingWindow(config, name, System.nanoTime());
     }

@@ -25,15 +25,17 @@ class TumblingWindowTest extends BaseConcurrentTest {
     static void init() {
         System.setProperty("workload.window.DEFAULT_REQUEST_CYCLE", "100");
         Logger log = LoggerFactory.getLogger(TumblingWindowTest.class);
-        WindowConfig<CountAndTimeWindowState> config = WindowConfig.create(new CountAndTimeRolloverStrategy(),
-                (nowNs, state) -> {
-                    log.info("onRollover, requested:{} window:{}", state.requested(), state.hashCode());
-                    try {
-                        // simulate adjust admission level overhead
-                        Thread.sleep(ThreadLocalRandom.current().nextInt(20));
-                    } catch (InterruptedException e) {
-                    }
-                });
+        WindowConfig<CountAndTimeWindowState> config = WindowConfig.create(new CountAndTimeRolloverStrategy() {
+            @Override
+            public void onRollover(long nowNs, CountAndTimeWindowState state, TumblingWindow<CountAndTimeWindowState> window) {
+                log.info("onRollover, requested:{} window:{}", state.requested(), state.hashCode());
+                try {
+                    // simulate adjust admission level overhead
+                    Thread.sleep(ThreadLocalRandom.current().nextInt(20));
+                } catch (InterruptedException e) {
+                }
+            }
+        });
         window = new TumblingWindow(config, "test", System.nanoTime());
     }
 
@@ -76,10 +78,12 @@ class TumblingWindowTest extends BaseConcurrentTest {
     @Disabled
     void gcPressureOnCleanup() {
         final int requestCycle = 10000;
-        WindowConfig<CountAndTimeWindowState> config = WindowConfig.create(1000 * WindowConfig.NS_PER_MS, requestCycle, new CountAndTimeRolloverStrategy(),
-                (nowNs, state) -> {
-                    //log.info("onRollover, requested:{} window:{}", state.requested(), state.hashCode());
-                });
+        WindowConfig<CountAndTimeWindowState> config = WindowConfig.create(1000 * WindowConfig.NS_PER_MS, requestCycle, new CountAndTimeRolloverStrategy() {
+            @Override
+            public void onRollover(long nowNs, CountAndTimeWindowState state, TumblingWindow<CountAndTimeWindowState> window) {
+
+            }
+        });
         window = new TumblingWindow(config, "test", System.nanoTime());
 
         // 并发注入大量请求，导致频繁的窗口切换，查看GC压力

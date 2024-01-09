@@ -7,7 +7,6 @@ import lombok.Getter;
 import lombok.NonNull;
 
 import java.util.concurrent.TimeUnit;
-import java.util.function.BiConsumer;
 
 /**
  * 滚动窗口的配置.
@@ -40,13 +39,12 @@ public class WindowConfig<S extends WindowState> {
     private final int requestCycle;
 
     private final WindowRolloverStrategy<S> rolloverStrategy;
-    private final BiConsumer<Long /* nowNs */, S> onRollover;
 
     /**
      * 根据默认的(时间，数量)周期创建窗口配置.
      */
-    public static <T extends WindowState> WindowConfig<T> create(@NonNull WindowRolloverStrategy<T> rolloverStrategy, @NonNull BiConsumer<Long, T> onRollover) {
-        return new WindowConfig<>(DEFAULT_TIME_CYCLE_NS, DEFAULT_REQUEST_CYCLE, rolloverStrategy, onRollover);
+    public static <T extends WindowState> WindowConfig<T> create(@NonNull WindowRolloverStrategy<T> rolloverStrategy) {
+        return new WindowConfig<>(DEFAULT_TIME_CYCLE_NS, DEFAULT_REQUEST_CYCLE, rolloverStrategy);
     }
 
     /**
@@ -54,8 +52,8 @@ public class WindowConfig<S extends WindowState> {
      *
      * <p>编译器通常通过擦除机制允许未带泛型信息的类型存在，为了提高泛型的类型安全性，采用静态工厂方法解决</p>
      */
-    public static <T extends WindowState> WindowConfig<T> create(long timeCycleNs, int requestCycle, @NonNull WindowRolloverStrategy<T> rolloverStrategy, @NonNull BiConsumer<Long, T> onRollover) {
-        return new WindowConfig<>(timeCycleNs, requestCycle, rolloverStrategy, onRollover);
+    public static <T extends WindowState> WindowConfig<T> create(long timeCycleNs, int requestCycle, @NonNull WindowRolloverStrategy<T> rolloverStrategy) {
+        return new WindowConfig<>(timeCycleNs, requestCycle, rolloverStrategy);
     }
 
     @Override
