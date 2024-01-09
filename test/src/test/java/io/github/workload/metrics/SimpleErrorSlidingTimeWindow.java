@@ -4,9 +4,9 @@ import lombok.ToString;
 
 import java.util.concurrent.atomic.LongAdder;
 
-class SimpleErrorSlidingWindow extends SlidingWindow<SimpleErrorSlidingWindow.SimpleErrorCounter> {
+class SimpleErrorSlidingTimeWindow extends SlidingTimeWindow<SimpleErrorSlidingTimeWindow.SimpleErrorCounter> {
 
-    SimpleErrorSlidingWindow(int bucketCount, int intervalInMs) {
+    SimpleErrorSlidingTimeWindow(int bucketCount, int intervalInMs) {
         super(bucketCount, intervalInMs);
     }
 
@@ -16,7 +16,7 @@ class SimpleErrorSlidingWindow extends SlidingWindow<SimpleErrorSlidingWindow.Si
     }
 
     @Override
-    protected WindowBucket<SimpleErrorCounter> resetBucket(WindowBucket<SimpleErrorCounter> bucket, long startTimeMillis) {
+    protected Bucket<SimpleErrorCounter> resetBucket(Bucket<SimpleErrorCounter> bucket, long startTimeMillis) {
         bucket.resetStartTimeMillis(startTimeMillis);
         bucket.data().reset();
         return bucket;

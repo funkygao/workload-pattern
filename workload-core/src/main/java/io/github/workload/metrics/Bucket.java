@@ -5,13 +5,13 @@ package io.github.workload.metrics;
  *
  * @param <StatisticData> Statistic data type
  */
-public class WindowBucket<StatisticData> {
-    private final long lengthInMs;
-    private long startMillis; // [startMillis, endMillis=startMillis+lengthInMs)
+public class Bucket<StatisticData> {
+    private final long durationMs;
+    private long startMillis; // [startMillis, endMillis=startMillis+durationMs)
     private StatisticData data;
 
-    WindowBucket(long lengthInMs, long startMillis, StatisticData data) {
-        this.lengthInMs = lengthInMs;
+    Bucket(long durationMs, long startMillis, StatisticData data) {
+        this.durationMs = durationMs;
         this.startMillis = startMillis;
         this.data = data;
     }
@@ -24,20 +24,20 @@ public class WindowBucket<StatisticData> {
         return data;
     }
 
-    WindowBucket<StatisticData> resetStartTimeMillis(long startTimeMillis) {
+    Bucket<StatisticData> resetStartTimeMillis(long startTimeMillis) {
         this.startMillis = startTimeMillis;
         return this;
     }
 
     boolean isTimeInBucket(long timeMillis) {
         return startMillis <= timeMillis
-                && timeMillis < startMillis + lengthInMs;
+                && timeMillis < startMillis + durationMs;
     }
 
     @Override
     public String toString() {
         return "WindowBucket(" +
-                "lengthInMs=" + lengthInMs +
+                "durationMs=" + durationMs +
                 ", windowStart=" + startMillis +
                 ')';
     }

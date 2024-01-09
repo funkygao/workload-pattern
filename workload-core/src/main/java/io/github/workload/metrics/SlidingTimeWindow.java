@@ -21,7 +21,7 @@ import java.util.concurrent.locks.ReentrantLock;
 @Slf4j
 @ToString
 @ThreadSafe
-public abstract class SlidingWindow<StatisticData> {
+public abstract class SlidingTimeWindow<StatisticData> {
     protected final int bucketCount; // how many buckets in the sliding window
     protected final int bucketLengthInMs; // time span of each bucket
 
@@ -29,7 +29,7 @@ public abstract class SlidingWindow<StatisticData> {
      * CAS circular array.
      */
     @ToString.Exclude
-    protected final AtomicReferenceArray<WindowBucket<StatisticData>> buckets;
+    protected final AtomicReferenceArray<Bucket<StatisticData>> buckets;
 
     @ToString.Exclude
     private final ReentrantLock updateLock = new ReentrantLock();
@@ -37,7 +37,7 @@ public abstract class SlidingWindow<StatisticData> {
     protected abstract StatisticData newEmptyBucket(long timeMillis);
 
     @NotThreadSafe(serial = true)
-    protected abstract WindowBucket<StatisticData> resetBucket(WindowBucket<StatisticData> bucket, long startTimeMillis);
+    protected abstract Bucket<StatisticData> resetBucket(Bucket<StatisticData> bucket, long startTimeMillis);
 
     /**
      * Constructor.
@@ -45,19 +45,19 @@ public abstract class SlidingWindow<StatisticData> {
      * @param bucketCount 该窗口由多少个桶构成，每个桶均分时间跨度
      * @param intervalInMs 该窗口要保留最近多长时间的统计数据
      */
-    public SlidingWindow(int bucketCount, int intervalInMs) {
+    public SlidingTimeWindow(int bucketCount, int intervalInMs) {
         this.bucketCount = bucketCount;
         this.bucketLengthInMs = intervalInMs / bucketCount;
         this.buckets = new AtomicReferenceArray<>(bucketCount);
     }
 
-    public StatisticData getWindowData(long timeMillis) {
+    public StatisticData getData(long timeMillis) {
         if (timeMillis < 0) {
             return null;
         }
 
         int bucketIdx = calculateBucketIdx(timeMillis);
-        WindowBucket<StatisticData> bucket = buckets.get(bucketIdx);
+        Bucket<StatisticData> bucket = buckets.get(bucketIdx);
         if (bucket == null || !bucket.isTimeInBucket(timeMillis)) {
             return null;
         }
@@ -65,11 +65,11 @@ public abstract class SlidingWindow<StatisticData> {
         return bucket.data();
     }
 
-    public List<WindowBucket<StatisticData>> list(long timeMillis) {
-        List<WindowBucket<StatisticData>> result = new ArrayList<>(bucketCount);
+    public List<Bucket<StatisticData>> list(long timeMillis) {
+        List<Bucket<StatisticData>> result = new ArrayList<>(bucketCount);
 
         for (int i = 0; i < bucketCount; i++) {
-            WindowBucket<StatisticData> bucket = buckets.get(i);
+            Bucket<StatisticData> bucket = buckets.get(i);
             if (bucket == null || isBucketDeprecated(timeMillis, bucket)) {
                 continue;
             }
@@ -79,7 +79,7 @@ public abstract class SlidingWindow<StatisticData> {
         return result;
     }
 
-    public WindowBucket<StatisticData> currentBucket(long timeMillis) {
+    public Bucket<StatisticData> currentBucket(long timeMillis) {
         if (timeMillis < 0) {
             return null;
         }
@@ -88,9 +88,9 @@ public abstract class SlidingWindow<StatisticData> {
         long bucketStartMillis = calculateBucketStartMillis(timeMillis);
         log.trace("{}, bucket:{}, windowStart:{}", timeMillis, bucketIdx, bucketStartMillis);
         while (true) {
-            WindowBucket<StatisticData> present = buckets.get(bucketIdx);
+            Bucket<StatisticData> present = buckets.get(bucketIdx);
             if (present == null) {
-                WindowBucket<StatisticData> bucket = new WindowBucket<>(bucketLengthInMs, bucketStartMillis, newEmptyBucket(timeMillis));
+                Bucket<StatisticData> bucket = new Bucket<>(bucketLengthInMs, bucketStartMillis, newEmptyBucket(timeMillis));
                 // 采用乐观锁CAS保证环形数组更新的原子性
                 if (buckets.compareAndSet(bucketIdx, null, bucket)) {
                     log.trace("create {}", bucket);
@@ -117,7 +117,7 @@ public abstract class SlidingWindow<StatisticData> {
             } else if (bucketStartMillis < present.startMillis()) {
                 // 提供的时间落后于当前bucket开始时间，通常是NTP时钟回拨导致
                 log.warn("should never happen, clock drift? {}", this);
-                return new WindowBucket<>(bucketLengthInMs, bucketStartMillis, newEmptyBucket(timeMillis));
+                return new Bucket<>(bucketLengthInMs, bucketStartMillis, newEmptyBucket(timeMillis));
             }
         }
     }
@@ -131,7 +131,7 @@ public abstract class SlidingWindow<StatisticData> {
         return timeMillis - timeMillis % bucketLengthInMs;
     }
 
-    private boolean isBucketDeprecated(long timeMillis, @NonNull WindowBucket<StatisticData> bucket) {
+    private boolean isBucketDeprecated(long timeMillis, @NonNull Bucket<StatisticData> bucket) {
         return timeMillis - bucket.startMillis() > (bucketLengthInMs * bucketCount);
     }
 

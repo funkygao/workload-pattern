@@ -9,12 +9,12 @@ import java.util.concurrent.ThreadLocalRandom;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-class SlidingWindowTest extends BaseConcurrentTest {
+class SlidingTimeWindowTest extends BaseConcurrentTest {
 
     @Test
     void demo() {
         setLogLevel(Level.TRACE);
-        SimpleErrorSlidingWindow slidingWindow = new SimpleErrorSlidingWindow(5, 1000);
+        SimpleErrorSlidingTimeWindow slidingWindow = new SimpleErrorSlidingTimeWindow(5, 1000);
         log.info("{}", slidingWindow);
         for (int i = 0; i < 20; i++) {
             long time = i * 100;
@@ -33,11 +33,11 @@ class SlidingWindowTest extends BaseConcurrentTest {
         // |  B    |   B    |   B    |   B    |   B   |  例如，B：[200, 400)
         // +-------+--------+--------+--------+-------+
         // 0      200      400      600      800    1000
-        SimpleErrorSlidingWindow window = new SimpleErrorSlidingWindow(5, intervalInMs);
+        SimpleErrorSlidingTimeWindow window = new SimpleErrorSlidingTimeWindow(5, intervalInMs);
         assertNull(window.currentBucket(-1));
 
         long timeMillis = 0;
-        WindowBucket<SimpleErrorSlidingWindow.SimpleErrorCounter> bucket = window.currentBucket(timeMillis);
+        Bucket<SimpleErrorSlidingTimeWindow.SimpleErrorCounter> bucket = window.currentBucket(timeMillis);
         assertEquals(0, bucket.startMillis());
         assertNotNull(bucket.data());
         timeMillis = 199;
@@ -46,7 +46,7 @@ class SlidingWindowTest extends BaseConcurrentTest {
         assertSame(bucket, window.currentBucket(timeMillis + intervalInMs));
         assertEquals(intervalInMs, bucket.startMillis());
         timeMillis = 200; // 边界条件：左闭右开
-        WindowBucket<SimpleErrorSlidingWindow.SimpleErrorCounter> bucket1 = window.currentBucket(timeMillis);
+        Bucket<SimpleErrorSlidingTimeWindow.SimpleErrorCounter> bucket1 = window.currentBucket(timeMillis);
         assertNotSame(bucket1, bucket);
         assertEquals(200, bucket1.startMillis());
         timeMillis = intervalInMs; // 又一个窗口(不是bucket)周期
@@ -70,7 +70,7 @@ class SlidingWindowTest extends BaseConcurrentTest {
         assertTrue(bucket.isTimeInBucket(timeMillis));
         assertFalse(bucket.isTimeInBucket(timeMillis + intervalInMs)); // 下一个周期了
         assertTrue(bucket.isTimeInBucket(999));
-        assertEquals("WindowBucket(lengthInMs=200, windowStart=800)", bucket.toString());
+        assertEquals("WindowBucket(durationMs=200, windowStart=800)", bucket.toString());
     }
 
 }
