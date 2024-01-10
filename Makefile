@@ -5,6 +5,7 @@ package:clean
 
 clean:
 	@mvn clean
+	@rm -f test/*.bench
 
 install:clean test
 	@mvn install

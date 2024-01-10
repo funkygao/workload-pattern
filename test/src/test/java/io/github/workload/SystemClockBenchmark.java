@@ -14,7 +14,7 @@ import org.openjdk.jmh.runner.options.OptionsBuilder;
 import java.util.Collection;
 import java.util.concurrent.TimeUnit;
 
-@BenchmarkMode(value = Mode.All)
+@BenchmarkMode(value = Mode.AverageTime)
 @OutputTimeUnit(TimeUnit.NANOSECONDS)
 @Warmup(iterations = 1)
 @Measurement(iterations = 1)

@@ -11,7 +11,7 @@ import org.openjdk.jmh.runner.options.OptionsBuilder;
 
 import java.util.concurrent.TimeUnit;
 
-@BenchmarkMode(value = Mode.All)
+@BenchmarkMode(value = Mode.AverageTime)
 @OutputTimeUnit(TimeUnit.NANOSECONDS)
 @Warmup(iterations = 1)
 @Measurement(iterations = 1)
@@ -31,6 +31,7 @@ public class CardDealerBenchmark {
         new Runner(options).run();
     }
 
+    // 341.506 ns/op
     @Benchmark
     public void dealIntoHand() {
         CardDealer dealer = CardDealer.builder()
