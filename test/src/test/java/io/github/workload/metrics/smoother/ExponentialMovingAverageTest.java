@@ -1,7 +1,6 @@
-package io.github.workload.smoother;
+package io.github.workload.metrics.smoother;
 
 import io.github.workload.BaseConcurrentTest;
-import io.github.workload.smoother.ExponentialMovingAverage;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;

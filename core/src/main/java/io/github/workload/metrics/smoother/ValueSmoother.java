@@ -1,4 +1,4 @@
-package io.github.workload.smoother;
+package io.github.workload.metrics.smoother;
 
 /**
  * Value smoother to prevent phenomenon burrs.

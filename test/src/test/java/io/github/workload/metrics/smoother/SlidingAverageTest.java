@@ -1,4 +1,4 @@
-package io.github.workload.smoother;
+package io.github.workload.metrics.smoother;
 
 import io.github.workload.BaseConcurrentTest;
 import org.junit.jupiter.api.Test;
