@@ -3,6 +3,7 @@ package io.github.workload.metrics.tumbling;
 import io.github.workload.annotations.ThreadSafe;
 import io.github.workload.annotations.VisibleForTesting;
 import io.github.workload.WorkloadPriority;
+import lombok.Generated;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.LongAdder;
@@ -49,6 +50,7 @@ public abstract class WindowState {
     }
 
     @VisibleForTesting
+    @Generated
     protected void resetForTesting() {
         requestCounter.reset();
         rolloverLock.set(false);

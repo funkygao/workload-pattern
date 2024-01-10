@@ -2,6 +2,7 @@ package io.github.workload.overloading;
 
 import io.github.workload.annotations.VisibleForTesting;
 import io.github.workload.metrics.tumbling.CountAndTimeWindowState;
+import lombok.Generated;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 
@@ -48,6 +49,7 @@ class WorkloadShedderOnQueue extends WorkloadShedder {
     }
 
     @VisibleForTesting
+    @Generated
     @Override
     void resetForTesting() {
         super.resetForTesting();

@@ -3,6 +3,7 @@ package io.github.workload.metrics.tumbling;
 import io.github.workload.annotations.ThreadSafe;
 import io.github.workload.annotations.VisibleForTesting;
 import io.github.workload.WorkloadPriority;
+import lombok.Generated;
 import lombok.Getter;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
@@ -43,6 +44,7 @@ public class TumblingWindow<S extends WindowState> {
     }
 
     @VisibleForTesting
+    @Generated
     public void resetForTesting() {
         current().resetForTesting();
     }

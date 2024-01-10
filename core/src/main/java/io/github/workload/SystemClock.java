@@ -2,6 +2,7 @@ package io.github.workload;
 
 import io.github.workload.annotations.ThreadSafe;
 import io.github.workload.annotations.VisibleForTesting;
+import lombok.Generated;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.Map;
@@ -79,6 +80,7 @@ public class SystemClock {
     }
 
     @VisibleForTesting("共享状态清理，以便测试用例隔离")
+    @Generated
     static void resetForTesting() {
         if (timerTask != null) {
             timerTask.cancel(true);
@@ -142,22 +144,4 @@ public class SystemClock {
         }
     }
 
-    /**
-     * 仅供JVM退出时调用.
-     */
-    public static void shutdown() {
-        if (timerTask != null) {
-            timerTask.cancel(true);
-        }
-        precisestClockUpdater.shutdown();
-        try {
-            if (!precisestClockUpdater.awaitTermination(1, TimeUnit.SECONDS)) {
-                precisestClockUpdater.shutdownNow();
-            }
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            log.error("Interrupted while shutting down clock updater service. Forcing shutdown now.", e);
-            precisestClockUpdater.shutdownNow();
-        }
-    }
 }
