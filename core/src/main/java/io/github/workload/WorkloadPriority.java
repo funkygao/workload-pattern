@@ -12,7 +12,7 @@ import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 
 /**
- * 工作负荷优先级，first citizen of overload protection mechanism.
+ * 工作负荷优先级，first citizen of overload fair protection mechanism.
  * <p>
  * <p>It can be applied on RPC Request, MQ Message, AsyncTask, anything you name it that is runnable.</p>
  * <p>First-class notion of our RPC system and propagated automatically.</p>
