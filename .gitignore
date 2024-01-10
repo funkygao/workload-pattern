@@ -28,3 +28,4 @@ doc/encapsulation.txt
 doc/shufflesharding.d2
 doc/shufflesharding.svg
 test/log
+test/*.bench

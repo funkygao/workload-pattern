@@ -12,6 +12,9 @@ install:clean test
 deploy:clean
 	@mvn clean deploy verify
 
+benchmark:
+	@cat test/*.bench
+
 test:
 	@mvn test -Ptest
 

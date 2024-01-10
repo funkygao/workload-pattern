@@ -3,6 +3,9 @@ package io.github.workload;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicInteger;
 
+/**
+ * Thread factory that names each thread.
+ */
 public class NamedThreadFactory implements ThreadFactory {
     private final AtomicInteger threadCount = new AtomicInteger(1);
     private final ThreadGroup group;

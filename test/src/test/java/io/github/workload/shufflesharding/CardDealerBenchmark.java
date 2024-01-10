@@ -1,14 +1,14 @@
 package io.github.workload.shufflesharding;
 
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.openjdk.jmh.annotations.*;
-import org.openjdk.jmh.results.RunResult;
+import org.openjdk.jmh.results.format.ResultFormatType;
 import org.openjdk.jmh.runner.Runner;
 import org.openjdk.jmh.runner.RunnerException;
 import org.openjdk.jmh.runner.options.Options;
 import org.openjdk.jmh.runner.options.OptionsBuilder;
 
-import java.util.Collection;
 import java.util.concurrent.TimeUnit;
 
 @BenchmarkMode(value = Mode.All)
@@ -21,10 +21,14 @@ public class CardDealerBenchmark {
     private static final int handSize = 3;
 
     @Test
-    void s() throws RunnerException {
-        Options options = new OptionsBuilder().include(CardDealerBenchmark.class.getSimpleName()).build();
-        Collection<RunResult> results = new Runner(options).run();
-        System.out.println(results);
+    @Disabled
+    void main() throws RunnerException {
+        Options options = new OptionsBuilder()
+                .include(CardDealerBenchmark.class.getSimpleName())
+                .resultFormat(ResultFormatType.TEXT)
+                .result("CardDealer.bench")
+                .build();
+        new Runner(options).run();
     }
 
     @Benchmark
