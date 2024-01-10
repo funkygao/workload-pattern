@@ -90,7 +90,7 @@ public abstract class SlidingTimeWindow<StatisticData> {
                 }
             } else if (bucketStartMillis < present.startMillis()) {
                 // 提供的时间落后于当前bucket开始时间，通常是NTP时钟回拨导致
-                log.warn("should never happen, clock drift? {}", this);
+                log.warn("should never happen, clock drift backwards? {} < {}", bucketStartMillis, present.startMillis());
                 return new Bucket<>(bucketDurationMs, bucketStartMillis, newEmptyBucketData(timeMillis));
             }
         }

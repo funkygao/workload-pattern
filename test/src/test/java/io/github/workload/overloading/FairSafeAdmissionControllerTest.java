@@ -2,6 +2,8 @@ package io.github.workload.overloading;
 
 import io.github.workload.BaseConcurrentTest;
 import io.github.workload.SystemLoadProvider;
+import io.github.workload.WorkloadPriority;
+import io.github.workload.WorkloadPriorityHelper;
 import io.github.workload.helper.RandomUtil;
 import io.github.workload.helper.WorkloadPrioritizer;
 import io.github.workload.window.WindowConfig;
@@ -36,7 +38,7 @@ class FairSafeAdmissionControllerTest extends BaseConcurrentTest {
             fail();
         } catch (NullPointerException expected) {
         }
-        assertTrue(controller.admit(WorkloadPriority.of(4, 6)));
+        assertTrue(controller.admit(WorkloadPriorityHelper.of(4, 6)));
         controller.feedback(WorkloadFeedback.ofQueuedNs(5 * 1000_000)); // 5ms
         controller.feedback(WorkloadFeedback.ofQueuedNs(10 * 1000_000)); // 10ms
     }

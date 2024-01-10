@@ -6,13 +6,13 @@ package io.github.workload.window;
 public abstract class CountAndTimeRolloverStrategy implements WindowRolloverStrategy<CountAndTimeWindowState> {
 
     @Override
-    public boolean shouldRollover(CountAndTimeWindowState currentWindow, long nowNs, WindowConfig<CountAndTimeWindowState> config) {
+    public final boolean shouldRollover(CountAndTimeWindowState currentWindow, long nowNs, WindowConfig<CountAndTimeWindowState> config) {
         return currentWindow.requested() >= config.getRequestCycle() ||
                 (nowNs - currentWindow.getStartNs()) >= config.getTimeCycleNs();
     }
 
     @Override
-    public CountAndTimeWindowState createWindowState(long nowNs) {
+    public final CountAndTimeWindowState createWindowState(long nowNs) {
         return new CountAndTimeWindowState(nowNs);
     }
 }

@@ -1,6 +1,6 @@
 package io.github.workload.helper;
 
-import io.github.workload.overloading.WorkloadPriority;
+import io.github.workload.WorkloadPriority;
 
 import java.util.concurrent.ThreadLocalRandom;
 

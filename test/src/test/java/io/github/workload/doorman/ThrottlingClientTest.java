@@ -7,7 +7,7 @@ import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-class ClientSideAdaptiveThrottlerTest extends BaseConcurrentTest {
+class ThrottlingClientTest extends BaseConcurrentTest {
 
     @Test
     void double_multiply_int() {
@@ -18,22 +18,22 @@ class ClientSideAdaptiveThrottlerTest extends BaseConcurrentTest {
     @Test
     void badCase() {
         try {
-            new ClientSideAdaptiveThrottler(1);
+            new ThrottlingClient(1);
             fail();
         } catch (IllegalArgumentException expected) {
         }
 
-        new ClientSideAdaptiveThrottler(1.1);
-        new ClientSideAdaptiveThrottler(9);
-        new ClientSideAdaptiveThrottler(98);
+        new ThrottlingClient(1.1);
+        new ThrottlingClient(9);
+        new ThrottlingClient(98);
     }
 
     @Test
     void always_pass_if_backend_always_accepts() {
-        ClientSideAdaptiveThrottler throttler = new ClientSideAdaptiveThrottler(2.5);
+        ThrottlingClient throttler = new ThrottlingClient(2.5);
         for (int i = 0; i < 1000; i++) {
             assertTrue(throttler.attemptRequest());
-            ClientRequestMetric metric = throttler.window.currentBucket().data();
+            Metric metric = throttler.window.currentBucket().data();
             assertEquals(metric.accepts(), metric.requests());
         }
         assertEquals(1000, throttler.window.currentBucket().data().accepts());
@@ -41,7 +41,7 @@ class ClientSideAdaptiveThrottlerTest extends BaseConcurrentTest {
 
     @Test
     void simulate() {
-        ClientSideAdaptiveThrottler throttler = new ClientSideAdaptiveThrottler(1.5);
+        ThrottlingClient throttler = new ThrottlingClient(2.5);
         int N = 10 << 10;
         int localPass = 0;
         int backendRejects = 0;

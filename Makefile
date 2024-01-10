@@ -15,10 +15,11 @@ deploy:clean
 test:
 	@mvn test -Ptest
 
-coverage:clean
+coverage:install
 	@mvn clean verify -Ptest
+	@open test/target/site/jacoco-aggregate/index.html
 
-javadoc:
+javadoc:install
 	@mvn javadoc:javadoc -Prelease
 	@open target/site/apidocs/index.html
 

@@ -1,5 +1,6 @@
 package io.github.workload.overloading;
 
+import io.github.workload.WorkloadPriority;
 import io.github.workload.annotations.ThreadSafe;
 import lombok.NonNull;
 

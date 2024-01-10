@@ -6,12 +6,12 @@ package io.github.workload.window;
 public abstract class CountRolloverStrategy implements WindowRolloverStrategy<CountWindowState> {
 
     @Override
-    public boolean shouldRollover(CountWindowState currentWindow, long nowNs, WindowConfig<CountWindowState> config) {
+    public final boolean shouldRollover(CountWindowState currentWindow, long nowNs, WindowConfig<CountWindowState> config) {
         return currentWindow.requested() >= config.getRequestCycle();
     }
 
     @Override
-    public CountWindowState createWindowState(long nowNs) {
+    public final CountWindowState createWindowState(long nowNs) {
         return new CountWindowState();
     }
 }

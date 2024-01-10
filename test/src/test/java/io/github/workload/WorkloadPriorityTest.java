@@ -1,4 +1,4 @@
-package io.github.workload.overloading;
+package io.github.workload;
 
 import io.github.workload.helper.RandomUtil;
 import org.junit.jupiter.api.Test;
@@ -175,10 +175,20 @@ class WorkloadPriorityTest {
 
     @Test
     void testToString() {
-        WorkloadPriority priority = WorkloadPriority.ofLowestPriority();
+        WorkloadPriority priority = WorkloadPriority.ofLowest();
         assertEquals("WorkloadPriority(B=127, U=127, P=16383)", priority.toString());
         priority = WorkloadPriority.fromP(198);
         assertEquals("WorkloadPriority(B=1, U=70, P=198)", priority.toString());
+    }
+
+    @Test
+    void test_equals() {
+        WorkloadPriority priority = WorkloadPriority.of(1, 9);
+        assertEquals(priority, priority);
+        assertEquals(priority, WorkloadPriority.of(1, 9));
+        assertFalse(priority.equals(""));
+        assertTrue(priority.equals(WorkloadPriority.of(1, 9)));
+        assertFalse(priority.equals(WorkloadPriority.ofLowest()));
     }
 
 }

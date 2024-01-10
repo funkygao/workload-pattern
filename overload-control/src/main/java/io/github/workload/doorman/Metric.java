@@ -2,7 +2,7 @@ package io.github.workload.doorman;
 
 import java.util.concurrent.atomic.LongAdder;
 
-class ClientRequestMetric {
+class Metric {
 
     /**
      * The number of requests attempted by the application layer at the client.

@@ -2,7 +2,7 @@ package io.github.workload.window.kafka;
 
 import io.github.workload.BaseConcurrentTest;
 import io.github.workload.helper.RandomUtil;
-import io.github.workload.overloading.WorkloadPriority;
+import io.github.workload.WorkloadPriority;
 import io.github.workload.window.CountRolloverStrategy;
 import io.github.workload.window.CountWindowState;
 import io.github.workload.window.TumblingWindow;

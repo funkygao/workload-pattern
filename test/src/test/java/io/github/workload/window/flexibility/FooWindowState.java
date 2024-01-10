@@ -1,6 +1,6 @@
 package io.github.workload.window.flexibility;
 
-import io.github.workload.overloading.WorkloadPriority;
+import io.github.workload.WorkloadPriority;
 import io.github.workload.window.WindowConfig;
 import io.github.workload.window.WindowState;
 

@@ -1,6 +1,5 @@
-package io.github.workload.overloading;
+package io.github.workload;
 
-import io.github.workload.SystemClock;
 import io.github.workload.annotations.Immutable;
 import io.github.workload.annotations.VisibleForTesting;
 import lombok.AllArgsConstructor;
@@ -43,7 +42,7 @@ public class WorkloadPriority {
     private static final int PRIORITY_BITS = 7;
     private static final int MAX_7BIT_VALUE = (1 << PRIORITY_BITS) - 1;
 
-    public static final int MAX_P = ofLowestPriority().P(); // 16383
+    public static final int MAX_P = ofLowest().P(); // 16383
 
     private static Map<Integer, UState> uStates = new ConcurrentHashMap<>();
 
@@ -75,7 +74,10 @@ public class WorkloadPriority {
         return ofPeriodicRandomFromUID(b, uid, HALF_HOUR_MS);
     }
 
-    static WorkloadPriority ofLowestPriority() {
+    /**
+     * 创建一个优先级最低的{@link WorkloadPriority}.
+     */
+    public static WorkloadPriority ofLowest() {
         return of(MAX_7BIT_VALUE, MAX_7BIT_VALUE);
     }
 

@@ -1,4 +1,4 @@
-package io.github.workload.overloading;
+package io.github.workload.smoother;
 
 import io.github.workload.annotations.ThreadSafe;
 
@@ -6,7 +6,7 @@ import io.github.workload.annotations.ThreadSafe;
  * 简单移动平均算法.
  */
 @ThreadSafe
-class SlidingAverage implements ValueSmoother {
+public class SlidingAverage implements ValueSmoother {
     /**
      * Vᵗ = β⋅Vᵗ⁻¹ + (1-β)⋅θᵗ.
      *
@@ -19,7 +19,7 @@ class SlidingAverage implements ValueSmoother {
     private final double beta;
     private volatile Double sa;
 
-    SlidingAverage(double beta) {
+    public SlidingAverage(double beta) {
         if (beta < 0 || beta >= 1) {
             throw new IllegalArgumentException("Beta must be between 0 and 1");
         }

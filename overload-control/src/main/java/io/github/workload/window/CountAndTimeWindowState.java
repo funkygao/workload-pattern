@@ -1,6 +1,6 @@
 package io.github.workload.window;
 
-import io.github.workload.overloading.WorkloadPriority;
+import io.github.workload.WorkloadPriority;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;

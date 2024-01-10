@@ -2,6 +2,7 @@ package io.github.workload.overloading;
 
 import com.google.common.collect.ImmutableMap;
 import io.github.workload.BaseConcurrentTest;
+import io.github.workload.WorkloadPriority;
 import io.github.workload.helper.PrioritizedRequestGenerator;
 import io.github.workload.window.CountAndTimeWindowState;
 import io.github.workload.window.WindowConfig;

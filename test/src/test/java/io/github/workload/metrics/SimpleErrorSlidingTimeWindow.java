@@ -6,8 +6,8 @@ import java.util.concurrent.atomic.LongAdder;
 
 class SimpleErrorSlidingTimeWindow extends SlidingTimeWindow<SimpleErrorSlidingTimeWindow.SimpleErrorCounter> {
 
-    SimpleErrorSlidingTimeWindow(int bucketCount, int intervalInMs) {
-        super(bucketCount, intervalInMs);
+    SimpleErrorSlidingTimeWindow(int bucketCount, int windowDurationMs) {
+        super(bucketCount, windowDurationMs);
     }
 
     @Override

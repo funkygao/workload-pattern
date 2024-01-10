@@ -1,9 +1,10 @@
-package io.github.workload.overloading;
+package io.github.workload.smoother;
 
 import io.github.workload.BaseConcurrentTest;
 import org.junit.jupiter.api.Test;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.fail;
 
 class SlidingAverageTest extends BaseConcurrentTest {
 

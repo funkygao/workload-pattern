@@ -1,5 +1,6 @@
 package io.github.workload.overloading;
 
+import io.github.workload.WorkloadPriority;
 import io.github.workload.annotations.Immutable;
 import io.github.workload.annotations.VisibleForTesting;
 import lombok.NonNull;
@@ -39,7 +40,7 @@ import lombok.NonNull;
  */
 @Immutable
 class AdmissionLevel {
-    private static final AdmissionLevel ADMIT_ALL = new AdmissionLevel(WorkloadPriority.ofLowestPriority());
+    private static final AdmissionLevel ADMIT_ALL = new AdmissionLevel(WorkloadPriority.ofLowest());
 
     /**
      * 准入门槛，在一个窗口期内不变.

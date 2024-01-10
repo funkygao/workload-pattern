@@ -2,6 +2,7 @@ package io.github.workload.overloading;
 
 import io.github.workload.BaseConcurrentTest;
 import io.github.workload.SystemClock;
+import io.github.workload.WorkloadPriority;
 import io.github.workload.helper.PrioritizedRequestGenerator;
 import io.github.workload.helper.RandomUtil;
 import io.github.workload.window.WindowConfig;

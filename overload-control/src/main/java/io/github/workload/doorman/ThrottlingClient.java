@@ -9,7 +9,7 @@ import java.util.concurrent.TimeUnit;
 /**
  * Implementation of <a href="https://sre.google/sre-book/handling-overload/#eq2101">Client request rejection probability</a>.
  */
-public class ClientSideAdaptiveThrottler {
+public class ThrottlingClient {
     private static final int TWO_MINUTES_MS = (int) TimeUnit.MILLISECONDS.convert(2, TimeUnit.MINUTES);
 
     /**
@@ -22,9 +22,9 @@ public class ClientSideAdaptiveThrottler {
 
     // for last 2 minutes
     @VisibleForTesting
-    final SlidingTimeWindow<ClientRequestMetric> window;
+    final SlidingTimeWindow<Metric> window;
 
-    public ClientSideAdaptiveThrottler(double multiplier) {
+    public ThrottlingClient(double multiplier) {
         if (multiplier <= 1) {
             throw new IllegalArgumentException("multiplier must be above 1.0");
         }
@@ -34,8 +34,8 @@ public class ClientSideAdaptiveThrottler {
     }
 
     public boolean attemptRequest() {
-        Bucket<ClientRequestMetric> bucket = window.currentBucket();
-        ClientRequestMetric data = bucket.data();
+        Bucket<Metric> bucket = window.currentBucket();
+        Metric data = bucket.data();
         final int accepts = data.accepts();
         final int requests = data.requests();
         final boolean shouldAllowRequest = shouldAllowRequest(requests, accepts);
@@ -58,15 +58,15 @@ public class ClientSideAdaptiveThrottler {
         window.currentBucket().data().backendRejected();
     }
 
-    private SlidingTimeWindow<ClientRequestMetric> createWindow(int windowDurationMs) {
-        return new SlidingTimeWindow<ClientRequestMetric>(1, windowDurationMs) {
+    private SlidingTimeWindow<Metric> createWindow(int windowDurationMs) {
+        return new SlidingTimeWindow<Metric>(1, windowDurationMs) {
             @Override
-            protected ClientRequestMetric newEmptyBucketData(long timeMillis) {
-                return new ClientRequestMetric();
+            protected Metric newEmptyBucketData(long timeMillis) {
+                return new Metric();
             }
 
             @Override
-            protected Bucket<ClientRequestMetric> resetBucket(Bucket<ClientRequestMetric> bucket, long startTimeMillis) {
+            protected Bucket<Metric> resetBucket(Bucket<Metric> bucket, long startTimeMillis) {
                 bucket.data().reset();
                 return bucket;
             }

@@ -1,5 +1,6 @@
 package io.github.workload.overloading;
 
+import io.github.workload.WorkloadPriority;
 import io.github.workload.annotations.ThreadSafe;
 import io.github.workload.annotations.VisibleForTesting;
 import io.github.workload.window.CountAndTimeRolloverStrategy;

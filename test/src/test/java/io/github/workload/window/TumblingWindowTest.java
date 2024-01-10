@@ -3,7 +3,7 @@ package io.github.workload.window;
 import com.google.common.collect.ImmutableMap;
 import io.github.workload.BaseConcurrentTest;
 import io.github.workload.helper.RandomUtil;
-import io.github.workload.overloading.WorkloadPriority;
+import io.github.workload.WorkloadPriority;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.RepeatedTest;

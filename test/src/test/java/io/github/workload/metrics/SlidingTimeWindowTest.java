@@ -14,13 +14,19 @@ class SlidingTimeWindowTest extends BaseConcurrentTest {
     @Test
     void demo() {
         setLogLevel(Level.TRACE);
-        SimpleErrorSlidingTimeWindow slidingWindow = new SimpleErrorSlidingTimeWindow(5, 1000);
+        final int windowDurationMs = 1000;
+        SimpleErrorSlidingTimeWindow slidingWindow = new SimpleErrorSlidingTimeWindow(5, windowDurationMs);
         log.info("{}", slidingWindow);
-        for (int i = 0; i < 20; i++) {
-            long time = i * 100;
-            slidingWindow.currentBucket(time);
-            slidingWindow.currentBucket(time + ThreadLocalRandom.current().nextInt(300));
+        long t = 0;
+        for (int i = 0; i < 200; i++) {
+            long timeMillis = i * 100;
+            slidingWindow.currentBucket(timeMillis);
+            slidingWindow.currentBucket(timeMillis + ThreadLocalRandom.current().nextInt(300));
+            t = timeMillis;
         }
+
+        // simulate clock drift backwards
+        slidingWindow.currentBucket(t - windowDurationMs * 5);
     }
 
     @Test
