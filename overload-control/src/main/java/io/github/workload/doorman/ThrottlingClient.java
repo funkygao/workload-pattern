@@ -1,6 +1,6 @@
 package io.github.workload.doorman;
 
-import io.github.workload.annotations.NotProductionReady;
+import io.github.workload.annotations.Experimental;
 import io.github.workload.annotations.VisibleForTesting;
 import io.github.workload.metrics.sliding.Bucket;
 import io.github.workload.metrics.sliding.SlidingTimeWindow;
@@ -10,7 +10,7 @@ import java.util.concurrent.TimeUnit;
 /**
  * Implementation of <a href="https://sre.google/sre-book/handling-overload/#eq2101">Client request rejection probability</a>.
  */
-@NotProductionReady
+@Experimental
 public class ThrottlingClient {
     private static final int TWO_MINUTES_MS = (int) TimeUnit.MILLISECONDS.convert(2, TimeUnit.MINUTES);
 

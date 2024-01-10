@@ -1,6 +1,6 @@
 package io.github.workload.metrics.sliding;
 
-import io.github.workload.annotations.NotProductionReady;
+import io.github.workload.annotations.Experimental;
 import io.github.workload.annotations.NotThreadSafe;
 import io.github.workload.annotations.ThreadSafe;
 import lombok.ToString;
@@ -19,7 +19,7 @@ import java.util.concurrent.locks.ReentrantLock;
 @Slf4j
 @ToString
 @ThreadSafe
-@NotProductionReady
+@Experimental
 public abstract class SlidingTimeWindow<StatisticData> {
     protected final int bucketCount; // how many buckets in the sliding window
     protected final int bucketDurationMs; // time span of each bucket
