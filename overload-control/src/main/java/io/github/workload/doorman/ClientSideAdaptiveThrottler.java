@@ -3,14 +3,12 @@ package io.github.workload.doorman;
 import io.github.workload.annotations.VisibleForTesting;
 import io.github.workload.metrics.Bucket;
 import io.github.workload.metrics.SlidingTimeWindow;
-import lombok.extern.slf4j.Slf4j;
 
 import java.util.concurrent.TimeUnit;
 
 /**
  * Implementation of <a href="https://sre.google/sre-book/handling-overload/#eq2101">Client request rejection probability</a>.
  */
-@Slf4j
 public class ClientSideAdaptiveThrottler {
     private static final int TWO_MINUTES_MS = (int) TimeUnit.MILLISECONDS.convert(2, TimeUnit.MINUTES);
 
