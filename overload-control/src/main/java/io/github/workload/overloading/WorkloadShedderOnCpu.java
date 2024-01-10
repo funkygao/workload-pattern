@@ -5,7 +5,7 @@ import io.github.workload.SystemLoadProvider;
 import io.github.workload.annotations.VisibleForTesting;
 import io.github.workload.smoother.ExponentialMovingAverage;
 import io.github.workload.smoother.ValueSmoother;
-import io.github.workload.window.CountAndTimeWindowState;
+import io.github.workload.metrics.tumbling.CountAndTimeWindowState;
 import lombok.extern.slf4j.Slf4j;
 
 /**

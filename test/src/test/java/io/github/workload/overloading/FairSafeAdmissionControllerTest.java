@@ -6,7 +6,7 @@ import io.github.workload.WorkloadPriority;
 import io.github.workload.WorkloadPriorityHelper;
 import io.github.workload.helper.RandomUtil;
 import io.github.workload.helper.WorkloadPrioritizer;
-import io.github.workload.window.WindowConfig;
+import io.github.workload.metrics.tumbling.WindowConfig;
 import org.junit.jupiter.api.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

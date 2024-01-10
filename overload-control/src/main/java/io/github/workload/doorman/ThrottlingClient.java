@@ -1,8 +1,8 @@
 package io.github.workload.doorman;
 
 import io.github.workload.annotations.VisibleForTesting;
-import io.github.workload.metrics.Bucket;
-import io.github.workload.metrics.SlidingTimeWindow;
+import io.github.workload.metrics.sliding.Bucket;
+import io.github.workload.metrics.sliding.SlidingTimeWindow;
 
 import java.util.concurrent.TimeUnit;
 

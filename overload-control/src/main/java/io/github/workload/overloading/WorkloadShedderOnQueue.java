@@ -1,7 +1,7 @@
 package io.github.workload.overloading;
 
 import io.github.workload.annotations.VisibleForTesting;
-import io.github.workload.window.CountAndTimeWindowState;
+import io.github.workload.metrics.tumbling.CountAndTimeWindowState;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 

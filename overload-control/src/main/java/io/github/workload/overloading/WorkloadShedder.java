@@ -3,10 +3,10 @@ package io.github.workload.overloading;
 import io.github.workload.WorkloadPriority;
 import io.github.workload.annotations.ThreadSafe;
 import io.github.workload.annotations.VisibleForTesting;
-import io.github.workload.window.CountAndTimeRolloverStrategy;
-import io.github.workload.window.CountAndTimeWindowState;
-import io.github.workload.window.TumblingWindow;
-import io.github.workload.window.WindowConfig;
+import io.github.workload.metrics.tumbling.CountAndTimeRolloverStrategy;
+import io.github.workload.metrics.tumbling.CountAndTimeWindowState;
+import io.github.workload.metrics.tumbling.TumblingWindow;
+import io.github.workload.metrics.tumbling.WindowConfig;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 
@@ -37,8 +37,8 @@ abstract class WorkloadShedder {
         WindowConfig<CountAndTimeWindowState> config = WindowConfig.create(
                 new CountAndTimeRolloverStrategy() {
                     @Override
-                    public void onRollover(long nowNs, CountAndTimeWindowState state, TumblingWindow<CountAndTimeWindowState> window) {
-                        adaptAdmissionLevel(isOverloaded(nowNs, state), state);
+                    public void onRollover(long nowNs, CountAndTimeWindowState snapshot, TumblingWindow<CountAndTimeWindowState> window) {
+                        adaptAdmissionLevel(isOverloaded(nowNs, snapshot), snapshot);
                     }
                 }
         );

@@ -5,7 +5,7 @@ import io.github.workload.SystemClock;
 import io.github.workload.WorkloadPriority;
 import io.github.workload.helper.PrioritizedRequestGenerator;
 import io.github.workload.helper.RandomUtil;
-import io.github.workload.window.WindowConfig;
+import io.github.workload.metrics.tumbling.WindowConfig;
 import org.junit.jupiter.api.Test;
 
 import java.util.Map;
