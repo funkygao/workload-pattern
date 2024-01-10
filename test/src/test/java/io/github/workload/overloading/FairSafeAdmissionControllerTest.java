@@ -87,15 +87,15 @@ class FairSafeAdmissionControllerTest extends BaseConcurrentTest {
             }
 
             // 随机制造局部过载
-            if (RandomUtil.randomBoolean(2)) {
+            if (RandomUtil.randomTrue(2)) {
                 log.info("{}\uD83D\uDCA5 overload SQS ...", i);
                 mqController.feedback(WorkloadFeedback.ofOverloaded());
             }
-            if (RandomUtil.randomBoolean(4)) {
+            if (RandomUtil.randomTrue(4)) {
                 log.info("{}\uD83D\uDCA5 overload RPC ...", i);
                 rpcController.feedback(WorkloadFeedback.ofOverloaded());
             }
-            if (RandomUtil.randomBoolean(1)) {
+            if (RandomUtil.randomTrue(1)) {
                 log.info("{}\uD83D\uDCA5 overload WEB ...", i);
                 webController.feedback(WorkloadFeedback.ofOverloaded());
             }

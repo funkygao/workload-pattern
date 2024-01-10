@@ -49,7 +49,7 @@ class WorkloadShedderOnQueueTest extends BaseConcurrentTest {
                 shedder.admit(entry.getKey()); // 会不停地
                 if (false) {
                     // 模拟：一会儿过载，一会儿恢复
-                    if (RandomUtil.randomBoolean(1)) {
+                    if (RandomUtil.randomTrue(1)) {
                         shedder.addWaitingNs(10 * WindowConfig.NS_PER_MS);
                     } else {
                         shedder.addWaitingNs((WorkloadShedderOnQueue.AVG_QUEUED_MS_UPPER_BOUND + 1) * WindowConfig.NS_PER_MS);

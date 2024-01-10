@@ -63,7 +63,7 @@ class TumblingWindowTest extends BaseConcurrentTest {
                     WorkloadPriority priority = WorkloadPriority.fromP(P);
                     int n = i.incrementAndGet();
                     int hash1 = window.current().hashCode();
-                    window.advance(priority, RandomUtil.randomBoolean(), System.nanoTime());
+                    window.advance(priority, RandomUtil.randomTrue(), System.nanoTime());
                     int hash2 = window.current().hashCode();
                     if (false && hash1 != hash2) {
                         log.info("n:{} window changed:{} -> {}", n, hash1, hash2);

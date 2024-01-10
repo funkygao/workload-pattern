@@ -13,7 +13,7 @@ public class RandomUtil {
         return ThreadLocalRandom.current().nextInt(WorkloadPriority.MAX_P);
     }
 
-    public static boolean randomBoolean() {
+    public static boolean randomTrue() {
         if (ThreadLocalRandom.current().nextDouble() > 0.5) {
             return true;
         }
@@ -21,7 +21,7 @@ public class RandomUtil {
         return false;
     }
 
-    public static boolean randomBoolean(int possibilityThousandth) {
-        return ThreadLocalRandom.current().nextInt(1000) <= possibilityThousandth;
+    public static boolean randomTrue(int possibilityThousandth) {
+        return ThreadLocalRandom.current().nextInt(1000) < possibilityThousandth;
     }
 }
