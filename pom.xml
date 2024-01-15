@@ -10,6 +10,7 @@
 
     <modules>
         <module>core</module>
+        <module>big-bag</module>
         <module>shuffle-sharding</module>
         <module>overload-control</module>
         <module>tail-tolerant</module>
