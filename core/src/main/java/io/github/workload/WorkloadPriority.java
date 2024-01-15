@@ -44,7 +44,8 @@ public class WorkloadPriority {
 
     public static final int MAX_P = ofLowest().P(); // 16383
 
-    private static Map<Integer, UState> uStates = new ConcurrentHashMap<>();
+    // at most 128 keys, periodic consistent cohorting
+    private static Map<Integer /* U */, UState> uStates = new ConcurrentHashMap<>();
 
     private final int B;
     private final int U;
