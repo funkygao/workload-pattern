@@ -28,17 +28,23 @@ class REDQueue extends BaseConcurrentTest {
 
     public boolean enqueue(int packet) {
         if (queue.size() >= maxQueueSize) {
+            // 队列满了，强制丢包
             return false;
         }
 
-        if (avgQueueSize > minThreshold && avgQueueSize < maxThreshold) {
+        if (minThreshold < avgQueueSize && avgQueueSize < maxThreshold) {
+            //   accept              maybe              drop
+            // 0 ------ minThreshold ----- maxThreshold ---- ∞
+            // 进入拥塞阈值区间，开始按照概率进行丢弃
             if (random.nextDouble() < dropProbability()) {
                 return false;
             }
         } else if (avgQueueSize >= maxThreshold) {
+            // 强制丢包
             return false;
         }
 
+        // accept
         queue.offer(packet);
         avgQueueSize = valueSmoother.update(queue.size()).smoothedValue();
         return true;
@@ -49,15 +55,16 @@ class REDQueue extends BaseConcurrentTest {
             return null;
         }
 
-        // Remove packet from the queue
         Integer packet = queue.poll();
         avgQueueSize = valueSmoother.update(queue.size()).smoothedValue();
         return packet;
     }
 
     private double dropProbability() {
-        if (avgQueueSize > minThreshold && avgQueueSize < maxThreshold) {
-            return (avgQueueSize - minThreshold) / (maxThreshold - minThreshold) * maxProbability;
+        if (minThreshold < avgQueueSize && avgQueueSize < maxThreshold) {
+            // 在拥塞阈值区间
+            final double thresholdWidth = maxThreshold - minThreshold;
+            return maxProbability * (avgQueueSize - minThreshold) / thresholdWidth;
         }
         return 0;
     }
@@ -67,9 +74,10 @@ class REDQueue extends BaseConcurrentTest {
     void demo() {
         REDQueue queue = new REDQueue();
         queue.maxQueueSize = 100;
+        // 队列拥塞阈值区间：[60, 90]
+        queue.minThreshold = 60;
         queue.maxThreshold = 90;
         queue.maxProbability = 0.6;
-        queue.minThreshold = 60;
 
         for (int i = 0; i < 90; i++) {
             if (!queue.enqueue(i)) {
