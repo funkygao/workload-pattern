@@ -1,11 +1,12 @@
 package io.github.workload.overloading.bufferbloat.aqm;
 
-import io.github.workload.BaseConcurrentTest;
 import io.github.workload.annotations.Heuristics;
 import io.github.workload.metrics.smoother.ExponentialMovingAverage;
 import io.github.workload.metrics.smoother.ValueSmoother;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.LinkedList;
 import java.util.Random;
@@ -18,7 +19,7 @@ import java.util.Random;
  * <p>旨在：队列平均长度保持在较低值.</p>
  * <p>队列满载视角：队列长度.</p>
  */
-class REDQueue extends BaseConcurrentTest {
+class REDQueue {
     @Heuristics
     private int maxQueueSize; // 队列容纳数据包数量的最大值
     @Heuristics
@@ -80,6 +81,8 @@ class REDQueue extends BaseConcurrentTest {
     @Test
     @Disabled
     void demo() {
+        final Logger log = LoggerFactory.getLogger("REDQueue");
+
         REDQueue queue = new REDQueue();
         queue.maxQueueSize = 100;
         // 队列拥塞阈值区间：[60, 90]
