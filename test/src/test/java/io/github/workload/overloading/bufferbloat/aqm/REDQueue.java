@@ -1,4 +1,4 @@
-package io.github.workload.overloading.bufferbloat;
+package io.github.workload.overloading.bufferbloat.aqm;
 
 import io.github.workload.BaseConcurrentTest;
 import io.github.workload.annotations.Heuristics;
@@ -10,7 +10,14 @@ import org.junit.jupiter.api.Test;
 import java.util.LinkedList;
 import java.util.Random;
 
-// Random Early Detection Algorithm
+/**
+ * Random Early Detection Algorithm：是一种无分类qdisc(queueing discipline，流量控制器).
+ *
+ * <p>主要是为了解决TCP Global Synchronization而产生的算法.</p>
+ *
+ * <p>旨在：队列平均长度保持在较低值.</p>
+ * <p>队列满载视角：队列长度.</p>
+ */
 class REDQueue extends BaseConcurrentTest {
     @Heuristics
     private int maxQueueSize; // 队列容纳数据包数量的最大值
@@ -21,14 +28,15 @@ class REDQueue extends BaseConcurrentTest {
     @Heuristics
     private double maxProbability; // 计算的丢包概率不会超过此值
 
-    private LinkedList<Integer> queue = new LinkedList<>();
+    private LinkedList<Packet> queue = new LinkedList<>();
     private double avgQueueSize = 0;
     private final Random random = new Random();
+    // 这允许一定的burst
     private final ValueSmoother valueSmoother = new ExponentialMovingAverage(0.1);
 
-    public boolean enqueue(int packet) {
+    public boolean enqueue(Packet packet) {
         if (queue.size() >= maxQueueSize) {
-            // 队列满了，强制丢包
+            // 队列满了，强制丢包：tail drop
             return false;
         }
 
@@ -50,12 +58,12 @@ class REDQueue extends BaseConcurrentTest {
         return true;
     }
 
-    public Integer dequeue() {
+    public Packet dequeue() {
         if (queue.isEmpty()) {
             return null;
         }
 
-        Integer packet = queue.poll();
+        Packet packet = queue.poll();
         avgQueueSize = valueSmoother.update(queue.size()).smoothedValue();
         return packet;
     }
@@ -80,7 +88,7 @@ class REDQueue extends BaseConcurrentTest {
         queue.maxProbability = 0.6;
 
         for (int i = 0; i < 90; i++) {
-            if (!queue.enqueue(i)) {
+            if (!queue.enqueue(new Packet(i))) {
                 log.info("packet:{} dropped", i);
             }
         }
