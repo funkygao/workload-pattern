@@ -1,6 +1,7 @@
 package io.github.workload.overloading.bufferbloat.aqm;
 
 import io.github.workload.annotations.Heuristics;
+import io.github.workload.annotations.Immutable;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
@@ -22,6 +23,10 @@ import java.util.concurrent.TimeUnit;
  * @see <a href="https://queue.acm.org/detail.cfm?id=2209336">CoDel Paper</a>
  */
 class CoDelQueue {
+    private static final Logger log = LoggerFactory.getLogger(CoDelQueue.class.getSimpleName());
+
+    private static final DequeueResult QUEUE_WAS_EMPTY = new DequeueResult(null, false);
+
     @Heuristics
     private static final long TARGET = TimeUnit.MILLISECONDS.toNanos(5);
     @Heuristics
@@ -48,71 +53,96 @@ class CoDelQueue {
 
     public Packet dequeue(long now) {
         DequeueResult res = doDequeue(now);
-        if (res.packet == null) {
+        if (res == QUEUE_WAS_EMPTY) {
             dropping = false;
             return null;
         }
 
         if (dropping) {
+            // 根据`dropNext`时间和`droppedCount`判断是否继续丢包
             if (!res.okToDrop) {
+                // End dropping, as no need to drop
                 dropping = false;
-            } else if (now >= dropNext) {
-                do {
-                    queue.poll(); // Actually remove the packet
+            } else {
+                // It's time to drop, enqueue time of next drop packet is already set
+                while (now >= dropNext && !queue.isEmpty()) {
+                    Packet droppedPacket = queue.poll();
+                    log.info("dropped packet: {}", droppedPacket);
                     droppedCount++;
-                    res = doDequeue(now);
-                    if (!res.okToDrop) {
-                        dropping = false;
-                    } else {
-                        dropNext = controlLaw(dropNext);
+                    if (droppedCount > 1 && now - dropNext < INTERVAL) {
+                        // Adjust the dropping count only if it's not the first packet and the time didn't pass the full INTERVAL yet
+                        droppedCount =  Math.max(droppedCount - 2, 1);
                     }
-                } while (now >= dropNext && dropping);
+                    // If more packets need to be dropped, reschedule the next drop using control law
+                    dropNext = controlLaw(dropNext, droppedCount);
+                }
             }
-        } else if (res.okToDrop && ((now - dropNext < INTERVAL) || (now - firstAboveTime >= INTERVAL))) {
-            queue.poll(); // Actually remove the packet
-            dropping = true;
-            droppedCount = now - dropNext < INTERVAL ? Math.max(droppedCount - 2, 1) : 1;
-            dropNext = controlLaw(now);
+        } else {
+            if (res.okToDrop) {
+                // It's not currently dropping, but it's ok to start
+                dropping = true;
+                droppedCount = 1;
+                queue.poll(); // Actually remove the packet
+                dropNext = controlLaw(now, droppedCount);
+            }
         }
 
         return res.packet;
     }
 
     private DequeueResult doDequeue(long now) {
+        //      firstAboveTime
+        //             |    interval     |
+        // ----------------------------------------> time
+        //             XX  X XXX     X X X
+        //              |
+        //            packet
         Packet packet = queue.peek(); // Peek the head but don't remove yet
         if (packet == null) {
             firstAboveTime = 0;
-            return new DequeueResult(null, false);
+            return QUEUE_WAS_EMPTY;
+        }
+
+        long sojournTime = packet.sojournTime(now);
+        if (sojournTime < TARGET) {
+            firstAboveTime = 0;
+            return new DequeueResult(packet, false);
         } else {
-            long sojournTime = packet.sojournTime(now);
-            if (sojournTime < TARGET) {
-                firstAboveTime = 0;
-                return new DequeueResult(packet, false);
-            } else {
-                if (firstAboveTime == 0) {
-                    firstAboveTime = now + INTERVAL;
-                } else if (now >= firstAboveTime) {
-                    return new DequeueResult(packet, true);
-                }
+            // this packet stays longer than target
+            if (firstAboveTime == 0) {
+                firstAboveTime = now + INTERVAL;
+            } else if (now >= firstAboveTime) {
+                return new DequeueResult(packet, true);
             }
         }
 
         return new DequeueResult(packet, false);
     }
 
-    // gradually increases the frequency of dropping until the queue is controlled(sojourn time goes below target)
-    private long controlLaw(long t) {
-        return t + (INTERVAL / (long) Math.sqrt(droppedCount));
+    private long controlLaw(long whence, int droppedCount) {
+        // 丢包越多，那么下一次丢包时间越近
+        return whence + (INTERVAL / (long) Math.sqrt(droppedCount));
     }
 
+    @Immutable
     private static class DequeueResult {
-        Packet packet;
-        boolean okToDrop;
+        final Packet packet;
+        final boolean okToDrop;
 
         DequeueResult(Packet packet, boolean okToDrop) {
             this.packet = packet;
             this.okToDrop = okToDrop;
         }
+    }
+
+    @Test
+    void nextDrop() {
+        CoDelQueue codelQueue = new CoDelQueue();
+        log.info("{}", CoDelQueue.INTERVAL);
+        for (int droppedCount = 1; droppedCount < 10; droppedCount++) {
+            log.info("{}", codelQueue.controlLaw(0, droppedCount));
+        }
+        log.info("{}", codelQueue.controlLaw(0, 1000));
     }
 
     @Test
@@ -132,7 +162,7 @@ class CoDelQueue {
         }
 
         // Dequeue packets
-        for (int i = 0; i < N * 2; i++) {
+        for (int i = 0; i < N; i++) {
             long now = System.nanoTime();
             Packet dequeuedPacket = codelQueue.dequeue(now);
             if (dequeuedPacket == null) {
