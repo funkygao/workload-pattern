@@ -2,6 +2,7 @@ package io.github.workload.overloading;
 
 import io.github.workload.SystemClock;
 import io.github.workload.SystemLoadProvider;
+import io.github.workload.annotations.Heuristics;
 import io.github.workload.annotations.VisibleForTesting;
 import io.github.workload.metrics.smoother.ExponentialMovingAverage;
 import io.github.workload.metrics.smoother.ValueSmoother;
@@ -15,9 +16,12 @@ import lombok.extern.slf4j.Slf4j;
  */
 @Slf4j
 class WorkloadShedderOnCpu extends WorkloadShedder {
+    @Heuristics
     private static final double EMA_ALPHA = 0.4d;
     private static final SystemClock coolOffClock = SystemClock.ofPrecisionMs(1000);
-    private final double cpuUsageUpperBound; // heuristic threshold，启发值
+    @Heuristics
+    private final double cpuUsageUpperBound;
+    @Heuristics
     private final long coolOffMs;
     private final long startupMs;
     private final ValueSmoother valueSmoother;

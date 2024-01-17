@@ -1,6 +1,7 @@
 package io.github.workload.overloading;
 
 import io.github.workload.WorkloadPriority;
+import io.github.workload.annotations.Heuristics;
 import io.github.workload.annotations.ThreadSafe;
 import io.github.workload.annotations.VisibleForTesting;
 import io.github.workload.metrics.tumbling.CountAndTimeRolloverStrategy;
@@ -22,6 +23,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 @ThreadSafe
 abstract class WorkloadShedder {
     private static final int ADMIT_ALL_P = AdmissionLevel.ofAdmitAll().P();
+    @Heuristics
     private static final double ERROR_RATE_BOUND = 1.01d; // 101%
 
     protected final String name;

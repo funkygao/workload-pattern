@@ -39,6 +39,7 @@ public class WorkloadPrioritizer {
         return ThreadLocalRandom.current().nextInt(Integer.MAX_VALUE);
     }
 
+    // see IP header ToS field for reference
     public static WorkloadPriority randomMQ() {
         int b = SHEDDABLE_PLUS;
         return WorkloadPriority.ofPeriodicRandomFromUID(b, randomUid());

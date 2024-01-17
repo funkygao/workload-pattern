@@ -1,5 +1,6 @@
 package io.github.workload.overloading;
 
+import io.github.workload.annotations.Heuristics;
 import io.github.workload.annotations.VisibleForTesting;
 import io.github.workload.metrics.tumbling.CountAndTimeWindowState;
 import lombok.Generated;
@@ -12,6 +13,7 @@ class WorkloadShedderOnQueue extends WorkloadShedder {
     /**
      * 配置：平均排队时长多大被认为过载.
      */
+    @Heuristics
     public static final long AVG_QUEUED_MS_UPPER_BOUND = 200;
 
     /**
