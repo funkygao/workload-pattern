@@ -104,6 +104,7 @@ public class WorkloadPriority {
      * <p>
      * <p>7-bit integer, lower number signifies a higher priority: [0, 127]</p>
      * <p>它反映的服务的重要性和用户体验.</p>
+     * <p>可以类比IP Header ToS(type of service) field.</p>
      */
     public int B() {
         return B;
