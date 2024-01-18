@@ -8,6 +8,8 @@ import java.util.Map;
 
 /**
  * Fair queueing CoDel.
+ *
+ * @see <a href="https://man7.org/linux/man-pages/man8/tc-fq_codel.8.html">tc-fq_codel man page</a>
  */
 @WIP
 class FQCoDelQueue implements QueueDiscipline {
