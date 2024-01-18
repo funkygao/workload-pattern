@@ -23,6 +23,7 @@ import java.util.concurrent.TimeUnit;
  * <p>因此，产生了fq-codel，fair/flow queue codel.</p>
  *
  * @see <a href="https://github.com/apache/hbase/blob/master/hbase-server/src/main/java/org/apache/hadoop/hbase/ipc/AdaptiveLifoCoDelCallQueue.java">HBase AdaptiveLifoCoDelCallQueue</a>
+ * @see <a href="https://blog.rabbitmq.com/posts/2012/05/some-queuing-theory-throughput-latency-and-bandwidth/">RabbitMQ的QoS应用</a>
  * @see <a href="https://queue.acm.org/detail.cfm?id=2209336">CoDel Paper</a>
  */
 @WIP
