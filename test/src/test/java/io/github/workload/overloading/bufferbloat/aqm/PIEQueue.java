@@ -1,7 +1,14 @@
 package io.github.workload.overloading.bufferbloat.aqm;
 
+import io.github.workload.helper.RandomUtil;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.LinkedList;
 import java.util.Queue;
+import java.util.concurrent.ThreadLocalRandom;
 
 /**
  * Proportional Integral controller Enhanced queue：加强的比例积分控制.
@@ -10,6 +17,8 @@ import java.util.Queue;
  * <p>严格来说，它是根据队列中请求延时时间的变化率(就是当前延时时间与目标延时时间的差值与时间的积分)来判断拥塞，目的是可以让算法本身在各种网络阻塞的情况下都能自动调节以优化性能表现</p>
  */
 class PIEQueue implements QueueDiscipline {
+    private static final Logger log = LoggerFactory.getLogger("PIE");
+
     private Queue<Packet> queue;
     private double dropProbability;   // 当前丢包概率
     private long targetDelay;         // 目标延迟，以毫秒为单位
@@ -22,14 +31,14 @@ class PIEQueue implements QueueDiscipline {
     private final long updateInterval;       // 更新丢包概率的时间间隔，以毫秒为单位
 
     // 构造方法初始化队列，并设置PIE算法相关的参数
-    public PIEQueue(long targetDelay, double alpha, double beta, long updateInterval) {
+    PIEQueue() {
         this.queue = new LinkedList<>();
-        this.targetDelay = targetDelay;
+        this.targetDelay = 5;
         this.dropProbability = 0.0;
         this.accError = 0.0;
-        this.alpha = alpha;
-        this.beta = beta;
-        this.updateInterval = updateInterval;
+        this.alpha = 0.125;
+        this.beta = 0.25;
+        this.updateInterval = 30;
         this.lastUpdateTime = System.currentTimeMillis();
     }
 
@@ -42,6 +51,7 @@ class PIEQueue implements QueueDiscipline {
 
         // 基于丢包概率决定是否丢弃数据包
         if (Math.random() < dropProbability) {
+            log.info("{} dropped, {}", packet, dropProbability);
             return;
         }
 
@@ -69,11 +79,28 @@ class PIEQueue implements QueueDiscipline {
         double delayDiff = queueDelay - targetDelay;
         // 更新累积误差
         accError += delayDiff * delta;
+
         // 更新丢包概率
         dropProbability += alpha * delayDiff + beta * accError;
         // 保证丢包概率在0和1之间
+        log.info("accErr:{}, delayDiff:{}, prob:{}", accError, delayDiff, dropProbability);
         dropProbability = Math.max(0.0, Math.min(dropProbability, 1.0));
         // 更新上次更新时间为当前时间
         lastUpdateTime = currentTime;
+    }
+
+    @Test
+    @Disabled
+    void demo() throws InterruptedException {
+        PIEQueue queue = new PIEQueue();
+        for (int i = 0; i < 100; i++) {
+            queue.enqueue(new Packet(i));
+
+            if (RandomUtil.randomTrue()) {
+                queue.dequeue();
+            }
+
+            Thread.sleep(ThreadLocalRandom.current().nextInt(2));
+        }
     }
 }
