@@ -2,6 +2,7 @@ package io.github.workload.overloading.bufferbloat.aqm;
 
 import io.github.workload.annotations.Heuristics;
 import io.github.workload.annotations.Immutable;
+import io.github.workload.annotations.WIP;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
@@ -24,6 +25,7 @@ import java.util.concurrent.TimeUnit;
  * @see <a href="https://github.com/apache/hbase/blob/master/hbase-server/src/main/java/org/apache/hadoop/hbase/ipc/AdaptiveLifoCoDelCallQueue.java">HBase AdaptiveLifoCoDelCallQueue</a>
  * @see <a href="https://queue.acm.org/detail.cfm?id=2209336">CoDel Paper</a>
  */
+@WIP
 class CoDelQueue implements QueueDiscipline {
     private static final Logger log = LoggerFactory.getLogger(CoDelQueue.class.getSimpleName());
 

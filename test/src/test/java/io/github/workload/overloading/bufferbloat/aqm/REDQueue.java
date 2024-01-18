@@ -1,6 +1,7 @@
 package io.github.workload.overloading.bufferbloat.aqm;
 
 import io.github.workload.annotations.Heuristics;
+import io.github.workload.annotations.WIP;
 import io.github.workload.metrics.smoother.ExponentialMovingAverage;
 import io.github.workload.metrics.smoother.ValueSmoother;
 import org.junit.jupiter.api.Disabled;
@@ -19,6 +20,7 @@ import java.util.Random;
  * <p>旨在：队列平均长度保持在较低值.</p>
  * <p>队列满载视角：队列长度.</p>
  */
+@WIP
 class REDQueue implements QueueDiscipline {
     @Heuristics
     private int maxQueueSize; // 队列容纳数据包数量的最大值

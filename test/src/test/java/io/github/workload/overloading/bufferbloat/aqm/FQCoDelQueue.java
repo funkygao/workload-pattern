@@ -1,5 +1,7 @@
 package io.github.workload.overloading.bufferbloat.aqm;
 
+import io.github.workload.annotations.WIP;
+
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -7,9 +9,12 @@ import java.util.Map;
 /**
  * Fair queueing CoDel.
  */
+@WIP
 class FQCoDelQueue implements QueueDiscipline {
+    // DRR为每个队列分配一个透支计数器
     private final Map<Integer /* quadruples */, QueueState> flowQueues;
-    // 用于确定一个流在一个时间间隔内可以发送多少数据
+
+    // 用于确定一个流在一个时间间隔内可以发送多少数据，通常为MTU
     private final long quantum;
 
     FQCoDelQueue(long quantum) {
@@ -29,26 +34,28 @@ class FQCoDelQueue implements QueueDiscipline {
         Iterator<Map.Entry<Integer, QueueState>> iterator = flowQueues.entrySet().iterator();
         while (iterator.hasNext()) {
             Map.Entry<Integer, QueueState> entry = iterator.next();
-            QueueState state = entry.getValue();
-            // 某个队列每当获取出队机会时，重新设定其赤字值
-            state.deficitCounter += quantum;
+            QueueState queue = entry.getValue();
+
+            // 每次轮到某个队列时，其Deficit Counter会增加一个固定的量（称为Quantum，即队列的权重）
+            queue.deficitCounter += quantum;
 
             Packet packet;
-            while ((packet = state.dequeue()) != null) {
+            while ((packet = queue.dequeue()) != null) {
                 long packetSize = packet.size();
-                if (state.deficitCounter >= packetSize) {
+                if (queue.deficitCounter >= packetSize) {
                     // The packet can be sent, subtract its size from the deficit counter
-                    state.deficitCounter -= packetSize;
+                    queue.deficitCounter -= packetSize;
                     return packet;
                 } else {
                     // Not enough deficit, put the packet back and break to check next queue
-                    state.enqueueFront(packet);
+                    // 包太大而不能被发送，那么它将等待下一个轮转
+                    queue.enqueueFront(packet);
                     break;
                 }
             }
 
             // Remove empty queues to prevent memory leak
-            if (state.isEmpty()) {
+            if (queue.isEmpty()) {
                 iterator.remove();
             }
         }
@@ -58,7 +65,7 @@ class FQCoDelQueue implements QueueDiscipline {
 
     private static class QueueState {
         private CoDelQueue queue;
-        private long deficitCounter; // 信用额度
+        private long deficitCounter; // 信用额度/透支计数器
 
         QueueState() {
             queue = new CoDelQueue();
