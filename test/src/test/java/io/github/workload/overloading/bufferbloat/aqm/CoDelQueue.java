@@ -18,11 +18,13 @@ import java.util.concurrent.TimeUnit;
  * <p>旨在：控制队列/buffer中的延迟.</p>
  * <p>队列满载视角：不是队列长度，而是队列中的数据包的驻留时间.</p>
  * <p>buffer bloat的根因是数据包在队列中的驻留时间过长，超过了有效的处理时间（SLA定义的时间或者重试时间），导致处理到的数据包都已经超时.</p>
+ * <p>CoDel算法解决了buffer bloat问题，但没有解决多链接处理的公平性问题，各种链接占用同一个队列，那么数据量大的的连接势必数据包就更多，它挤占队列的能力就更强.</p>
+ * <p>因此，产生了fq-codel，fair/flow queue codel.</p>
  *
  * @see <a href="https://github.com/apache/hbase/blob/master/hbase-server/src/main/java/org/apache/hadoop/hbase/ipc/AdaptiveLifoCoDelCallQueue.java">HBase AdaptiveLifoCoDelCallQueue</a>
  * @see <a href="https://queue.acm.org/detail.cfm?id=2209336">CoDel Paper</a>
  */
-class CoDelQueue {
+class CoDelQueue implements QueueDiscipline {
     private static final Logger log = LoggerFactory.getLogger(CoDelQueue.class.getSimpleName());
 
     private static final DequeueResult QUEUE_WAS_EMPTY = new DequeueResult(null, false);
@@ -46,12 +48,22 @@ class CoDelQueue {
         this.dropping = false;
     }
 
-    public void enqueue(Packet packet, long now) {
+    @Override
+    public void enqueue(Packet packet) {
+        enqueue(packet, System.nanoTime());
+    }
+
+    @Override
+    public Packet dequeue() {
+        return dequeue(System.nanoTime());
+    }
+
+    void enqueue(Packet packet, long now) {
         packet.enqueue(now);
         queue.offer(packet);
     }
 
-    public Packet dequeue(long now) {
+    Packet dequeue(long now) {
         DequeueResult res = doDequeue(now);
         if (res == QUEUE_WAS_EMPTY) {
             dropping = false;
@@ -71,7 +83,7 @@ class CoDelQueue {
                     droppedCount++;
                     if (droppedCount > 1 && now - dropNext < INTERVAL) {
                         // Adjust the dropping count only if it's not the first packet and the time didn't pass the full INTERVAL yet
-                        droppedCount =  Math.max(droppedCount - 2, 1);
+                        droppedCount = Math.max(droppedCount - 2, 1);
                     }
                     // If more packets need to be dropped, reschedule the next drop using control law
                     dropNext = controlLaw(dropNext, droppedCount);

@@ -19,7 +19,7 @@ import java.util.Random;
  * <p>旨在：队列平均长度保持在较低值.</p>
  * <p>队列满载视角：队列长度.</p>
  */
-class REDQueue {
+class REDQueue implements QueueDiscipline {
     @Heuristics
     private int maxQueueSize; // 队列容纳数据包数量的最大值
     @Heuristics
@@ -35,10 +35,11 @@ class REDQueue {
     // 这允许一定的burst
     private final ValueSmoother valueSmoother = new ExponentialMovingAverage(0.1);
 
-    public boolean enqueue(Packet packet) {
+    @Override
+    public void enqueue(Packet packet) {
         if (queue.size() >= maxQueueSize) {
             // 队列满了，强制丢包：tail drop
-            return false;
+            throw new QueueException();
         }
 
         if (minThreshold < avgQueueSize && avgQueueSize < maxThreshold) {
@@ -46,19 +47,19 @@ class REDQueue {
             // 0 ------ minThreshold ----- maxThreshold ---- ∞
             // 进入拥塞阈值区间，开始按照概率进行丢弃
             if (random.nextDouble() < dropProbability()) {
-                return false;
+                throw new QueueException();
             }
         } else if (avgQueueSize >= maxThreshold) {
             // 强制丢包
-            return false;
+            throw new QueueException();
         }
 
         // accept
         queue.offer(packet);
         avgQueueSize = valueSmoother.update(queue.size()).smoothedValue();
-        return true;
     }
 
+    @Override
     public Packet dequeue() {
         if (queue.isEmpty()) {
             return null;
@@ -91,7 +92,9 @@ class REDQueue {
         queue.maxProbability = 0.6;
 
         for (int i = 0; i < 90; i++) {
-            if (!queue.enqueue(new Packet(i))) {
+            try {
+                queue.enqueue(new Packet(i));
+            } catch (QueueException e) {
                 log.info("packet:{} dropped", i);
             }
         }

@@ -25,4 +25,13 @@ public class Packet {
         return String.valueOf(id);
     }
 
+    /**
+     * TCP四元组的哈希值.
+     *
+     * <p>ip，端口</p>
+     */
+    public int quadruples() {
+        return hashCode();
+    }
+
 }

@@ -7,6 +7,8 @@ public interface WorkloadFeedback {
 
     /**
      * 直接进入过载状态：显式过载反馈.
+     *
+     * <p>相当于TCP的ECN(Explicit Congestion Notification).</p>
      */
     static WorkloadFeedback ofOverloaded() {
         return new WorkloadFeedbackOverloaded(System.nanoTime());
