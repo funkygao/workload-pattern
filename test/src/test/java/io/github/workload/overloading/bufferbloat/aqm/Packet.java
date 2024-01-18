@@ -16,6 +16,10 @@ public class Packet {
         return now - arrivalTime;
     }
 
+    public int size() {
+        return id;
+    }
+
     public long arrivalTime() {
         return arrivalTime;
     }

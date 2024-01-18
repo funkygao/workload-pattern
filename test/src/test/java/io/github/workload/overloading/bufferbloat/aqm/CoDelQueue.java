@@ -58,6 +58,10 @@ class CoDelQueue implements QueueDiscipline {
         return dequeue(System.nanoTime());
     }
 
+    boolean isEmpty() {
+        return queue.isEmpty();
+    }
+
     void enqueue(Packet packet, long now) {
         packet.enqueue(now);
         queue.offer(packet);
