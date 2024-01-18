@@ -58,7 +58,7 @@ class FQCoDelQueue implements QueueDiscipline {
 
     private static class QueueState {
         private CoDelQueue queue;
-        private long deficitCounter;
+        private long deficitCounter; // 信用额度
 
         QueueState() {
             queue = new CoDelQueue();
