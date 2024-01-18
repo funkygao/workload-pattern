@@ -1,4 +1,4 @@
-package io.github.workload.metrics.tumbling.kafka;
+package io.github.workload.integration.kafka;
 
 import io.github.workload.WorkloadPriority;
 import io.github.workload.metrics.tumbling.CountRolloverStrategy;

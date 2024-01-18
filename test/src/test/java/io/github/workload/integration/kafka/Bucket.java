@@ -1,4 +1,4 @@
-package io.github.workload.metrics.tumbling.kafka;
+package io.github.workload.integration.kafka;
 
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.utils.Utils;

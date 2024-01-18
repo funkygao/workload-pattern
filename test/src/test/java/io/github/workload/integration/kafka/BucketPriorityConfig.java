@@ -1,4 +1,4 @@
-package io.github.workload.metrics.tumbling.kafka;
+package io.github.workload.integration.kafka;
 
 import org.apache.kafka.clients.consumer.RangeAssignor;
 import org.apache.kafka.clients.producer.internals.DefaultPartitioner;

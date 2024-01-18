@@ -1,4 +1,4 @@
-package io.github.workload.metrics.tumbling.kafka;
+package io.github.workload.integration.kafka;
 
 import io.github.workload.BaseConcurrentTest;
 import io.github.workload.helper.RandomUtil;
