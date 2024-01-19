@@ -1,6 +1,7 @@
 package io.github.workload.metrics.smoother;
 
 import io.github.workload.annotations.ThreadSafe;
+import io.github.workload.annotations.VisibleForTesting;
 
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
@@ -34,8 +35,7 @@ class SimpleMovingAverage implements ValueSmoother {
 
     @Override
     public ValueSmoother update(double newValue) {
-        // FIXME currentIndex might overflow
-        final int newValueIndex = currentIndex.getAndIncrement() % windowSize;
+        final int newValueIndex = getAndIncrementOverflowSafe(currentIndex, 0) % windowSize;
         final Double evictedValue = window.getAndSet(newValueIndex, newValue);
         if (evictedValue != null) {
             // 出现了淘汰，说明窗口已经填满了
@@ -58,5 +58,19 @@ class SimpleMovingAverage implements ValueSmoother {
 
         // the average based on the scaled sum
         return sum.get() / (double) (n * DOUBLE_LONG_SCALE);
+    }
+
+    @VisibleForTesting
+    int getAndIncrementOverflowSafe(AtomicInteger atomicInteger, int resetValueWhenOverflow) {
+        int current;
+        do {
+            current = atomicInteger.get();
+            if (current == Integer.MAX_VALUE) {
+                atomicInteger.compareAndSet(current, resetValueWhenOverflow);
+            } else {
+                atomicInteger.compareAndSet(current, current + 1);
+            }
+        } while (current == Integer.MAX_VALUE);
+        return current;
     }
 }

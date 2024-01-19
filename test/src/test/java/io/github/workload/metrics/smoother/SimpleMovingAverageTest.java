@@ -3,6 +3,8 @@ package io.github.workload.metrics.smoother;
 import io.github.workload.BaseConcurrentTest;
 import org.junit.jupiter.api.Test;
 
+import java.util.concurrent.atomic.AtomicInteger;
+
 import static org.junit.jupiter.api.Assertions.*;
 
 class SimpleMovingAverageTest extends BaseConcurrentTest {
@@ -16,6 +18,17 @@ class SimpleMovingAverageTest extends BaseConcurrentTest {
         } catch (IllegalStateException expected) {
 
         }
+    }
+
+    @Test
+    void atomicIntegerOverflow() {
+        AtomicInteger n = new AtomicInteger(Integer.MAX_VALUE);
+        n.getAndIncrement();
+        assertEquals(Integer.MIN_VALUE, n.get());
+
+        SimpleMovingAverage sma = new SimpleMovingAverage(2);
+        n = new AtomicInteger(Integer.MAX_VALUE);
+        assertEquals(0, sma.getAndIncrementOverflowSafe(n, 0));
     }
 
     @Test
