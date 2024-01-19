@@ -20,7 +20,7 @@ class SlidingAverage implements ValueSmoother {
     private final double beta;
     private volatile Double sa;
 
-    public SlidingAverage(double beta) {
+    SlidingAverage(double beta) {
         if (beta < 0 || beta >= 1) {
             throw new IllegalArgumentException("Beta must be between 0 and 1");
         }

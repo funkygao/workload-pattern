@@ -17,7 +17,7 @@ class ExponentialMovingAverage implements ValueSmoother {
     private final double alpha;
     private volatile Double ema;
 
-    public ExponentialMovingAverage(double alpha) {
+    ExponentialMovingAverage(double alpha) {
         if (alpha <= 0 || alpha > 1) {
             throw new IllegalArgumentException("Alpha must be between 0 and 1");
         }
