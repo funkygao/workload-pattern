@@ -26,6 +26,10 @@ class SimpleMovingAverage implements ValueSmoother {
     private final AtomicInteger currentIndex;
 
     SimpleMovingAverage(int windowSize) {
+        if (windowSize <= 0) {
+            throw new IllegalArgumentException("windowSize must > 0");
+        }
+
         this.windowSize = windowSize;
         window = new AtomicReferenceArray<>(windowSize);
         sum = new AtomicLong(0);
