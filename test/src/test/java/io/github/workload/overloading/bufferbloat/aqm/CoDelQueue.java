@@ -32,21 +32,21 @@ class CoDelQueue implements QueueDiscipline {
 
     private static final DequeueResult QUEUE_WAS_EMPTY = new DequeueResult(null, false);
 
-    @Heuristics
+    @Heuristics("target delay")
     private static final long TARGET = TimeUnit.MILLISECONDS.toNanos(5);
-    @Heuristics
+    @Heuristics("the expected worst case processing time of one message")
     private static final long INTERVAL = TimeUnit.MILLISECONDS.toNanos(100);
 
     private Queue<Packet> queue;
     private long firstAboveTime;
-    private long dropNext; // Time to drop next packet
+    private long dropNextTime; // Time to drop next packet
     private boolean dropping;
     private int droppedCount; // Packets dropped since going into drop state
 
     CoDelQueue() {
         this.queue = new LinkedList<>();
         this.firstAboveTime = 0;
-        this.dropNext = 0;
+        this.dropNextTime = 0;
         this.droppedCount = 0;
         this.dropping = false;
     }
@@ -84,16 +84,16 @@ class CoDelQueue implements QueueDiscipline {
                 dropping = false;
             } else {
                 // It's time to drop, enqueue time of next drop packet is already set
-                while (now >= dropNext && !queue.isEmpty()) {
+                while (now >= dropNextTime && !queue.isEmpty()) {
                     Packet droppedPacket = queue.poll();
                     log.info("dropped packet: {}", droppedPacket);
                     droppedCount++;
-                    if (droppedCount > 1 && now - dropNext < INTERVAL) {
+                    if (droppedCount > 1 && now - dropNextTime < INTERVAL) {
                         // Adjust the dropping count only if it's not the first packet and the time didn't pass the full INTERVAL yet
                         droppedCount = Math.max(droppedCount - 2, 1);
                     }
                     // If more packets need to be dropped, reschedule the next drop using control law
-                    dropNext = controlLaw(dropNext, droppedCount);
+                    dropNextTime = controlLaw(dropNextTime, droppedCount);
                 }
             }
         } else {
@@ -102,7 +102,7 @@ class CoDelQueue implements QueueDiscipline {
                 dropping = true;
                 droppedCount = 1;
                 queue.poll(); // Actually remove the packet
-                dropNext = controlLaw(now, droppedCount);
+                dropNextTime = controlLaw(now, droppedCount);
             }
         }
 
