@@ -51,10 +51,14 @@ priority是boolean类型，系统写死了两个shedder：优先的，不优先�
 QPS(TPS) = 并发数 / 平均响应时长 => 并发数 = QPS * 平均响应时长
 ```
 
-### [Proportional Integral controller Enhanced(PIE algorithm)](https://github.com/iheartradio/kanaloa/blob/0.5.x/core/src/main/scala/kanaloa/queue/Regulator.scala)
+### AQM
 
+- [Proportional Integral controller Enhanced(PIE algorithm)](https://github.com/iheartradio/kanaloa/blob/0.5.x/core/src/main/scala/kanaloa/queue/Regulator.scala)
 - [AQM-PIE RFC](https://datatracker.ietf.org/doc/html/draft-ietf-aqm-pie-03)
 - [Cgroup - Linux的网络资源隔离](https://github.com/zorrozou/zorrozou.github.io/blob/master/docs/books/cgroup_linux_network_control_group.md)
+- [Google TCP BBR](https://cloud.google.com/blog/products/networking/tcp-bbr-congestion-control-comes-to-gcp-your-internet-just-got-faster)
+- [HBase AdaptiveLifoCoDelCallQueue](https://github.com/apache/hbase/blob/master/hbase-server/src/main/java/org/apache/hadoop/hbase/ipc/AdaptiveLifoCoDelCallQueue.java)
 
 
 ### [K8S APF](https://github.com/kubernetes/enhancements/blob/master/keps/sig-api-machinery/1040-priority-and-fairness/README.md)
+

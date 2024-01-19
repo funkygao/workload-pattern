@@ -76,7 +76,7 @@ public class DRRBasedPartitioner implements Partitioner {
 
     @Test
     void demo() {
-        final Logger log = LoggerFactory.getLogger("DDR");
+        final Logger log = LoggerFactory.getLogger("DRR");
         DRRBasedPartitioner partitioner = new DRRBasedPartitioner();
         Map<Integer, AtomicInteger> partitionHistogram = new TreeMap<>();
         Map<Integer, List<Integer>> priorityHistogram = new TreeMap<>();
