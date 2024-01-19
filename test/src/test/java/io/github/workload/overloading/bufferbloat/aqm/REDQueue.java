@@ -2,7 +2,6 @@ package io.github.workload.overloading.bufferbloat.aqm;
 
 import io.github.workload.annotations.Heuristics;
 import io.github.workload.annotations.WIP;
-import io.github.workload.metrics.smoother.ExponentialMovingAverage;
 import io.github.workload.metrics.smoother.ValueSmoother;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
@@ -35,7 +34,7 @@ class REDQueue implements QueueDiscipline {
     private double avgQueueSize = 0;
     private final Random random = new Random();
     // 这允许一定的burst
-    private final ValueSmoother valueSmoother = new ExponentialMovingAverage(0.1);
+    private final ValueSmoother valueSmoother = ValueSmoother.ofEMA(0.1);
 
     @Override
     public void enqueue(Packet packet) {

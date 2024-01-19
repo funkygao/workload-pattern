@@ -1,6 +1,7 @@
 package io.github.workload.metrics.smoother;
 
 import io.github.workload.BaseConcurrentTest;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -15,6 +16,9 @@ class ExponentialMovingAverageTest extends BaseConcurrentTest {
         } catch (IllegalArgumentException expected) {
         }
 
+        // 1 is ok
+        new ExponentialMovingAverage(1d);
+
         try {
             new ExponentialMovingAverage(-0.1);
             fail();
@@ -26,6 +30,7 @@ class ExponentialMovingAverageTest extends BaseConcurrentTest {
             fail();
         } catch (IllegalArgumentException expected) {
         }
+
     }
 
     @Test
@@ -63,6 +68,52 @@ class ExponentialMovingAverageTest extends BaseConcurrentTest {
         }
         ema.update(0.2);
         assertTrue(ema.smoothedValue() > 0.12 && ema.smoothedValue() < 0.2);
+    }
+
+    @DisplayName("alpha=1，相当于没有平滑，只反映最近1次数据")
+    @Test
+    void alpha_is_1() {
+        ValueSmoother smoother = new ExponentialMovingAverage(1d);
+        double value = 5.0d;
+        smoother.update(value);
+        assertEquals(value, smoother.smoothedValue(), DELTA);
+        value = 2.12;
+        smoother.update(value);
+        assertEquals(value, smoother.smoothedValue(), DELTA);
+    }
+
+    @DisplayName("alpha=0.9，最近数据权重更大")
+    @Test
+    void alpha_is_09() {
+        ValueSmoother smoother = new ExponentialMovingAverage(0.9d);
+        double[] values = new double[]{0.1, 0.2, 0.15, 0.3, 0.05, 0.8, 0.85};
+        for (double value : values) {
+            smoother.update(value);
+        }
+        assertEquals(0.8377354, smoother.smoothedValue(), DELTA);
+
+        smoother.update(3.2);
+        assertEquals(2.96377354, smoother.smoothedValue(), DELTA);
+
+        smoother.update(0.1);
+        assertEquals(0.386377354, smoother.smoothedValue(), DELTA);
+    }
+
+    @DisplayName("alpha=0.5")
+    @Test
+    void alpha_is_05() {
+        ValueSmoother smoother = new ExponentialMovingAverage(0.5d);
+        double[] values = new double[]{0.1, 0.2, 0.15, 0.3, 0.05, 0.8, 0.85};
+        for (double value : values) {
+            smoother.update(value);
+        }
+        assertEquals(0.659375, smoother.smoothedValue(), DELTA);
+
+        smoother.update(3.2);
+        assertEquals(1.9296875, smoother.smoothedValue(), DELTA);
+
+        smoother.update(0.1);
+        assertEquals(1.01484375, smoother.smoothedValue(), DELTA);
     }
 
 }

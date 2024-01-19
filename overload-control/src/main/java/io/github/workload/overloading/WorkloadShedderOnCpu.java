@@ -4,7 +4,6 @@ import io.github.workload.SystemClock;
 import io.github.workload.SystemLoadProvider;
 import io.github.workload.annotations.Heuristics;
 import io.github.workload.annotations.VisibleForTesting;
-import io.github.workload.metrics.smoother.ExponentialMovingAverage;
 import io.github.workload.metrics.smoother.ValueSmoother;
 import io.github.workload.metrics.tumbling.CountAndTimeWindowState;
 import lombok.extern.slf4j.Slf4j;
@@ -35,7 +34,7 @@ class WorkloadShedderOnCpu extends WorkloadShedder {
         this.coolOffMs = coolOffSec * 1000;
         this.startupMs = coolOffClock.currentTimeMillis();
         this.loadProvider = SystemLoad.getInstance(coolOffSec);
-        this.valueSmoother = new ExponentialMovingAverage(EMA_ALPHA);
+        this.valueSmoother = ValueSmoother.ofEMA(EMA_ALPHA);
         log.info("[{}] created with upper bound:{}, cool off:{}sec", this.name, cpuUsageUpperBound, coolOffSec);
     }
 
@@ -54,6 +53,7 @@ class WorkloadShedderOnCpu extends WorkloadShedder {
         return overloaded;
     }
 
+    // use smoother to mitigate false positive
     private double smoothedCpuUsage() {
         double cpuUsage = loadProvider.cpuUsage();
         return valueSmoother.update(cpuUsage).smoothedValue();

@@ -6,11 +6,13 @@ import io.github.workload.annotations.ThreadSafe;
  * 指数移动平均(EMA)算法.
  */
 @ThreadSafe
-public class ExponentialMovingAverage implements ValueSmoother {
+class ExponentialMovingAverage implements ValueSmoother {
+
     /**
-     * 平滑系数，用于控制对最近数据变化的敏感度.
+     * 平滑系数，用于控制对最近数据变化的敏感度，即：近期数据权重.
      *
-     * <p>alpha值越大，新数据对EMA的影响越大，平滑度越低.</p>
+     * <p>alpha值越大，新数据对EMA的影响越大(对近期数据更敏感)，平滑度越低.</p>
+     * <p>0 < alpha < 1</p>
      */
     private final double alpha;
     private volatile Double ema;
@@ -25,7 +27,7 @@ public class ExponentialMovingAverage implements ValueSmoother {
     }
 
     @Override
-    public ValueSmoother update(double newValue) {
+    public ExponentialMovingAverage update(double newValue) {
         if (ema == null) {
             ema = newValue;
         } else {

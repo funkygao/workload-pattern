@@ -6,7 +6,8 @@ import io.github.workload.annotations.ThreadSafe;
  * 简单移动平均算法.
  */
 @ThreadSafe
-public class SlidingAverage implements ValueSmoother {
+class SlidingAverage implements ValueSmoother {
+
     /**
      * Vᵗ = β⋅Vᵗ⁻¹ + (1-β)⋅θᵗ.
      *
@@ -28,7 +29,7 @@ public class SlidingAverage implements ValueSmoother {
     }
 
     @Override
-    public ValueSmoother update(double newValue) {
+    public SlidingAverage update(double newValue) {
         if (sa == null) {
             sa = newValue;
         } else {

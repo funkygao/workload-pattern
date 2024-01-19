@@ -75,8 +75,6 @@ class SlidingAverageTest extends BaseConcurrentTest {
             sa.update(0.1 + 0.01 * i);
         }
         System.out.println(sa.smoothedValue());
-
-
     }
 
 }
