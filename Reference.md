@@ -14,6 +14,8 @@
 
 ## HBase RPC基于优先级的过载保护
 
+Server(HMaster/HRegionServer)处理RPC的请求。
+
 ### 优先级定义
 
 ```java
@@ -31,6 +33,10 @@ class HConstants {
 ```
 
 ### Under the hood
+
+`RpcScheduler`根据RPC请求的优先级交给不同的RpcExecutor处理，RpcExecutor把请求放入CallQueue，RpcHandler从CallQueue拿请求并执行。
+
+一个Handler就是一个线程。
 
 ```java
 NettyServerRpcConnection#process(ByteBuf buf)
@@ -78,9 +84,26 @@ class BalancedQueueRpcExecutor {
     boolean dispatch(final CallRunner callTask) {
         // random LB
         int queueIndex = balancer.getNextQueue(callTask);
-        BlockingQueue<CallRunner> queue = queues.get(queueIndex);
-        // AdaptiveLifoCoDelCallQueue#offer
-        return queue.offer(callTask)
+        BlockingQueue<CallRunner> callQueue = queues.get(queueIndex);
+        //               offer                take
+        // RpcExecutor ---------> CallQueue --------> RpcHandler
+        //                          |
+        //     AdaptiveLifoCoDelCallQueue
+        return callQueue.offer(callTask)
+    }
+}
+
+class RpcHandler extends Thread {
+    final BlockingQueue<CallRunner> callQueue;
+
+    public void run() {
+        while (running) {
+            run(getCallRunner());
+        }
+    }
+
+    protected CallRunner getCallRunner() {
+        return callQueue.take();
     }
 }
 ```
