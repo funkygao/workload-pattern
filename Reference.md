@@ -1,5 +1,21 @@
 # References
 
+## Key Takeaways
+
+### Priority
+
+- HBase
+   - Ingteger priority
+   - `@QosPriority`应用在RpcMethod，事先创建不同的线程池RpcExecutor，并根据优先级分配到相应的RpcExecutor。
+- Sentinel and the alike
+   - Boolean priority
+   - 系统写死了两个shedder：优先的，不优先的
+
+### 如何判断是否过载
+
+- HBase AdaptiveLifoCoDelCallQueue: 根据排队时间
+- Sentinel: 根据CPU使用率阈值，priority=true/false分别对应2个阈值
+
 ## AQM
 
 - [Proportional Integral controller Enhanced(PIE algorithm)](https://github.com/iheartradio/kanaloa/blob/0.5.x/core/src/main/scala/kanaloa/queue/Regulator.scala)
@@ -132,3 +148,4 @@ priority是boolean类型，系统写死了两个shedder：优先的，不优先�
 QPS(TPS) = 并发数 / 平均响应时长 => 并发数 = QPS * 平均响应时长
 ```
 
+## Kanaloa
