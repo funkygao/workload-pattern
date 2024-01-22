@@ -24,6 +24,7 @@ import java.util.concurrent.ConcurrentHashMap;
  *   </ul>
  * </li>
  * <li>只卸除新请求，已接受的请求(已经在执行，在{@link BlockingQueue}里等待执行)即使耗尽CPU也无法卸除</li>
+ * <li>请求的优先级分布完全没有规律，且完全集中。例如，当前窗口内全部是优先级为A的请求，到下一个窗口全部是B的请求</li>
  * </ul>
  */
 @Slf4j

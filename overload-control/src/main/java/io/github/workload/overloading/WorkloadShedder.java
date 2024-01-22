@@ -23,8 +23,14 @@ import java.util.concurrent.atomic.AtomicInteger;
 @ThreadSafe
 abstract class WorkloadShedder {
     private static final int ADMIT_ALL_P = AdmissionLevel.ofAdmitAll().P();
+
+    /**
+     * 降速时允许的最大误差率.
+     *
+     * @see <a href="https://www.envoyproxy.io/docs/envoy/latest/intro/arch_overview/upstream/load_balancing/panic_threshold.html">envoy panic threshold</a>
+     */
     @Heuristics
-    private static final double ERROR_RATE_BOUND = 1.01d; // 101%
+    private static final double SHED_ERROR_RATE_BOUND = 1.01d; // 101%
 
     protected final String name;
     private volatile AdmissionLevel admissionLevel = AdmissionLevel.ofAdmitAll();
@@ -97,7 +103,7 @@ abstract class WorkloadShedder {
             if (accumulatedToDrop >= expectedToDrop) {
                 double errorRate = (double) (accumulatedToDrop - expectedToDrop) / expectedToDrop;
                 int targetP;
-                if (descendingEntries.hasNext() && errorRate < ERROR_RATE_BOUND) {
+                if (descendingEntries.hasNext() && errorRate < SHED_ERROR_RATE_BOUND) {
                     // 误差率可接受，and candidate is not head, candidate will shed workload
                     targetP = descendingEntries.next().getKey();
                     log.warn("[{}] shed more({}/{}), error:{}, window admitted:{}, {} -> {}", name, accumulatedToDrop, expectedToDrop, errorRate, admitted, admissionLevel, targetP);

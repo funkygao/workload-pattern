@@ -1,6 +1,7 @@
 package io.github.workload.overloading;
 
 import io.github.workload.WorkloadPriority;
+import io.github.workload.annotations.Heuristics;
 import io.github.workload.annotations.ThreadSafe;
 import lombok.NonNull;
 
@@ -17,6 +18,7 @@ public interface AdmissionController {
      *
      * <p>75%</p>
      */
+    @Heuristics
     double CPU_USAGE_UPPER_BOUND = 0.75;
 
     /**
@@ -24,6 +26,7 @@ public interface AdmissionController {
      *
      * <p>15分钟</p>
      */
+    @Heuristics
     long CPU_OVERLOAD_COOL_OFF_SEC = 15 * 60;
 
     /**

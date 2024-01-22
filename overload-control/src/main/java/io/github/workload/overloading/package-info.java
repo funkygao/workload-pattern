@@ -1,6 +1,7 @@
 /**
  * 基于QoS公平的自适应过载保护算法，应对brief burst/skewed traffic.
  *
+ * <p>实现基于业务公平的高效柔性服务.</p>
  * <ul>Where does the burst traffic come from?
  * <li>Over time</li>
  * <li>Over space</li>
