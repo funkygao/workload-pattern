@@ -73,6 +73,7 @@ abstract class WorkloadShedder {
         return window.getConfig();
     }
 
+    // penalize low priority workloads
     private void shedMore(CountAndTimeWindowState lastWindow) {
         final int admitted = lastWindow.admitted();
         final int expectedToDrop = (int) (policy.getDropRate() * admitted);
