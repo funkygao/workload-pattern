@@ -10,7 +10,7 @@
     - AdaptiveLifoCoDelCallQueue
   - has deadline mechanism without propagation
 - Kanaloa
-  - 无优先级机制
+  - 无优先级机制，只使用了CoDel而未使用FQ-CoDel
 - Sentinel and the alike
   - Boolean priority
   - 系统写死了两个shedder：优先的，不优先的
@@ -22,12 +22,16 @@
 
 ## AQM
 
-| Algorithm | 启发性参数                              | 如何判断拥塞 congestion | 何时drop | 丢包算法                                          |
-| --------- | ---------------------------------- | ----------------- | ------ | --------------------------------------------- |
-| RED       | (CongestionQueueSizeRange，maxDropProbability) | 移动平均的队列长度位于拥塞区间   | enque  | 随机丢包概率：maxDropProbability * 当前平均队列长度占拥塞区间的百分比 |
-| CoDel     |                                    |                   | deque  |                                               |
-| PIE       |                                    |                   |        |                                               |
+>Bufferbloat is the undesirable latency that comes from a router or other network equipment buffering too much data.
 
+
+| Algorithm | 启发性参数                                         | 如何判断拥塞 congestion   | 何时drop | 丢包算法                                        |
+| --------- | --------------------------------------------- | ------------------- | ------ | ------------------------------------------- |
+| RED       | (CongestionQueueSizeRange，maxDropProbability) | EMA(queueLen)位于拥塞区间 | enque  | 随机丢包概率：maxDropProbability * 当前队列长度占拥塞区间的百分比 |
+| 评价        | 简单，可以解决bufferbloat，支持burst                    | 启发性参数不好配，队列长度判断拥塞不太合理            |        |                                             |
+| CoDel     | target sojournTime |                     | deque  |                                             |
+| CAKE      |                                               |                     | deque  |                                             |
+| PIE       |                                               |                     |        |                                             |
 
 - [Proportional Integral controller Enhanced(PIE algorithm)](https://github.com/iheartradio/kanaloa/blob/0.5.x/core/src/main/scala/kanaloa/queue/Regulator.scala)
 - [AQM-PIE RFC](https://datatracker.ietf.org/doc/html/draft-ietf-aqm-pie-03)

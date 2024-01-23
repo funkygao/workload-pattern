@@ -25,15 +25,15 @@ import java.util.Random;
 class REDQueue implements QueueDiscipline {
     @Heuristics
     private int maxQueueSize; // 队列容纳数据包数量的最大值
+    @Heuristics
     private CongestionQueueSizeRange congestionRange;
     @Heuristics
-    private double maxDropProbability; // 计算的丢包概率不会超过此值
+    private double maxDropProbability;
 
     private LinkedList<Packet> queue = new LinkedList<>();
-    private double avgQueueSize = 0;
+    private double emaQueueSize = 0;
+    private final ValueSmoother ema = ValueSmoother.ofEMA(0.1); // 这允许一定的burst
     private final Random random = new Random();
-    // 这允许一定的burst
-    private final ValueSmoother valueSmoother = ValueSmoother.ofEMA(0.1);
 
     @Override
     public void enqueue(Packet packet) {
@@ -42,7 +42,7 @@ class REDQueue implements QueueDiscipline {
             throw new QueueException();
         }
 
-        double dropProbability = congestionRange.dropProbability(avgQueueSize, maxDropProbability);
+        double dropProbability = congestionRange.dropProbability(emaQueueSize, maxDropProbability);
         if (dropProbability >= 1) {
             // 强制丢包
             throw new QueueException();
@@ -54,7 +54,7 @@ class REDQueue implements QueueDiscipline {
 
         // accept
         queue.offer(packet);
-        avgQueueSize = valueSmoother.update(queue.size()).smoothedValue();
+        emaQueueSize = ema.update(queue.size()).smoothedValue();
     }
 
     @Override
@@ -64,7 +64,7 @@ class REDQueue implements QueueDiscipline {
         }
 
         Packet packet = queue.poll();
-        avgQueueSize = valueSmoother.update(queue.size()).smoothedValue();
+        emaQueueSize = ema.update(queue.size()).smoothedValue();
         return packet;
     }
 
