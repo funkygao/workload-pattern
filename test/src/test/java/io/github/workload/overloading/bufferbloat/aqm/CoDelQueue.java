@@ -1,7 +1,6 @@
 package io.github.workload.overloading.bufferbloat.aqm;
 
-import io.github.workload.annotations.Heuristics;
-import io.github.workload.annotations.Immutable;
+import io.github.workload.annotations.VisibleForTesting;
 import io.github.workload.annotations.WIP;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
@@ -9,9 +8,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Queue;
-import java.util.concurrent.ThreadLocalRandom;
-import java.util.concurrent.TimeUnit;
 
 /**
  * Controlled Queue Delay algorithm to prevent queue overloading.
@@ -28,141 +26,95 @@ import java.util.concurrent.TimeUnit;
  */
 @WIP
 class CoDelQueue implements QueueDiscipline {
-    private static final Logger log = LoggerFactory.getLogger(CoDelQueue.class.getSimpleName());
+    // CoDel算法的一些参数
+    private static final long INTERVAL = 100; // CoDel算法定时周期的时间长度（单位：毫秒）
+    private static final long TARGET = 5; // 目标延迟时间（单位：毫秒）
 
-    private static final DequeueResult QUEUE_WAS_EMPTY = new DequeueResult(null, false);
+    private Queue<Packet> queue; // 用于存储网络数据包的队列
+    private long firstAboveTime; // 第一个数据包延迟超过目标值的时间
+    private long dropNext; // 下一次丢包应当发生的时间
+    private int count; // 在当前dropNext周期内丢包的总计数
 
-    @Heuristics("target delay, user visible performance")
-    private static final long TARGET = TimeUnit.MILLISECONDS.toNanos(5);
-    @Heuristics("the expected worst case processing time of one message")
-    private static final long INTERVAL = TimeUnit.MILLISECONDS.toNanos(100);
+    public CoDelQueue() {
+        queue = new LinkedList<>();
+        firstAboveTime = 0;
+        dropNext = 0;
+        count = 0;
+    }
 
-    private Queue<Packet> queue;
-    private long firstAboveTime;
-    private long dropNextTime; // Time to drop next packet
-    private boolean dropping;
-    private int droppedCount; // Packets dropped since going into drop state
-
-    CoDelQueue() {
-        this.queue = new LinkedList<>();
-        this.firstAboveTime = 0;
-        this.dropNextTime = 0;
-        this.droppedCount = 0;
-        this.dropping = false;
+    @VisibleForTesting
+    void enqueue(Packet packet, long now) {
+        packet.enqueue(now);
+        queue.add(packet);
     }
 
     @Override
     public void enqueue(Packet packet) {
-        enqueue(packet, System.nanoTime());
+        enqueue(packet, System.currentTimeMillis());
+    }
+
+    @VisibleForTesting
+    Packet dequeue(long now) {
+        if (queue.isEmpty()) {
+            // 队列空时重置状态变量
+            firstAboveTime = 0;
+            return null;
+        }
+
+        Packet packet = queue.peek(); // 检查队列前端的包
+        long sojournTime = packet.sojournTime(now);
+        if (sojournTime < TARGET) {
+            // 延迟没有超过目标值，重置状态
+            firstAboveTime = 0;
+        } else {
+            // 延迟超过目标值
+            if (firstAboveTime == 0) {
+                // 记录第一次超过延迟目标值的时间
+                firstAboveTime = now + INTERVAL;
+            } else if (now >= firstAboveTime) {
+                // 延迟持续时间超过了阈值
+
+                // 检查是否应当丢包
+                if (now >= dropNext) {
+                    doDrop(now);
+
+                    dequeue(); // 递归，取下一个不drop的包
+                }
+            }
+        }
+
+        // 移除并返回队列前端的包
+        return queue.poll();
     }
 
     @Override
     public Packet dequeue() {
-        return dequeue(System.nanoTime());
+        return dequeue(System.currentTimeMillis());
     }
 
-    boolean isEmpty() {
-        return queue.isEmpty();
-    }
+    // CoDel算法中丢包的逻辑：根据count计算dropNext
+    private void doDrop(long now) {
+        queue.poll();
 
-    void enqueue(Packet packet, long now) {
-        packet.enqueue(now);
-        queue.offer(packet);
-    }
-
-    Packet dequeue(long now) {
-        DequeueResult res = doDequeue(now);
-        if (res == QUEUE_WAS_EMPTY) {
-            dropping = false;
-            return null;
-        }
-
-        if (dropping) {
-            // 根据`dropNext`时间和`droppedCount`判断是否继续丢包
-            if (!res.okToDrop) {
-                // End dropping, as no need to drop
-                dropping = false;
-                return res.packet;
-            }
-
-            // It's time to drop, enqueue time of next drop packet is already set
-            while (now >= dropNextTime && !queue.isEmpty()) {
-                Packet droppedPacket = queue.poll();
-                log.info("dropped packet: {}", droppedPacket);
-                droppedCount++;
-                if (droppedCount > 1 && now - dropNextTime < INTERVAL) {
-                    // Adjust the dropping count only if it's not the first packet and the time didn't pass the full INTERVAL yet
-                    droppedCount = Math.max(droppedCount - 2, 1);
-                }
-                // If more packets need to be dropped, reschedule the next drop using control law
-                dropNextTime = controlLaw(dropNextTime, droppedCount);
-            }
+        // 若是第一次丢包，则设置下一次丢包时间
+        if (count == 0) {
+            count = 1;
+            dropNext = now + INTERVAL;
         } else {
-            if (res.okToDrop) {
-                // It's not currently dropping, but it's ok to start
-                dropping = true;
-                droppedCount = 1;
-                queue.poll(); // Actually remove the packet
-                dropNextTime = controlLaw(now, droppedCount);
+            // 以指数退避计算下次丢包时间
+            if (now > dropNext + INTERVAL) {
+                count = 1;
+            } else {
+                count *= 2;
             }
+            dropNext = controlLaw(dropNext);
         }
-
-        return res.packet;
+        firstAboveTime = 0;
     }
 
-    private DequeueResult doDequeue(long now) {
-        //      firstAboveTime
-        //             |    interval     |
-        // ----------------------------------------> time
-        //             XX  X XXX     X X X
-        //              |
-        //            packet
-        Packet packet = queue.peek(); // Peek the head but don't remove yet
-        if (packet == null) {
-            firstAboveTime = 0;
-            return QUEUE_WAS_EMPTY;
-        }
-
-        long sojournTime = packet.sojournTime(now);
-        if (sojournTime < TARGET) {
-            firstAboveTime = 0;
-            return new DequeueResult(packet, false);
-        } else {
-            // this packet stays longer than target
-            if (firstAboveTime == 0) {
-                firstAboveTime = now + INTERVAL;
-            } else if (now >= firstAboveTime) {
-                return new DequeueResult(packet, true);
-            }
-        }
-
-        return new DequeueResult(packet, false);
-    }
-
-    private long controlLaw(long whence, int droppedCount) {
-        // 丢包越多，那么下一次丢包时间越近
-        return whence + (INTERVAL / (long) Math.sqrt(droppedCount));
-    }
-
-    @Immutable
-    private static class DequeueResult {
-        final Packet packet;
-        final boolean okToDrop;
-
-        DequeueResult(Packet packet, boolean okToDrop) {
-            this.packet = packet;
-            this.okToDrop = okToDrop;
-        }
-    }
-
-    @Test
-    void nextDrop() {
-        CoDelQueue codelQueue = new CoDelQueue();
-        log.info("{}", CoDelQueue.INTERVAL);
-        for (int droppedCount = 1; droppedCount < 10; droppedCount++) {
-            log.info("{}", codelQueue.controlLaw(0, droppedCount));
-        }
-        log.info("{}", codelQueue.controlLaw(0, 1000));
+    // 控制律用于动态计算下一次丢包的时间
+    private long controlLaw(long dropNext) {
+        return (long) (dropNext + INTERVAL / Math.sqrt(count));
     }
 
     @Test
@@ -170,29 +122,30 @@ class CoDelQueue implements QueueDiscipline {
     void demo() throws InterruptedException {
         final Logger log = LoggerFactory.getLogger("CoDelQueue");
 
-        CoDelQueue codelQueue = new CoDelQueue();
-        final int N = 100;
+        CoDelQueue queue = new CoDelQueue();
+        final int N = 10;
 
         // Simulate packet arrivals and processing
         for (int i = 0; i < N; i++) {
             Packet packet = new Packet(i); // Create a new packet
-            long now = System.nanoTime();
-            codelQueue.enqueue(packet, now); // Enqueue packet
-            Thread.sleep(5); // Simulate processing delay
+            queue.enqueue(packet, 1); // Enqueue packet
         }
 
-        // Dequeue packets
+        // deque
+        long[] times = new long[]{2, 5, 8, 30, 35, 39, 40, 41, 46, 66, 89, 100};
+        List<Packet> egress = new LinkedList<>();
         for (int i = 0; i < N; i++) {
-            long now = System.nanoTime();
-            Packet dequeuedPacket = codelQueue.dequeue(now);
-            if (dequeuedPacket == null) {
-                log.info("{}, got null", i);
-            } else {
-                log.info("{} Packet:{} sojourn time:{}", i, dequeuedPacket, dequeuedPacket.sojournTime(now));
+            long now = times[i];
+            Packet packet = queue.dequeue(now);
+            if (packet == null) {
+                log.info("isEmpty:{}", queue.isEmpty());
             }
-
-            Thread.sleep(5 + ThreadLocalRandom.current().nextInt(10)); // Simulate processing delay
+            egress.add(packet);
         }
+        log.info("{}", egress);
     }
 
+    public boolean isEmpty() {
+        return queue.isEmpty();
+    }
 }

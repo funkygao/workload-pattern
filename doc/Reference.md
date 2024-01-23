@@ -4,10 +4,11 @@
 
 ### Priority
 
+- [fb folly CoDel](https://github.com/facebook/folly/blob/bd600cd4e88f664f285489c76b6ad835d8367cd2/folly/executors/Codel.cpp)
 - HBase RPC
   - Ingteger priority
   - `@QosPriority`应用在RpcMethod，事先创建不同的线程池RpcExecutor，并根据优先级分配到相应的RpcExecutor
-    - AdaptiveLifoCoDelCallQueue
+    - AdaptiveLifoCoDelCallQueue，借鉴了fb
   - has deadline mechanism without propagation
 - Kanaloa
   - 无优先级机制，只使用了CoDel而未使用FQ-CoDel
@@ -29,7 +30,7 @@
 | --------- | --------------------------------------------- | ------------------- | ------ | ------------------------------------------- |
 | RED       | (CongestionQueueSizeRange，maxDropProbability) | EMA(queueLen)位于拥塞区间 | enque  | 随机丢包概率：maxDropProbability * 当前队列长度占拥塞区间的百分比 |
 | 评价        | 简单，可以解决bufferbloat，支持burst                    | 启发性参数不好配，队列长度判断拥塞不太合理            |        |                                             |
-| CoDel     | target sojournTime |                     | deque  |                                             |
+| CoDel     | (target sojournTime, RTT interval) |                     | deque  |                                             |
 | CAKE      |                                               |                     | deque  |                                             |
 | PIE       |                                               |                     |        |                                             |
 

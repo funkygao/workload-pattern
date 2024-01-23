@@ -3,7 +3,6 @@ package io.github.workload.overloading.bufferbloat.aqm;
 import io.github.workload.annotations.Heuristics;
 import io.github.workload.annotations.WIP;
 import io.github.workload.metrics.smoother.ValueSmoother;
-import lombok.AllArgsConstructor;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
@@ -68,12 +67,16 @@ class REDQueue implements QueueDiscipline {
         return packet;
     }
 
-    @AllArgsConstructor
     private static class CongestionQueueSizeRange {
         @Heuristics
         private double minThreshold; // 当平均队列大小超过此阈值时，开始计算丢包概率
         @Heuristics
         private double maxThreshold; // 当平均队列大小超过此阈值时，开始强制丢包
+
+        CongestionQueueSizeRange(double minThreshold, double maxThreshold) {
+            this.minThreshold = minThreshold;
+            this.maxThreshold = maxThreshold;
+        }
 
         public double dropProbability(double avgQueueSize, double maxDropProbability) {
             if (avgQueueSize > maxThreshold) {
