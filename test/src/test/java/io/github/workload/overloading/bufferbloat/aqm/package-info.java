@@ -7,5 +7,6 @@
  * <p>packet egress path: Classification, Scheduling, Shaping.</p>
  * <p>Scheduling(RED/CoDel): 1) decide which packet to send next, 2) decide what to do when the queues are full</p>
  * <p>Shaping(DRR/HFSC/HTB/CAKE): typically variation of token bucket algorithm</p>
+ * <p>TCP sheds load by changing windows in reaction to dropped packets.</p>
  */
 package io.github.workload.overloading.bufferbloat.aqm;

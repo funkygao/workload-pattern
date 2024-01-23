@@ -11,6 +11,8 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
 /**
  * Controlled Queue Delay algorithm to prevent queue overloading.
  *
@@ -23,6 +25,7 @@ import java.util.Queue;
  * @see <a href="https://github.com/apache/hbase/blob/master/hbase-server/src/main/java/org/apache/hadoop/hbase/ipc/AdaptiveLifoCoDelCallQueue.java">HBase AdaptiveLifoCoDelCallQueue</a>
  * @see <a href="https://blog.rabbitmq.com/posts/2012/05/some-queuing-theory-throughput-latency-and-bandwidth/">RabbitMQ的QoS应用</a>
  * @see <a href="https://queue.acm.org/detail.cfm?id=2209336">CoDel Paper</a>
+ * @see <a href="https://github.com/facebook/folly/blob/bd600cd4e88f664f285489c76b6ad835d8367cd2/folly/executors/Codel.cpp">Facebook RPC CoDel</a>
  */
 @WIP
 class CoDelQueue implements QueueDiscipline {
@@ -33,13 +36,13 @@ class CoDelQueue implements QueueDiscipline {
     private Queue<Packet> queue; // 用于存储网络数据包的队列
     private long firstAboveTime; // 第一个数据包延迟超过目标值的时间
     private long dropNext; // 下一次丢包应当发生的时间
-    private int count; // 在当前dropNext周期内丢包的总计数
+    private int droppedCount; // 在当前dropNext周期内丢包的总计数
 
     public CoDelQueue() {
         queue = new LinkedList<>();
         firstAboveTime = 0;
         dropNext = 0;
-        count = 0;
+        droppedCount = 0;
     }
 
     @VisibleForTesting
@@ -66,25 +69,28 @@ class CoDelQueue implements QueueDiscipline {
         if (sojournTime < TARGET) {
             // 延迟没有超过目标值，重置状态
             firstAboveTime = 0;
-        } else {
-            // 延迟超过目标值
-            if (firstAboveTime == 0) {
-                // 记录第一次超过延迟目标值的时间
-                firstAboveTime = now + INTERVAL;
-            } else if (now >= firstAboveTime) {
-                // 延迟持续时间超过了阈值
-
-                // 检查是否应当丢包
-                if (now >= dropNext) {
-                    doDrop(now);
-
-                    dequeue(); // 递归，取下一个不drop的包
-                }
-            }
+            return queue.poll();
         }
 
-        // 移除并返回队列前端的包
+        // 延迟超过目标值
+        if (firstAboveTime == 0) {
+            // 记录第一次超过延迟目标值的时间
+            firstAboveTime = now + INTERVAL;
+        } else if (now >= firstAboveTime) {
+            // 延迟持续时间超过了阈值
+
+            // 检查是否应当丢包
+            if (now >= dropNext) {
+                doDrop(now);
+
+                dequeue(); // 递归，取下一个不drop的包
+            }
+        }
         return queue.poll();
+    }
+
+    private long getSloughTimeout() {
+        return 2 * TARGET;
     }
 
     @Override
@@ -97,15 +103,15 @@ class CoDelQueue implements QueueDiscipline {
         queue.poll();
 
         // 若是第一次丢包，则设置下一次丢包时间
-        if (count == 0) {
-            count = 1;
+        if (droppedCount == 0) {
+            droppedCount = 1;
             dropNext = now + INTERVAL;
         } else {
             // 以指数退避计算下次丢包时间
             if (now > dropNext + INTERVAL) {
-                count = 1;
+                droppedCount = 1;
             } else {
-                count *= 2;
+                droppedCount *= 2;
             }
             dropNext = controlLaw(dropNext);
         }
@@ -114,7 +120,11 @@ class CoDelQueue implements QueueDiscipline {
 
     // 控制律用于动态计算下一次丢包的时间
     private long controlLaw(long dropNext) {
-        return (long) (dropNext + INTERVAL / Math.sqrt(count));
+        return (long) (dropNext + INTERVAL / Math.sqrt(droppedCount));
+    }
+
+    public boolean isEmpty() {
+        return queue.isEmpty();
     }
 
     @Test
@@ -145,7 +155,18 @@ class CoDelQueue implements QueueDiscipline {
         log.info("{}", egress);
     }
 
-    public boolean isEmpty() {
-        return queue.isEmpty();
+    @Test
+    @Disabled
+    void controlLaw() {
+        CoDelQueue queue = new CoDelQueue();
+        List<Long> dropNextList = new LinkedList<>();
+        for (int droppedCount = 1; droppedCount < 500; droppedCount += 20) {
+            queue.droppedCount = droppedCount;
+            dropNextList.add(queue.controlLaw(0));
+        }
+        // setting drops packets at increasingly shorter intervals to achieve a linear change in throughput
+        String expected = "[100, 21, 15, 12, 11, 9, 9, 8, 7, 7, 7, 6, 6, 6, 5, 5, 5, 5, 5, 5, 4, 4, 4, 4, 4]";
+        assertEquals(expected, dropNextList.toString());
     }
+
 }
