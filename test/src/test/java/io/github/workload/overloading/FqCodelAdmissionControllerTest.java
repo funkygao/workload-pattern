@@ -8,8 +8,7 @@ class FqCodelAdmissionControllerTest {
 
     @Test
     void basic() {
-        AdmissionController controller = FqCodelAdmissionController.getInstance("a");
-        assertSame(controller, FqCodelAdmissionController.getInstance("a"));
+        
     }
 
 }

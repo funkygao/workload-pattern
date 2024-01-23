@@ -112,7 +112,7 @@ class WorkloadShedderTest extends BaseConcurrentTest {
 
         setLogLevel(Level.INFO);
 
-        FairSafeAdmissionController.resetForTesting();
+        AdmissionControllerFactory.resetForTesting();
         FairSafeAdmissionController admissionController = (FairSafeAdmissionController) AdmissionController.getInstance("RPC");
         final WorkloadShedder shedder = admissionController.shedderOnQueue();
         // 刚启动时，P为最大值(最低优先级)
@@ -182,7 +182,7 @@ class WorkloadShedderTest extends BaseConcurrentTest {
 
         System.setProperty("workload.window.DEFAULT_TIME_CYCLE_MS", "50000000");
         setLogLevel(Level.INFO);
-        FairSafeAdmissionController.resetForTesting();
+        AdmissionControllerFactory.resetForTesting();
         FairSafeAdmissionController admissionController = (FairSafeAdmissionController) AdmissionController.getInstance("RPC");
         final WorkloadShedder shedder = admissionController.shedderOnQueue();
 

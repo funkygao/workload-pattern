@@ -37,7 +37,8 @@ public interface AdmissionController {
      * @param name name(or type) of the admission control
      */
     static AdmissionController getInstance(@NonNull String name) {
-        return FairSafeAdmissionController.getInstance(name);
+        return AdmissionControllerFactory.getInstance(name,
+                () -> new FairSafeAdmissionController(name));
     }
 
     /**

@@ -5,9 +5,6 @@ import io.github.workload.annotations.Experimental;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-
 /**
  * 基于FQ-CoDel算法的工作负载准入控制器.
  */
@@ -16,22 +13,8 @@ import java.util.concurrent.ConcurrentHashMap;
 public class FqCodelAdmissionController implements AdmissionController {
     private final String name;
 
-    private static final Map<String, FqCodelAdmissionController> instances = new ConcurrentHashMap<>(8);
-
-    private FqCodelAdmissionController(String name) {
+    FqCodelAdmissionController(String name) {
         this.name = name;
-    }
-
-    static AdmissionController getInstance(@NonNull String name) {
-        AdmissionController instance = instances.get(name);
-        if (instance != null) {
-            return instance;
-        }
-
-        return instances.computeIfAbsent(name, key -> {
-            log.info("register new admission controller:{}", name);
-            return new FqCodelAdmissionController(name);
-        });
     }
 
     @Override

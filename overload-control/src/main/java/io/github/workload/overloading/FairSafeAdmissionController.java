@@ -5,7 +5,6 @@ import io.github.workload.annotations.VisibleForTesting;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 
-import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -34,24 +33,8 @@ class FairSafeAdmissionController implements AdmissionController {
     // shared singleton in JVM
     private static final WorkloadShedderOnCpu shedderOnCpu = new WorkloadShedderOnCpu(CPU_USAGE_UPPER_BOUND, CPU_OVERLOAD_COOL_OFF_SEC);
 
-    private static final Map<String, FairSafeAdmissionController> instances = new ConcurrentHashMap<>(8);
-
-    private FairSafeAdmissionController(String name) {
+    FairSafeAdmissionController(String name) {
         this.shedderOnQueue = new WorkloadShedderOnQueue(name);
-    }
-
-    static AdmissionController getInstance(@NonNull String name) {
-        // https://github.com/apache/shardingsphere/pull/13275/files
-        // https://bugs.openjdk.org/browse/JDK-8161372
-        AdmissionController instance = instances.get(name);
-        if (instance != null) {
-            return instance;
-        }
-
-        return instances.computeIfAbsent(name, key -> {
-            log.info("register new admission controller:{}", name);
-            return new FairSafeAdmissionController(name);
-        });
     }
 
     @Override
@@ -86,11 +69,6 @@ class FairSafeAdmissionController implements AdmissionController {
     @VisibleForTesting
     static WorkloadShedderOnCpu shedderOnCpu() {
         return shedderOnCpu;
-    }
-
-    @VisibleForTesting("清除共享的静态变量，以便隔离单元测试")
-    static void resetForTesting() {
-        instances.clear();
     }
 
 }
