@@ -42,7 +42,7 @@ class CoDelQueue implements QueueDiscipline {
     // 连续拥塞窗口期的起始时间
     private long firstAboveTime;
 
-    // 下一次丢包应当发生的时间点，每次丢包时重新计算
+    // time to drop next packet, 下一次丢包应当发生的时间点，每次丢包时重新计算
     private long dropNext;
 
     // 窗口期内总计丢弃多少数据包
@@ -70,10 +70,7 @@ class CoDelQueue implements QueueDiscipline {
     Packet dequeue(long now) {
         if (queue.isEmpty()) {
             log.debug("queue is empty");
-            if (firstAboveTime != 0) {
-                // Reset only if previously in a congested state
-                stopCongestedWindow();
-            }
+            stopCongestedWindow();
             return null;
         }
 
@@ -135,6 +132,10 @@ class CoDelQueue implements QueueDiscipline {
     }
 
     private void stopCongestedWindow() {
+        if (firstAboveTime == 0) {
+            return;
+        }
+
         log.debug("stop window");
         this.firstAboveTime = 0;
         this.droppedCount = 0;
@@ -150,18 +151,16 @@ class CoDelQueue implements QueueDiscipline {
 
     // CoDel算法中丢包的逻辑：根据count计算dropNext
     private void scheduleDropNext(long now) {
-        // 若是第一次丢包，则设置下一次丢包时间
-        if (droppedCount == 0) {
-            droppedCount = 1;
+        droppedCount++;
+
+        if (droppedCount == 1) {
+            // 若是第一次丢包，则设置下一次丢包时间
             dropNext = now + INTERVAL;
-            log.debug("droppedCount was 0, dropNext:{}, window:{}", dropNext, firstAboveTime);
         } else {
-            // We have dropped a packet before
-            // 以指数退避计算下次丢包时间
-            droppedCount++;
+            // We have dropped a packet before, 以指数退避计算下次丢包时间
             dropNext = controlLaw(dropNext);
-            log.debug("droppedCount:{}, dropNext:{}, window:{}", droppedCount, dropNext, firstAboveTime);
         }
+        log.debug("droppedCount:{}, dropNext:{}, window:{}", droppedCount, dropNext, firstAboveTime);
     }
 
     // 控制律用于动态计算下一次丢包的时间
@@ -192,7 +191,7 @@ class CoDelQueue implements QueueDiscipline {
         }
 
         // deque
-        long[] times = new long[]{2, 5, 8, 30, 109, 121, 131, 185, 187, 201, 223, 300};
+        long[] times = new long[]{2, 5, 8, 30, 109, 121, 231, 285, 287, 301, 323, 500};
         List<Integer> egress = new LinkedList<>();
         for (int i = 0; i < N; i++) {
             long now = times[i];
@@ -200,7 +199,12 @@ class CoDelQueue implements QueueDiscipline {
             if (packet == null) {
                 log.info("isEmpty:{}", queue.isEmpty());
             }
-            egress.add(packet.id());
+            if (!packet.shouldDrop()) {
+                egress.add(packet.id());
+            } else {
+                log.warn("{} dropped", packet);
+            }
+
         }
         log.info("{}, {}", egress.size(), egress);
     }
