@@ -33,7 +33,7 @@ class CoDelQueue implements QueueDiscipline {
     private static final Logger log = LoggerFactory.getLogger(CoDelQueue.class.getSimpleName());
 
     @Heuristics
-    private static final long INTERVAL = 100; // congested window size
+    private static final long INTERVAL = 100; // congested window size in ms
     @Heuristics
     private static final long TARGET = 5; // 目标延迟时间（单位：毫秒）
 
@@ -70,7 +70,10 @@ class CoDelQueue implements QueueDiscipline {
     Packet dequeue(long now) {
         if (queue.isEmpty()) {
             log.debug("queue is empty");
-            stopCongestedWindow();
+            if (firstAboveTime != 0) {
+                // Reset only if previously in a congested state
+                stopCongestedWindow();
+            }
             return null;
         }
 
@@ -110,20 +113,19 @@ class CoDelQueue implements QueueDiscipline {
 
         // 仍在持续拥塞窗口期内
         if (now > dropNext) {
-            // 每次决定丢弃一个包，都需要重新计算 下一次丢包的时间 dropNext
-            // 即：下一次丢包的动作不是立即执行的，而是在未来的某个时间点，这个时间点是基于`controlLaw`所计算出的
+            // This drop indicates we're in a congestion period, so drop the current packet
             log.debug("now:{} > dropNext:{}, will drop head packet", now, dropNext);
 
             Packet droppedPacket = queue.poll();
             log.debug("dropped:{}, will dequeue next candidate", droppedPacket);
 
             scheduleDropNext(now);
-
-            dequeue(now); // 递归，取下一个不drop的包
-        } else {
-            // dropNext 时间点尚未到来，继续观察，直到到达 `dropNext` 时间点再进行丢包决策
-            log.debug("dropNext:{}, wait for dropNext", dropNext);
+            return droppedPacket.drop();
         }
+
+        // The current time is inside the current congestion window, but before dropNext.
+        // dropNext 时间点尚未到来，继续观察，直到到达 `dropNext` 时间点再进行丢包决策
+        log.debug("dropNext:{}, wait for dropNext", dropNext);
         return queue.poll();
     }
 
@@ -135,6 +137,7 @@ class CoDelQueue implements QueueDiscipline {
     private void stopCongestedWindow() {
         log.debug("stop window");
         this.firstAboveTime = 0;
+        this.droppedCount = 0;
     }
 
     private void startCongestedWindow(long now) {
@@ -153,17 +156,12 @@ class CoDelQueue implements QueueDiscipline {
             dropNext = now + INTERVAL;
             log.debug("droppedCount was 0, dropNext:{}, window:{}", dropNext, firstAboveTime);
         } else {
+            // We have dropped a packet before
             // 以指数退避计算下次丢包时间
-            if (now > dropNext + INTERVAL) {
-                droppedCount += 1;
-            } else {
-                droppedCount *= 2;
-            }
+            droppedCount++;
             dropNext = controlLaw(dropNext);
             log.debug("droppedCount:{}, dropNext:{}, window:{}", droppedCount, dropNext, firstAboveTime);
         }
-
-        stopCongestedWindow();
     }
 
     // 控制律用于动态计算下一次丢包的时间
@@ -195,16 +193,16 @@ class CoDelQueue implements QueueDiscipline {
 
         // deque
         long[] times = new long[]{2, 5, 8, 30, 109, 121, 131, 185, 187, 201, 223, 300};
-        List<Packet> egress = new LinkedList<>();
+        List<Integer> egress = new LinkedList<>();
         for (int i = 0; i < N; i++) {
             long now = times[i];
             Packet packet = queue.dequeue(now);
             if (packet == null) {
                 log.info("isEmpty:{}", queue.isEmpty());
             }
-            egress.add(packet);
+            egress.add(packet.id());
         }
-        log.info("{}", egress);
+        log.info("{}, {}", egress.size(), egress);
     }
 
     @Test

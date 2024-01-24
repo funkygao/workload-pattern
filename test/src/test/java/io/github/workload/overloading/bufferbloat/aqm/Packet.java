@@ -3,9 +3,14 @@ package io.github.workload.overloading.bufferbloat.aqm;
 public class Packet {
     private final int id;
     private long arrivalTime;
+    private boolean shouldDrop = false;
 
     public Packet(int id) {
         this.id = id;
+    }
+
+    public int id() {
+        return id;
     }
 
     public void enqueue(long when) {
@@ -22,6 +27,15 @@ public class Packet {
 
     public long arrivalTime() {
         return arrivalTime;
+    }
+
+    public Packet drop() {
+        shouldDrop = true;
+        return this;
+    }
+
+    public boolean shouldDrop() {
+        return shouldDrop;
     }
 
     @Override
