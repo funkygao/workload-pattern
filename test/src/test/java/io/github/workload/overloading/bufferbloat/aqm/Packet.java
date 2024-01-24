@@ -26,7 +26,7 @@ public class Packet {
 
     @Override
     public String toString() {
-        return String.valueOf(id);
+        return "Packet(id=" + id + ")";
     }
 
     /**

@@ -1,5 +1,6 @@
 package io.github.workload.overloading.bufferbloat.aqm;
 
+import io.github.workload.annotations.Heuristics;
 import io.github.workload.annotations.VisibleForTesting;
 import io.github.workload.annotations.WIP;
 import org.junit.jupiter.api.Disabled;
@@ -29,20 +30,29 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
  */
 @WIP
 class CoDelQueue implements QueueDiscipline {
-    // CoDel算法的一些参数
-    private static final long INTERVAL = 100; // CoDel算法定时周期的时间长度（单位：毫秒）
+    private static final Logger log = LoggerFactory.getLogger(CoDelQueue.class.getSimpleName());
+
+    @Heuristics
+    private static final long INTERVAL = 100; // congested window size
+    @Heuristics
     private static final long TARGET = 5; // 目标延迟时间（单位：毫秒）
 
-    private Queue<Packet> queue; // 用于存储网络数据包的队列
-    private long firstAboveTime; // 第一个数据包延迟超过目标值的时间
-    private long dropNext; // 下一次丢包应当发生的时间
+    private Queue<Packet> queue;
+
+    // 连续拥塞窗口期的起始时间
+    private long firstAboveTime;
+
+    // 下一次丢包应当发生的时间点，每次丢包时重新计算
+    private long dropNext;
+
+    // 窗口期内总计丢弃多少数据包
     private int droppedCount; // 在当前dropNext周期内丢包的总计数
 
     public CoDelQueue() {
         queue = new LinkedList<>();
-        firstAboveTime = 0;
         dropNext = 0;
         droppedCount = 0;
+        firstAboveTime = 0;
     }
 
     @VisibleForTesting
@@ -59,38 +69,62 @@ class CoDelQueue implements QueueDiscipline {
     @VisibleForTesting
     Packet dequeue(long now) {
         if (queue.isEmpty()) {
-            // 队列空时重置状态变量
-            firstAboveTime = 0;
+            log.debug("queue is empty");
+            stopCongestedWindow();
             return null;
         }
 
         Packet packet = queue.peek(); // 检查队列前端的包
         long sojournTime = packet.sojournTime(now);
         if (sojournTime < TARGET) {
-            // 延迟没有超过目标值，重置状态
-            firstAboveTime = 0;
+            // congestion window要求窗口内每一个包排队时间超限，只要有一个不超限就关闭窗口
+            log.debug("{} sojournTime:{}, not delayed", packet, sojournTime);
+            stopCongestedWindow();
             return queue.poll();
         }
 
-        // 延迟超过目标值
+        // `firstAboveTime` 是用于触发 CoDel 算法第一次进入丢包状态的机制
+        // `dropNext` 是在已经确定存在持续拥塞之后用于控制后续丢包行动的时间调度
+
+        //  sojournTime > target         now          dropNext
+        //             |                  |              |
+        //             |<- interval ->|   V<- interval ->|
+        //-------------+--------------+---+--------------+-------------------> ∞
+        //                            |                  |<- drop window  ->|
+        //                      firstAboveTime
+        //                            |<-  congestion window              ->|
+
+        log.debug("{} sojournTime:{}, delayed", packet, sojournTime);
         if (firstAboveTime == 0) {
-            // 记录第一次超过延迟目标值的时间
-            firstAboveTime = now + INTERVAL;
-        } else if (now >= firstAboveTime) {
-            // 延迟持续时间超过了阈值
+            // 首次检测到拥塞，开启新拥塞窗口，但不丢弃包
+            startCongestedWindow(now);
+            log.debug("start new window: {}", firstAboveTime);
+            return queue.poll();
+        }
 
-            // 检查是否应当丢包
-            if (now >= dropNext) {
-                doDrop(now);
+        if (!inCongestedWindow(now)) {
+            // 拥塞窗口还没有攒够，不丢包
+            log.debug("now:{} not within window:{}", now, firstAboveTime);
+            return queue.poll();
+        }
 
-                dequeue(); // 递归，取下一个不drop的包
-            }
+        // 仍在持续拥塞窗口期内
+        if (now > dropNext) {
+            // 每次决定丢弃一个包，都需要重新计算 下一次丢包的时间 dropNext
+            // 即：下一次丢包的动作不是立即执行的，而是在未来的某个时间点，这个时间点是基于`controlLaw`所计算出的
+            log.debug("now:{} > dropNext:{}, will drop head packet", now, dropNext);
+
+            Packet droppedPacket = queue.poll();
+            log.debug("dropped:{}, will dequeue next candidate", droppedPacket);
+
+            scheduleDropNext(now);
+
+            dequeue(now); // 递归，取下一个不drop的包
+        } else {
+            // dropNext 时间点尚未到来，继续观察，直到到达 `dropNext` 时间点再进行丢包决策
+            log.debug("dropNext:{}, wait for dropNext", dropNext);
         }
         return queue.poll();
-    }
-
-    private long getSloughTimeout() {
-        return 2 * TARGET;
     }
 
     @Override
@@ -98,27 +132,45 @@ class CoDelQueue implements QueueDiscipline {
         return dequeue(System.currentTimeMillis());
     }
 
-    // CoDel算法中丢包的逻辑：根据count计算dropNext
-    private void doDrop(long now) {
-        queue.poll();
+    private void stopCongestedWindow() {
+        log.debug("stop window");
+        this.firstAboveTime = 0;
+    }
 
+    private void startCongestedWindow(long now) {
+        this.firstAboveTime = now + INTERVAL;
+    }
+
+    private boolean inCongestedWindow(long now) {
+        return firstAboveTime != 0 && now > firstAboveTime;
+    }
+
+    // CoDel算法中丢包的逻辑：根据count计算dropNext
+    private void scheduleDropNext(long now) {
         // 若是第一次丢包，则设置下一次丢包时间
         if (droppedCount == 0) {
             droppedCount = 1;
             dropNext = now + INTERVAL;
+            log.debug("droppedCount was 0, dropNext:{}, window:{}", dropNext, firstAboveTime);
         } else {
             // 以指数退避计算下次丢包时间
             if (now > dropNext + INTERVAL) {
-                droppedCount = 1;
+                droppedCount += 1;
             } else {
                 droppedCount *= 2;
             }
             dropNext = controlLaw(dropNext);
+            log.debug("droppedCount:{}, dropNext:{}, window:{}", droppedCount, dropNext, firstAboveTime);
         }
-        firstAboveTime = 0;
+
+        stopCongestedWindow();
     }
 
     // 控制律用于动态计算下一次丢包的时间
+    // 指数退避的方式逐渐增加间隔，避免过度拥塞
+    // 基于这样一个假设：
+    // 如果网络队列中的延迟是由暂时的拥塞引起的，那么丢弃几个数据包后，队列可以恢复正常
+    // 而如果拥塞是持续存在的，那么算法会以指数退避的方式逐步增加丢包的间隔，减少丢包可能导致的干扰和不必要的吞吐量损失
     private long controlLaw(long dropNext) {
         return (long) (dropNext + INTERVAL / Math.sqrt(droppedCount));
     }
@@ -142,7 +194,7 @@ class CoDelQueue implements QueueDiscipline {
         }
 
         // deque
-        long[] times = new long[]{2, 5, 8, 30, 35, 39, 40, 41, 46, 66, 89, 100};
+        long[] times = new long[]{2, 5, 8, 30, 109, 121, 131, 185, 187, 201, 223, 300};
         List<Packet> egress = new LinkedList<>();
         for (int i = 0; i < N; i++) {
             long now = times[i];
