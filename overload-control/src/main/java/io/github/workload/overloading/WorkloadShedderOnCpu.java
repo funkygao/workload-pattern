@@ -15,10 +15,11 @@ import lombok.extern.slf4j.Slf4j;
  */
 @Slf4j
 class WorkloadShedderOnCpu extends WorkloadShedder {
-    @Heuristics
-    private static final double EMA_ALPHA = 0.4d;
     private static final SystemClock coolOffClock = SystemClock.ofPrecisionMs(1000);
+
     @Heuristics
+    private static final double EMA_ALPHA = 0.6d;
+    @Heuristics("局限性：low false positive rate is not guaranteed")
     private final double cpuUsageUpperBound;
     @Heuristics
     private final long coolOffMs;
