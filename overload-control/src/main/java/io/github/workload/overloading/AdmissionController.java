@@ -45,6 +45,15 @@ public interface AdmissionController {
      * 决定工作负荷是否准入.
      *
      * <p>只做判断，由调用者针对结果决定如何处理.</p>
+     * <p>例如，上层定义优先级时可能需要{@code SHED_THRESHOLD}，高于它的工作负载不能抛弃，这部分逻辑可以在上层实现.</p>
+     * <pre>
+     * {@code
+     *
+     * if (!admissionController.admit(priority) && priority < SHED_THRESHOLD) {
+     *     // drop the request
+     * }
+     * }
+     * </pre>
      *
      * @param priority priority of the workload
      * @return true if admitted, or else rejected
