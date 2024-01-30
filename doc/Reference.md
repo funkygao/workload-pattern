@@ -140,7 +140,9 @@ class RpcHandler extends Thread {
 
 ## Sentinel自适应限流算法
 
-priority是boolean类型，系统写死了两个shedder：优先的，不优先的，区别是优先的CPU阈值更高(容忍更高的负载)，根据REST请求的打标决定使用哪一个shedder。
+priority是boolean类型，系统写死了两个shedder：优先的，不优先的，区别是优先的CPU阈值更高(容忍更高的负载)，根据REST请求的打标决定使用哪一个shedder。它是通过控制max inflight request数量来限流的，而该值是根据滚动窗口的(qps, rtt)动态计算的。
+
+它擅长的是：many but cheap requests，而无法应对：few but expensive requests。
 
 典型应用：
 

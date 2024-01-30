@@ -15,6 +15,14 @@ import java.util.concurrent.ConcurrentHashMap;
  * <li>fair: based on {@link WorkloadPriority}, i,e. QoS</li>
  * <li>safe: embedded JVM scope CPU overload shedding mechanism</li>
  * </ul>
+ * <ol>Load shedding principles:
+ * <li>Sustain peak performance</li>
+ * <li>Isolation: misbehaving customers never hurt anyone(but themselves)</li>
+ * <li>Prioritize requests clearly</li>
+ * <li>Customer quotas only enforced when needed</li>
+ * <li>Cost based: Don't model capacity with QPS</li>
+ * <li>Retries: per-request max attempts(e,g. 3), per-backend retry budget(e,g. 10% of all requests)</li>
+ * </ol>
  * <ul>局限性，无法解决这类问题:
  * <li>某个请求(canary request)导致CPU瞬间从低暴涨到100%：shuffle sharding可以
  *   <ul>
@@ -28,9 +36,18 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 @Slf4j
 class FairSafeAdmissionController implements AdmissionController {
+    /**
+     * The pessimistic throttling.
+     */
     private final WorkloadShedderOnQueue shedderOnQueue;
 
-    // shared singleton in JVM
+    /**
+     * The optimistic throttling.
+     *
+     * <p>shared singleton in JVM: not shed load until you reach global capacity.</p>
+     * <p>The downside of optimistic throttling, is that you'll spike over your global maximum while you start shedding load.</p>
+     * <p>Most users will only experience this momentary overload in the form of slightly higher latency.</p>
+     */
     private static final WorkloadShedderOnCpu shedderOnCpu = new WorkloadShedderOnCpu(CPU_USAGE_UPPER_BOUND, CPU_OVERLOAD_COOL_OFF_SEC);
 
     FairSafeAdmissionController(String name) {

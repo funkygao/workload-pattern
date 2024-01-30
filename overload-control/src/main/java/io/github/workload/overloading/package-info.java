@@ -6,6 +6,9 @@
  * <li>Over time</li>
  * <li>Over space</li>
  * </ul>
+ * <blockquote cite="https://cloud.google.com/blog/products/gcp/how-to-avoid-a-self-inflicted-ddos-attack-cre-life-lessons">
+ *  the self-inflicted DDoS: The biggest DDos threat to your application isn’t from some shadowy third party, but from your own code!
+ * </blockquote>
  *
  * @see <a href="https://aws.amazon.com/cn/builders-library/using-load-shedding-to-avoid-overload/">Using load shedding to avoid overload</a>
  * @see <a href="https://www.cs.columbia.edu/~ruigu/papers/socc18-final100.pdf">微信的过载保护</a>

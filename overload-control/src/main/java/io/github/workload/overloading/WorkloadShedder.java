@@ -1,5 +1,6 @@
 package io.github.workload.overloading;
 
+import io.github.workload.SystemClock;
 import io.github.workload.WorkloadPriority;
 import io.github.workload.annotations.Heuristics;
 import io.github.workload.annotations.ThreadSafe;
@@ -22,6 +23,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 @Slf4j
 @ThreadSafe
 abstract class WorkloadShedder {
+    private static final SystemClock coolOffClock = SystemClock.ofPrecisionMs(1000);
+
     private static final int ADMIT_ALL_P = AdmissionLevel.ofAdmitAll().P();
 
     /**
@@ -43,10 +46,13 @@ abstract class WorkloadShedder {
     private final TumblingWindow<CountAndTimeWindowState> window;
     private final WorkloadSheddingPolicy policy = new WorkloadSheddingPolicy();
 
+    private final long startupMs;
+
     protected abstract boolean isOverloaded(long nowNs, CountAndTimeWindowState windowState);
 
     protected WorkloadShedder(String name) {
         this.name = name;
+        this.startupMs = coolOffClock.currentTimeMillis();
         WindowConfig<CountAndTimeWindowState> config = WindowConfig.create(
                 new CountAndTimeRolloverStrategy() {
                     @Override

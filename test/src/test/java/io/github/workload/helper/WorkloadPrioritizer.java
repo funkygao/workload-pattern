@@ -24,10 +24,13 @@ public class WorkloadPrioritizer {
     private static int CRITICAL = 10;
 
     /**
-     * 可以被defer execution的请求优先级，延迟容忍度在10分钟以上，小时以内.
+     * non-interactive retryable requests.
      *
+     * <p>可以被defer execution的请求优先级，延迟容忍度在10分钟以上，小时以内.</p>
      * <p>Batch operations(例如，后台图片缩放)的默认优先级.</p>
      * <p>This signals that a request is not directly user-facing and that the user generally doesn't mind if the handling is delayed several minutes, or even an hour.</p>
+     * <p>As long as the throttling period is not prolonged and the retries are completing within your processing SLO there’s no real reason to spend more money to serve them more promptly.</p>
+     * <p>That said, if your service is throttling traffic for 12 hours every day, it may be time to do something about its capacity.</p>
      */
     private static int SHEDDABLE_PLUS = 20;
 
