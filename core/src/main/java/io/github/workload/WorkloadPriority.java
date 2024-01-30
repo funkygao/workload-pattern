@@ -14,6 +14,11 @@ import java.util.concurrent.TimeUnit;
 /**
  * 工作负荷优先级，first citizen of overload fair protection mechanism.
  * <p>
+ * <ol>Every workload/request has two costs:
+ * <li>The cost to perform the work (the direct cost)</li>
+ * <li>The cost to not perform the work (the opportunity cost)</li>
+ * </ol>
+ * <p>{@link WorkloadPriority} denominates the opportunity cost.</p>
  * <p>It can be applied on RPC Request, MQ Message, AsyncTask, anything you name it that is runnable.</p>
  * <p>First-class notion of our RPC system and propagated automatically.</p>
  * <pre>
