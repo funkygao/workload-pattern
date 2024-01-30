@@ -19,11 +19,11 @@ The following metrics are often used as scheduling objectives for a workload sch
 
 ## Patterns
 
+### Workload Cost
+
 ### Shuffle Sharding
 
 ### Overload Control
-
-### Big Bag
 
 ### Tail Latency
 

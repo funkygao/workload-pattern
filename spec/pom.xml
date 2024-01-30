@@ -7,12 +7,8 @@
         <version>1.0.0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>big-bag</artifactId>
+    <artifactId>spec</artifactId>
     <packaging>jar</packaging>
-    <name>Workload :: BigBag</name>
-    <description>大报文</description>
+    <name>Workload :: Specification</name>
 
-    <properties>
-        <maven.javadoc.skip>true</maven.javadoc.skip>
-    </properties>
 </project>

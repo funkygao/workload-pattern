@@ -11,4 +11,12 @@
     <packaging>jar</packaging>
     <name>Workload :: Core</name>
 
+    <dependencies>
+        <dependency>
+            <groupId>io.github.workload</groupId>
+            <artifactId>spec</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+    </dependencies>
+
 </project>
