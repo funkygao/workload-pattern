@@ -2,6 +2,8 @@ package io.github.workload.tail.agent;
 
 import net.bytebuddy.asm.Advice;
 
+// Java中产生循环遍历的方式：
+// for loop/for-each loop/iterator/stream/while loop/do-while loop/map keySet
 class LoopMonitorAdvice {
     private static final int THRESHOLD = 2;
     private static long counter = 0;

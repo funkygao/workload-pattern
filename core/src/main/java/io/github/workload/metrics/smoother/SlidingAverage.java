@@ -18,22 +18,22 @@ class SlidingAverage implements ValueSmoother {
      * </ul>
      */
     private final double beta;
-    private volatile Double sa;
+    private volatile Double curr;
 
     SlidingAverage(double beta) {
         if (beta < 0 || beta >= 1) {
             throw new IllegalArgumentException("Beta must be between 0 and 1");
         }
         this.beta = beta;
-        this.sa = null;
+        this.curr = null;
     }
 
     @Override
-    public SlidingAverage update(double newValue) {
-        if (sa == null) {
-            sa = newValue;
+    public SlidingAverage update(double sample) {
+        if (curr == null) {
+            curr = sample;
         } else {
-            sa = beta * sa + (1 - beta) * newValue;
+            curr = beta * curr + (1 - beta) * sample;
         }
         return this;
     }
@@ -45,11 +45,11 @@ class SlidingAverage implements ValueSmoother {
      */
     @Override
     public double smoothedValue() throws IllegalStateException {
-        if (sa == null) {
+        if (curr == null) {
             throw new IllegalStateException("MUST call update() before getting value!");
         }
 
-        return sa;
+        return curr;
     }
 
 }

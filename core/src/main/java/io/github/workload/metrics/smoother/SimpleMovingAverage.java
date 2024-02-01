@@ -38,9 +38,9 @@ class SimpleMovingAverage implements ValueSmoother {
     }
 
     @Override
-    public ValueSmoother update(double newValue) {
+    public ValueSmoother update(double sample) {
         final int newValueIndex = getAndIncrementOverflowSafe(currentIndex, 0) % windowSize;
-        final Double evictedValue = window.getAndSet(newValueIndex, newValue);
+        final Double evictedValue = window.getAndSet(newValueIndex, sample);
         if (evictedValue != null) {
             // 出现了淘汰，说明窗口已经填满了
             sum.addAndGet(-((long) (evictedValue * DOUBLE_LONG_SCALE)));
@@ -48,7 +48,7 @@ class SimpleMovingAverage implements ValueSmoother {
             elements.incrementAndGet();
         }
 
-        final long scaledNewValue = (long) (newValue * DOUBLE_LONG_SCALE);
+        final long scaledNewValue = (long) (sample * DOUBLE_LONG_SCALE);
         sum.addAndGet(scaledNewValue);
         return this;
     }
@@ -70,6 +70,7 @@ class SimpleMovingAverage implements ValueSmoother {
         do {
             current = atomicInteger.get();
             if (current == Integer.MAX_VALUE) {
+                // avoid overflow
                 atomicInteger.compareAndSet(current, resetValueWhenOverflow);
             } else {
                 atomicInteger.compareAndSet(current, current + 1);

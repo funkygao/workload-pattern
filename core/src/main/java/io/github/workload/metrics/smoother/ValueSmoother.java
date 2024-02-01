@@ -9,9 +9,9 @@ import io.github.workload.annotations.ThreadSafe;
 public interface ValueSmoother {
 
     /**
-     * 接收新的原始值.
+     * 接收新的采用值.
      */
-    ValueSmoother update(double newValue);
+    ValueSmoother update(double sample);
 
     /**
      * 平滑后的值.
@@ -36,6 +36,16 @@ public interface ValueSmoother {
      */
     static ValueSmoother ofSMA(int windowSize) {
         return new SimpleMovingAverage(windowSize);
+    }
+
+    /**
+     * 创建一个移动平均算法实现.
+     *
+     * @param beta the decay factor
+     * @return a new instance
+     */
+    static ValueSmoother ofSA(double beta) {
+        return new SlidingAverage(beta);
     }
 
 }

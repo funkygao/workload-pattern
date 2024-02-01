@@ -15,7 +15,7 @@ class ExponentialMovingAverage implements ValueSmoother {
      * <p>0 < alpha < 1</p>
      */
     private final double alpha;
-    private volatile Double ema;
+    private volatile Double curr;
 
     ExponentialMovingAverage(double alpha) {
         if (alpha <= 0 || alpha > 1) {
@@ -23,15 +23,15 @@ class ExponentialMovingAverage implements ValueSmoother {
         }
 
         this.alpha = alpha;
-        this.ema = null;
+        this.curr = null;
     }
 
     @Override
-    public ExponentialMovingAverage update(double newValue) {
-        if (ema == null) {
-            ema = newValue;
+    public ExponentialMovingAverage update(double sample) {
+        if (curr == null) {
+            curr = sample;
         } else {
-            ema = alpha * newValue + (1 - alpha) * ema;
+            curr = alpha * sample + (1 - alpha) * curr;
         }
         return this;
     }
@@ -43,11 +43,11 @@ class ExponentialMovingAverage implements ValueSmoother {
      */
     @Override
     public double smoothedValue() throws IllegalStateException {
-        if (ema == null) {
+        if (curr == null) {
             throw new IllegalStateException("MUST call update() before getting value!");
         }
 
-        return ema;
+        return curr;
     }
 
 }

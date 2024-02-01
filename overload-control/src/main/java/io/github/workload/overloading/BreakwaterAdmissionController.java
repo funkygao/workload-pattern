@@ -11,6 +11,7 @@ import lombok.NonNull;
  * <p>维护credit(token)池，通过piggyback分配给clients，它代表满足SLO前提下的服务器处理能力.</p>
  *
  * @see <a href="https://www.usenix.org/conference/osdi20/presentation/cho">Overload Control for μs-scale RPCs with Breakwater</a>
+ * @see <a href="https://github.com/shenango/caladan/blob/main/breakwater/src/bw_server.c">Implementation in C by the author</a>
  */
 @Experimental
 class BreakwaterAdmissionController implements AdmissionController {
@@ -59,10 +60,9 @@ class BreakwaterAdmissionController implements AdmissionController {
         if (actualDelay < targetDelay) {
             credit += alpha;
         } else {
-            final double delta = actualDelay - targetDelay;
-            final double deltaPercentage = delta / targetDelay;
+            final double err = (actualDelay - targetDelay) / targetDelay;
             // credit衰减，最多一半
-            credit *= Math.max(1.0 - BETA * deltaPercentage, 0.5);
+            credit *= Math.max(1.0 - BETA * err, 0.5);
         }
 
         // Once the credit pool size is updated, re-distribute credits to clients to achieve
