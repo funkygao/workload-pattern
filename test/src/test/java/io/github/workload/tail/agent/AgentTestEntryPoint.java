@@ -1,4 +1,4 @@
-package io.github.workload.agent;
+package io.github.workload.tail.agent;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -16,5 +16,6 @@ public class AgentTestEntryPoint {
         for (String i : list) {
 
         }
+        list.stream().forEach(System.out::println);
     }
 }

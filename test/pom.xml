@@ -74,7 +74,7 @@
         </dependency>
         <dependency>
             <groupId>io.github.workload</groupId>
-            <artifactId>cpu-shield</artifactId>
+            <artifactId>heavy-tail</artifactId>
             <version>${project.version}</version>
         </dependency>
 

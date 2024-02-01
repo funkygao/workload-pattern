@@ -16,7 +16,7 @@ import java.util.concurrent.ThreadLocalRandom;
 import static org.junit.jupiter.api.Assertions.*;
 
 @Disabled
-class FairSafeAdmissionControllerTest extends BaseConcurrentTest {
+class DAGORAdmissionControllerTest extends BaseConcurrentTest {
 
     @BeforeAll
     static void setUp() {
@@ -46,10 +46,10 @@ class FairSafeAdmissionControllerTest extends BaseConcurrentTest {
     @RepeatedTest(10)
     void simulateNeverOverload() {
         log.info("never overload start");
-        FairSafeAdmissionController mqController = (FairSafeAdmissionController) AdmissionController.getInstance("MQ");
-        FairSafeAdmissionController rpcController = (FairSafeAdmissionController) AdmissionController.getInstance("RPC");
-        FairSafeAdmissionController webController = (FairSafeAdmissionController) AdmissionController.getInstance("Web");
-        FairSafeAdmissionController.shedderOnCpu().loadProvider = new AlwaysHealthySystemLoad();
+        DAGORAdmissionController mqController = (DAGORAdmissionController) AdmissionController.getInstance("MQ");
+        DAGORAdmissionController rpcController = (DAGORAdmissionController) AdmissionController.getInstance("RPC");
+        DAGORAdmissionController webController = (DAGORAdmissionController) AdmissionController.getInstance("Web");
+        DAGORAdmissionController.shedderOnCpu().loadProvider = new AlwaysHealthySystemLoad();
         for (int i = 0; i < WindowConfig.DEFAULT_REQUEST_CYCLE + 1; i++) {
             log.info("loop: {}", i + 1);
             // 默认情况下，都放行：除非此时CPU已经高了
@@ -64,7 +64,7 @@ class FairSafeAdmissionControllerTest extends BaseConcurrentTest {
 
         // 没有过overload，level不会变
         AdmissionLevel admitAll = AdmissionLevel.ofAdmitAll();
-        assertEquals(admitAll, FairSafeAdmissionController.shedderOnCpu().admissionLevel());
+        assertEquals(admitAll, DAGORAdmissionController.shedderOnCpu().admissionLevel());
         assertEquals(admitAll, mqController.shedderOnQueue().admissionLevel());
         assertEquals(admitAll, rpcController.shedderOnQueue().admissionLevel());
         assertEquals(admitAll, webController.shedderOnQueue().admissionLevel());
@@ -73,10 +73,10 @@ class FairSafeAdmissionControllerTest extends BaseConcurrentTest {
     private void simulateServiceRandomlyOverload(int sleepBound, SystemLoadProvider systemLoadProvider) throws InterruptedException {
         log.info("window(time:{}ms, count:{})", System.getProperty("workload.window.DEFAULT_TIME_CYCLE_MS"), System.getProperty("workload.window.DEFAULT_REQUEST_CYCLE"));
         log.info("randomly overload start, random sleep bound:{}ms, cpu load:{}", sleepBound, systemLoadProvider.getClass().getSimpleName());
-        FairSafeAdmissionController mqController = (FairSafeAdmissionController) AdmissionController.getInstance("SQS");
-        FairSafeAdmissionController rpcController = (FairSafeAdmissionController) AdmissionController.getInstance("RPC");
-        FairSafeAdmissionController webController = (FairSafeAdmissionController) AdmissionController.getInstance("WEB");
-        FairSafeAdmissionController.shedderOnCpu().loadProvider = systemLoadProvider;
+        DAGORAdmissionController mqController = (DAGORAdmissionController) AdmissionController.getInstance("SQS");
+        DAGORAdmissionController rpcController = (DAGORAdmissionController) AdmissionController.getInstance("RPC");
+        DAGORAdmissionController webController = (DAGORAdmissionController) AdmissionController.getInstance("WEB");
+        DAGORAdmissionController.shedderOnCpu().loadProvider = systemLoadProvider;
         int loops = WindowConfig.DEFAULT_REQUEST_CYCLE * 5;
         for (int i = 0; i < loops; i++) {
             WorkloadPriority mq = WorkloadPrioritizer.randomMQ();

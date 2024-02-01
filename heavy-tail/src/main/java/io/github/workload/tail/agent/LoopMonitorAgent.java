@@ -1,4 +1,4 @@
-package io.github.workload.agent;
+package io.github.workload.tail.agent;
 
 import net.bytebuddy.agent.builder.AgentBuilder;
 import net.bytebuddy.asm.Advice;
@@ -25,9 +25,9 @@ public class LoopMonitorAgent {
         }
 
         new AgentBuilder.Default()
-                .type(any())
+                .type(any()) // 所有的类
                 .transform((builder, typeDescription, classLoader, javaModule) ->
-                        builder.method(any())
+                        builder.method(any()) // 所有的方法
                                 .intercept(Advice.to(LoopMonitorAdvice.class))
                 ).installOn(instrumentation);
     }
