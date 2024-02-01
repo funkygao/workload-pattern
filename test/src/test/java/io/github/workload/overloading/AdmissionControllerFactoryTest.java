@@ -9,9 +9,9 @@ class AdmissionControllerFactoryTest {
     @Test
     void basic() {
         AdmissionController controller = AdmissionControllerFactory.getInstance("a",
-                () -> new FairSafeAdmissionController("a"));
+                () -> new DAGORAdmissionController("a"));
         assertSame(controller, AdmissionControllerFactory.getInstance("a",
-                () -> new FairSafeAdmissionController("a")));
+                () -> new DAGORAdmissionController("a")));
 
         AdmissionController controller1 = AdmissionControllerFactory.getInstance("a", () -> new FqCodelAdmissionController("a"));
         assertSame(controller, controller1);

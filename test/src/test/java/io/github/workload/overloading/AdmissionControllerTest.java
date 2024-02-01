@@ -13,7 +13,7 @@ class AdmissionControllerTest {
     @Execution(ExecutionMode.CONCURRENT)
     void getInstance() {
         AdmissionController controller = AdmissionController.getInstance("foo");
-        assertTrue(controller instanceof FairSafeAdmissionController);
+        assertTrue(controller instanceof DAGORAdmissionController);
         assertSame(controller, AdmissionController.getInstance("foo"));
         assertNotSame(controller, AdmissionController.getInstance("bar"));
 

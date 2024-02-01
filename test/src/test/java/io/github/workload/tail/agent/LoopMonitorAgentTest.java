@@ -1,4 +1,4 @@
-package io.github.workload.agent;
+package io.github.workload.tail.agent;
 
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
@@ -20,7 +20,7 @@ class LoopMonitorAgentTest {
 
         ProcessBuilder builder = new ProcessBuilder(
                 javaBin,
-                "-javaagent:../cpu-shield/target/cpu-shield-1.0.0-SNAPSHOT.jar",
+                "-javaagent:../heavy-tail/target/heavy-tail-1.0.0-SNAPSHOT.jar",
                 "-cp", classpath,
                 className,
                 "args0");

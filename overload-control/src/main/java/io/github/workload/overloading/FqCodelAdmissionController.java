@@ -16,7 +16,7 @@ import lombok.extern.slf4j.Slf4j;
  */
 @Slf4j
 @Experimental
-public class FqCodelAdmissionController implements AdmissionController {
+class FqCodelAdmissionController implements AdmissionController {
     private final String name;
 
     FqCodelAdmissionController(String name) {

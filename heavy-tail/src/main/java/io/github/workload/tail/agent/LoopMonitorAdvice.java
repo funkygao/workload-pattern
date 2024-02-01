@@ -1,4 +1,4 @@
-package io.github.workload.agent;
+package io.github.workload.tail.agent;
 
 import net.bytebuddy.asm.Advice;
 
@@ -14,6 +14,11 @@ class LoopMonitorAdvice {
         if (counter >= THRESHOLD) {
             System.out.println("Warning: Method " + method + " has been called " + counter + " times.");
         }
+    }
+
+    @Advice.OnMethodExit(onThrowable = Throwable.class)
+    public static void exit() {
+
     }
 }
 

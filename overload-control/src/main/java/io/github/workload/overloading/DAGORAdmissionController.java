@@ -35,7 +35,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * </ul>
  */
 @Slf4j
-class FairSafeAdmissionController implements AdmissionController {
+class DAGORAdmissionController implements AdmissionController {
     /**
      * The pessimistic throttling.
      */
@@ -50,7 +50,7 @@ class FairSafeAdmissionController implements AdmissionController {
      */
     private static final WorkloadShedderOnCpu shedderOnCpu = new WorkloadShedderOnCpu(CPU_USAGE_UPPER_BOUND, CPU_OVERLOAD_COOL_OFF_SEC);
 
-    FairSafeAdmissionController(String name) {
+    DAGORAdmissionController(String name) {
         this.shedderOnQueue = new WorkloadShedderOnQueue(name);
     }
 

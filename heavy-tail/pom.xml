@@ -7,9 +7,9 @@
         <version>1.0.0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>cpu-shield</artifactId>
+    <artifactId>heavy-tail</artifactId>
     <packaging>jar</packaging>
-    <name>Workload :: CpuShield</name>
+    <name>Workload :: HeavyTail</name>
 
     <properties>
         <byte.buddy.agent>1.10.22</byte.buddy.agent>
@@ -40,7 +40,7 @@
                             <addClasspath>true</addClasspath>
                         </manifest>
                         <manifestEntries>
-                            <Premain-Class>io.github.workload.agent.LoopMonitorAgent</Premain-Class>
+                            <Premain-Class>io.github.workload.tail.agent.LoopMonitorAgent</Premain-Class>
                             <Can-Redefine-Classes>true</Can-Redefine-Classes>
                             <Can-Retransform-Classes>true</Can-Retransform-Classes>
                         </manifestEntries>
