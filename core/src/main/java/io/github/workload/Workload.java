@@ -6,4 +6,5 @@ import io.github.workload.annotations.WIP;
 class Workload {
     private WorkloadPriority priority;
     private double cost;
+    private double retryAttempted;
 }

@@ -25,5 +25,13 @@ The following metrics are often used as scheduling objectives for a workload sch
 
 ### Overload Control
 
+A hosting platform can take one or more of three actions during an overload:
+- add capacity to the application by allocating idle or under-used servers
+- turn away excess requests and preferentially service only “important” requests
+- degrade the performance of admitted requests in order to service a larger number of aggregate requests
+
 ### Tail Latency
 
+## References
+
+- [Google Cloud Platform SLA](https://cloud.google.com/terms/sla)

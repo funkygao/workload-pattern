@@ -7,16 +7,22 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 /**
- * Fair queueing CoDel.
+ * Fair queueing/FlowQueue CoDel.
  *
+ * @see <a href="https://datatracker.ietf.org/doc/html/draft-ietf-aqm-fq-codel">FQ-CoDel RFC</a>
  * @see <a href="https://man7.org/linux/man-pages/man8/tc-fq_codel.8.html">tc-fq_codel man page</a>
+ * @see <a href="https://github.com/torvalds/linux/blob/master/net/sched/sch_fq_codel.c">Linux Implementation</a>
  */
 @WIP
 class FQCoDelQueue implements QueueDiscipline {
-    // DRR为每个队列分配一个透支计数器
-    private final Map<Integer /* quadruples */, QueueState> flowQueues;
+    // with only one queue, FQ-CoDel behaves essentially the same as CoDel
+    private static final int FLOWS = 1024;
 
-    // 用于确定一个流在一个时间间隔内可以发送多少数据，通常为MTU
+    // DRR为每个队列分配一个透支计数器
+    private final Map<Integer /* quadruples */, Flow> flowQueues;
+
+    // The maximum amount of bytes to be dequeued from a queue at once
+    // 通常为MTU
     private final long quantum;
 
     FQCoDelQueue(long quantum) {
@@ -26,38 +32,48 @@ class FQCoDelQueue implements QueueDiscipline {
 
     @Override
     public void enqueue(Packet packet) {
-        QueueState state = flowQueues.computeIfAbsent(packet.quadruples(), k -> new QueueState());
-        state.enqueue(packet);
+        Flow flow = classify(packet);
+        flow.enqueue(packet);
+    }
+
+    private Flow classify(Packet packet) {
+        final int key = packet.quadruples() % FLOWS;
+        return flowQueues.computeIfAbsent(key, k -> new Flow());
     }
 
     @Override
     public Packet dequeue() {
-        // 队列之间使用针对包大小的DRR(Deficit Round Robin)调度算法进行调度
-        Iterator<Map.Entry<Integer, QueueState>> iterator = flowQueues.entrySet().iterator();
-        while (iterator.hasNext()) {
-            Map.Entry<Integer, QueueState> entry = iterator.next();
-            QueueState queue = entry.getValue();
+        // the scheduler which selects which queue to dequeue a packet from
 
-            // 每次轮到某个队列时，其Deficit Counter会增加一个固定的量（称为Quantum，即队列的权重）
-            queue.deficitCounter += quantum;
+        // dequeue by a two-tier round-robin scheme, in which each queue is allowed to dequeue up
+        //  to a configurable quantum of bytes for each iteration(Deficit Round Robin)
+        Iterator<Map.Entry<Integer, Flow>> iterator = flowQueues.entrySet().iterator();
+        while (iterator.hasNext()) {
+            Map.Entry<Integer, Flow> entry = iterator.next();
+            Flow flow = entry.getValue();
+
+            if (flow.deficit <= 0) {
+                flow.deficit += quantum;
+                continue;
+            }
 
             Packet packet;
-            while ((packet = queue.dequeue()) != null) {
+            while ((packet = flow.dequeue()) != null) {
                 long packetSize = packet.size();
-                if (queue.deficitCounter >= packetSize) {
+                if (flow.deficit >= packetSize) {
                     // The packet can be sent, subtract its size from the deficit counter
-                    queue.deficitCounter -= packetSize;
+                    flow.deficit -= packetSize;
                     return packet;
                 } else {
                     // Not enough deficit, put the packet back and break to check next queue
                     // 包太大而不能被发送，那么它将等待下一个轮转
-                    queue.enqueueFront(packet);
+                    flow.enqueueFront(packet);
                     break;
                 }
             }
 
             // Remove empty queues to prevent memory leak
-            if (queue.isEmpty()) {
+            if (flow.isEmpty()) {
                 iterator.remove();
             }
         }
@@ -65,13 +81,13 @@ class FQCoDelQueue implements QueueDiscipline {
         return null;
     }
 
-    private static class QueueState {
+    private static class Flow {
         private CoDelQueue queue;
-        private long deficitCounter; // 信用额度/透支计数器
+        private long deficit; // 信用额度/透支计数器
 
-        QueueState() {
+        Flow() {
             queue = new CoDelQueue();
-            deficitCounter = 0;
+            deficit = 0;
         }
 
         void enqueue(Packet packet) {

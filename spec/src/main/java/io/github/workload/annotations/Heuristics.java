@@ -7,7 +7,7 @@ import static java.lang.annotation.ElementType.FIELD;
 import static java.lang.annotation.RetentionPolicy.SOURCE;
 
 /**
- * 启发性参数/阈值.
+ * 启发性参数/阈值, empirically determined constant.
  */
 @Target(FIELD)
 @Retention(SOURCE)

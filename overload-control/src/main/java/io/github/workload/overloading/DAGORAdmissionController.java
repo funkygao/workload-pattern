@@ -27,7 +27,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * <li>某个请求(canary request)导致CPU瞬间从低暴涨到100%：shuffle sharding可以
  *   <ul>
  *     <li>crash，例如：某个bug导致死循环/StackOverflow，而该bug在某种请求条件下才触发</li>
- *     <li>long delay，例如：误把{@link ConcurrentHashMap#contains(Object)}当做O(1)，配合parallelStream，当数据量多时CPU彪高</li>
+ *     <li>high priority workload long delay，例如：误把{@link ConcurrentHashMap#contains(Object)}当做O(1)，配合parallelStream，当数据量多时CPU彪高</li>
  *   </ul>
  * </li>
  * <li>只卸除新请求，已接受的请求(已经在执行，在{@link BlockingQueue}里等待执行)即使耗尽CPU也无法卸除</li>
