@@ -1,6 +1,6 @@
 package io.github.workload.overloading;
 
-import io.github.workload.WorkloadPriority;
+import io.github.workload.Workload;
 import io.github.workload.annotations.Experimental;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
@@ -24,7 +24,7 @@ class FqCodelAdmissionController implements AdmissionController {
     }
 
     @Override
-    public boolean admit(@NonNull WorkloadPriority priority) {
+    public boolean admit(@NonNull Workload workload) {
         return false;
     }
 

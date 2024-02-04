@@ -1,5 +1,6 @@
 package io.github.workload.overloading;
 
+import io.github.workload.Workload;
 import io.github.workload.WorkloadPriority;
 import io.github.workload.annotations.Heuristics;
 import io.github.workload.annotations.ThreadSafe;
@@ -55,10 +56,10 @@ public interface AdmissionController {
      * }
      * </pre>
      *
-     * @param priority priority of the workload
+     * @param workload the computational workload
      * @return true if admitted, or else rejected
      */
-    boolean admit(@NonNull WorkloadPriority priority);
+    boolean admit(@NonNull Workload workload);
 
     /**
      * Feedback of workload.

@@ -1,9 +1,6 @@
 package io.github.workload.overloading;
 
-import io.github.workload.BaseConcurrentTest;
-import io.github.workload.SystemLoadProvider;
-import io.github.workload.WorkloadPriority;
-import io.github.workload.WorkloadPriorityHelper;
+import io.github.workload.*;
 import io.github.workload.helper.RandomUtil;
 import io.github.workload.helper.WorkloadPrioritizer;
 import io.github.workload.metrics.tumbling.WindowConfig;
@@ -38,7 +35,7 @@ class DAGORAdmissionControllerTest extends BaseConcurrentTest {
             fail();
         } catch (NullPointerException expected) {
         }
-        assertTrue(controller.admit(WorkloadPriorityHelper.of(4, 6)));
+        assertTrue(controller.admit(Workload.ofPriority(WorkloadPriorityHelper.of(4, 6))));
         controller.feedback(WorkloadFeedback.ofQueuedNs(5 * 1000_000)); // 5ms
         controller.feedback(WorkloadFeedback.ofQueuedNs(10 * 1000_000)); // 10ms
     }
@@ -57,9 +54,9 @@ class DAGORAdmissionControllerTest extends BaseConcurrentTest {
             WorkloadPriority rpc = WorkloadPrioritizer.randomRpc();
             WorkloadPriority web = WorkloadPrioritizer.randomWeb();
 
-            assertTrue(mqController.admit(mq));
-            assertTrue(rpcController.admit(rpc));
-            assertTrue(webController.admit(web));
+            assertTrue(mqController.admit(Workload.ofPriority(mq)));
+            assertTrue(rpcController.admit(Workload.ofPriority(rpc)));
+            assertTrue(webController.admit(Workload.ofPriority(web)));
         }
 
         // 没有过overload，level不会变
@@ -104,13 +101,13 @@ class DAGORAdmissionControllerTest extends BaseConcurrentTest {
 
             // 对于 CPU shedder，each iteration 3 times admit，因此 cpu overload至少要等 i=682/1s 后才进入保护
             // 只有 swap window 时，才会检查是否过载
-            if (!mqController.admit(mq)) {
+            if (!mqController.admit(Workload.ofPriority(mq))) {
                 log.warn("{} SQS rejected {}", i, mq);
             }
-            if (!rpcController.admit(rpc)) {
+            if (!rpcController.admit(Workload.ofPriority(rpc))) {
                 log.warn("{} RPC rejected {}", i, rpc);
             }
-            if (!webController.admit(web)) {
+            if (!webController.admit(Workload.ofPriority(web))) {
                 log.warn("{} Web rejected {}", i, web);
             }
         }

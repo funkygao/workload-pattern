@@ -1,5 +1,6 @@
 package io.github.workload.overloading;
 
+import io.github.workload.Workload;
 import io.github.workload.WorkloadPriority;
 import io.github.workload.annotations.VisibleForTesting;
 import lombok.NonNull;
@@ -55,8 +56,9 @@ class DAGORAdmissionController implements AdmissionController {
     }
 
     @Override
-    public boolean admit(@NonNull WorkloadPriority priority) {
+    public boolean admit(@NonNull Workload workload) {
         // 进程级准入，全局采样
+        final WorkloadPriority priority = workload.getPriority();
         if (!shedderOnCpu.admit(priority)) {
             log.debug("CPU overloaded, might reject {}", priority);
             return false;

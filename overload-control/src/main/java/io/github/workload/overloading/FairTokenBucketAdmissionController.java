@@ -1,5 +1,6 @@
 package io.github.workload.overloading;
 
+import io.github.workload.Workload;
 import io.github.workload.WorkloadPriority;
 import io.github.workload.annotations.Experimental;
 import io.github.workload.annotations.Heuristics;
@@ -26,8 +27,8 @@ class FairTokenBucketAdmissionController implements AdmissionController {
     private final double lowPriorityMultiplicativeDecreaseFactor = 10;
 
     @Override
-    public boolean admit(@NonNull WorkloadPriority priority) {
-        TokenBucket tokenBucket = tokenBuckets.get(priority);
+    public boolean admit(@NonNull Workload workload) {
+        TokenBucket tokenBucket = tokenBuckets.get(workload.getPriority());
         return tokenBucket.tryAcquire();
     }
 

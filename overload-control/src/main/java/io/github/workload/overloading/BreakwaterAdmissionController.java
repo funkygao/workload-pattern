@@ -1,6 +1,6 @@
 package io.github.workload.overloading;
 
-import io.github.workload.WorkloadPriority;
+import io.github.workload.Workload;
 import io.github.workload.annotations.Experimental;
 import io.github.workload.annotations.VisibleForTesting;
 import lombok.NonNull;
@@ -31,7 +31,7 @@ class BreakwaterAdmissionController implements AdmissionController {
     private volatile double credit;
 
     @Override
-    public boolean admit(@NonNull WorkloadPriority priority) {
+    public boolean admit(@NonNull Workload workload) {
         return false;
     }
 
