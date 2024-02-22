@@ -39,7 +39,7 @@ public interface AdmissionController {
      */
     static AdmissionController getInstance(@NonNull String name) {
         return AdmissionControllerFactory.getInstance(name,
-                () -> new DAGORAdmissionController(name));
+                () -> new FairSafeAdmissionController(name));
     }
 
     /**

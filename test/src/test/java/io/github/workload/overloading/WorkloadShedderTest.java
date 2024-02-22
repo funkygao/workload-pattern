@@ -113,7 +113,7 @@ class WorkloadShedderTest extends BaseConcurrentTest {
         setLogLevel(Level.INFO);
 
         AdmissionControllerFactory.resetForTesting();
-        DAGORAdmissionController admissionController = (DAGORAdmissionController) AdmissionController.getInstance("RPC");
+        FairSafeAdmissionController admissionController = (FairSafeAdmissionController) AdmissionController.getInstance("RPC");
         final WorkloadShedder shedder = admissionController.shedderOnQueue();
         // 刚启动时，P为最大值(最低优先级)
         final int initialP = shedder.admissionLevel().P();
@@ -183,7 +183,7 @@ class WorkloadShedderTest extends BaseConcurrentTest {
         System.setProperty("workload.window.DEFAULT_TIME_CYCLE_MS", "50000000");
         setLogLevel(Level.INFO);
         AdmissionControllerFactory.resetForTesting();
-        DAGORAdmissionController admissionController = (DAGORAdmissionController) AdmissionController.getInstance("RPC");
+        FairSafeAdmissionController admissionController = (FairSafeAdmissionController) AdmissionController.getInstance("RPC");
         final WorkloadShedder shedder = admissionController.shedderOnQueue();
 
         PrioritizedRequestGenerator generator = new PrioritizedRequestGenerator().generateFullyRandom(10);
@@ -263,7 +263,7 @@ class WorkloadShedderTest extends BaseConcurrentTest {
 
     @RepeatedTest(1)
     void simulateRpc() {
-        DAGORAdmissionController admissionController = (DAGORAdmissionController) AdmissionController.getInstance("RPC");
+        FairSafeAdmissionController admissionController = (FairSafeAdmissionController) AdmissionController.getInstance("RPC");
         WorkloadShedder shedder = admissionController.shedderOnQueue();
         PrioritizedRequestGenerator generator = new PrioritizedRequestGenerator().simulateRpcRequests(1 << 20);
         for (Map.Entry<WorkloadPriority, Integer> entry : generator) {
@@ -275,7 +275,7 @@ class WorkloadShedderTest extends BaseConcurrentTest {
 
     @RepeatedTest(1)
     void simulateMixedScenario() {
-        DAGORAdmissionController admissionController = (DAGORAdmissionController) AdmissionController.getInstance("RPC");
+        FairSafeAdmissionController admissionController = (FairSafeAdmissionController) AdmissionController.getInstance("RPC");
         WorkloadShedder shedder = admissionController.shedderOnQueue();
         PrioritizedRequestGenerator generator = new PrioritizedRequestGenerator().simulateMixedRequests(1 << 20);
         for (Map.Entry<WorkloadPriority, Integer> entry : generator) {
@@ -289,7 +289,7 @@ class WorkloadShedderTest extends BaseConcurrentTest {
     @DisplayName("固定请求分布的并发测试")
     void adaptAdmissionLevel_dropMore_unbalanced(TestInfo testInfo) throws InterruptedException {
         //System.setProperty("workload.window.DEFAULT_TIME_CYCLE_MS", "50000000");
-        DAGORAdmissionController admissionController = (DAGORAdmissionController) AdmissionController.getInstance("RPC");
+        FairSafeAdmissionController admissionController = (FairSafeAdmissionController) AdmissionController.getInstance("RPC");
         WorkloadShedder shedder = admissionController.shedderOnQueue();
         Map<Integer, Integer> P2Requests = ImmutableMap.of(
                 5, 2,

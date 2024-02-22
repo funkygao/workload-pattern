@@ -10,5 +10,6 @@ import lombok.experimental.UtilityClass;
  * <p>与first-come first-served相比，a flow with bursts of many packets will only punish itself and not other flows.</p>
  */
 @UtilityClass
-public class WeightedMaxMinFairness {
+class WeightedMaxMinFairness {
+
 }

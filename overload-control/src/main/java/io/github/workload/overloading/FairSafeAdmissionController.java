@@ -11,20 +11,18 @@ import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * 面向QoS的自适应式工作负载准入管制，可用于RPC/异步任务排队/MQ消费等场景.
+ * 集成了基于(队列delay，优先级/QoS，CPU饱和)的基于<a href="https://arxiv.org/abs/1806.04075">Overload Control for Scaling WeChat Microservices</a>的准入控制器实现.
  *
  * <ul>About the naming:
  * <li>fair: based on {@link WorkloadPriority}, i,e. QoS</li>
  * <li>safe: embedded JVM scope CPU overload shedding mechanism</li>
  * </ul>
- * <ol>Load shedding principles:
- * <li>Sustain peak performance</li>
- * <li>Isolation: misbehaving customers never hurt anyone(but themselves)</li>
- * <li>Prioritize requests clearly</li>
- * <li>Customer quotas only enforced when needed</li>
- * <li>Cost based: Don't model capacity with QPS</li>
- * <li>Retries: per-request max attempts(e,g. 3), per-backend retry budget(e,g. 10% of all requests)</li>
- * </ol>
  * <ul>局限性，无法解决这类问题:
+ * <li>请求的优先级分布完全没有规律，且完全集中。例如，当前窗口内全部是优先级为A的请求，到下一个窗口全部是B的请求
+ *   <ul>
+ *       <li>上层应用可以设定<a href="https://www.envoyproxy.io/docs/envoy/latest/intro/arch_overview/upstream/load_balancing/panic_threshold.html">envoy panic threshold</a>那样的shed阈值做保护</li>
+ *   </ul>
+ * </li>
  * <li>某个请求(canary request)导致CPU瞬间从低暴涨到100%：shuffle sharding可以
  *   <ul>
  *     <li>crash，例如：某个bug导致死循环/StackOverflow，而该bug在某种请求条件下才触发</li>
@@ -32,11 +30,10 @@ import java.util.concurrent.ConcurrentHashMap;
  *   </ul>
  * </li>
  * <li>只卸除新请求，已接受的请求(已经在执行，在{@link BlockingQueue}里等待执行)即使耗尽CPU也无法卸除</li>
- * <li>请求的优先级分布完全没有规律，且完全集中。例如，当前窗口内全部是优先级为A的请求，到下一个窗口全部是B的请求</li>
  * </ul>
  */
 @Slf4j
-class DAGORAdmissionController implements AdmissionController {
+class FairSafeAdmissionController implements AdmissionController {
     /**
      * The pessimistic throttling.
      */
@@ -51,7 +48,7 @@ class DAGORAdmissionController implements AdmissionController {
      */
     private static final WorkloadShedderOnCpu shedderOnCpu = new WorkloadShedderOnCpu(CPU_USAGE_UPPER_BOUND, CPU_OVERLOAD_COOL_OFF_SEC);
 
-    DAGORAdmissionController(String name) {
+    FairSafeAdmissionController(String name) {
         this.shedderOnQueue = new WorkloadShedderOnQueue(name);
     }
 

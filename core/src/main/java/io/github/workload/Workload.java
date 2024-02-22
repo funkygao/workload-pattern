@@ -8,14 +8,14 @@ import lombok.Getter;
 /**
  * 工作负荷.
  *
- * <p>Any execution computational unit.</p>
+ * <p>Any execution computational unit，常见有：HTTP/RPC Request/异步任务/定时任务/消费的MQ消息.</p>
  */
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 @Getter
 public class Workload {
     @Immutable
     private final WorkloadPriority priority;
-    
+
     private double cost;
     private int retryAttempted;
 

@@ -9,6 +9,14 @@
  * <blockquote cite="https://cloud.google.com/blog/products/gcp/how-to-avoid-a-self-inflicted-ddos-attack-cre-life-lessons">
  *  the self-inflicted DDoS: The biggest DDos threat to your application isn’t from some shadowy third party, but from your own code!
  * </blockquote>
+ * <ol>Load shedding principles:
+ * <li>Sustain peak performance</li>
+ * <li>Isolation: misbehaving customers never hurt anyone(but themselves)</li>
+ * <li>Prioritize requests clearly</li>
+ * <li>Customer quotas only enforced when needed</li>
+ * <li>Cost based: don't model capacity with QPS</li>
+ * <li>Retries: per-request max attempts(e,g. 3), per-backend retry budget(e,g. 10% of all requests)</li>
+ * </ol>
  *
  * @see <a href="https://aws.amazon.com/cn/builders-library/using-load-shedding-to-avoid-overload/">Using load shedding to avoid overload</a>
  * @see <a href="https://www.cs.columbia.edu/~ruigu/papers/socc18-final100.pdf">微信的过载保护</a>
