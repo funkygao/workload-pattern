@@ -8,7 +8,7 @@ import lombok.Getter;
 /**
  * 工作负荷.
  *
- * <p>Any execution computational unit，常见有：HTTP/RPC Request/异步任务/定时任务/消费的MQ消息.</p>
+ * <p>Any execution computational unit，常见有：HTTP/RPC Request/Task/Consumed Message.</p>
  */
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 @Getter
