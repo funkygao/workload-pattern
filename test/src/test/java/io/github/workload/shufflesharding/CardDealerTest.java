@@ -2,7 +2,10 @@ package io.github.workload.shufflesharding;
 
 import org.junit.jupiter.api.Test;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -12,64 +15,50 @@ class CardDealerTest {
     @Test
     void builder() {
         CardDealer.builder().deckSize(10).handSize(4).build();
-        try {
+
+        Exception expected = assertThrows(IllegalArgumentException.class, () -> {
             CardDealer.builder().build();
-            fail();
-        } catch (IllegalArgumentException expected) {
-            assertEquals("deckSize or handSize is not positive", expected.getMessage());
-        }
+        });
+        assertEquals("deckSize or handSize is not positive", expected.getMessage());
     }
 
     @Test
     void constructor() {
-        try {
+        Exception expected = assertThrows(IllegalArgumentException.class, () -> {
             new CardDealer(2, 10);
-            fail();
-        } catch (IllegalArgumentException expected) {
-            assertEquals("handSize is greater than deckSize", expected.getMessage());
-        }
+        });
+        assertEquals("handSize is greater than deckSize", expected.getMessage());
 
-        try {
+        expected = assertThrows(IllegalArgumentException.class, () -> {
             new CardDealer(0, 0);
-            fail();
-        } catch (IllegalArgumentException expected) {
-            assertEquals("deckSize or handSize is not positive", expected.getMessage());
-        }
+        });
+        assertEquals("deckSize or handSize is not positive", expected.getMessage());
 
-        try {
-            int deckSize = 1 << 27; // 1亿多，我们最多支持6千万
+        final int deckSize = 1 << 27; // 1亿多，我们最多支持6千万
+        expected = assertThrows(IllegalArgumentException.class, () -> {
             new CardDealer(deckSize, 3);
-            fail();
-        } catch (IllegalArgumentException expected) {
-            assertEquals("deckSize is impractically large", expected.getMessage());
-        }
+        });
+        assertEquals("deckSize is impractically large", expected.getMessage());
 
-        try {
+        expected = assertThrows(IllegalArgumentException.class, () -> {
             new CardDealer(1, 0);
-            fail();
-        } catch (IllegalArgumentException expected) {
-            assertEquals("deckSize or handSize is not positive", expected.getMessage());
-        }
+        });
+        assertEquals("deckSize or handSize is not positive", expected.getMessage());
 
-        try {
+        expected = assertThrows(IllegalArgumentException.class, () -> {
             new CardDealer(0, 1);
-            fail();
-        } catch (IllegalArgumentException expected) {
-            assertEquals("deckSize or handSize is not positive", expected.getMessage());
-        }
+        });
+        assertEquals("deckSize or handSize is not positive", expected.getMessage());
 
-        try {
+        expected = assertThrows(IllegalArgumentException.class, () -> {
             new CardDealer(-1, 0);
-            fail();
-        } catch (IllegalArgumentException expected) {
-            assertEquals("deckSize or handSize is not positive", expected.getMessage());
-        }
-        try {
+        });
+        assertEquals("deckSize or handSize is not positive", expected.getMessage());
+
+        expected = assertThrows(IllegalArgumentException.class, () -> {
             new CardDealer(512, 8);
-            fail();
-        } catch (IllegalArgumentException expected) {
-            assertEquals("required entropy bits of deckSize 512 and handSize 8 is greater than 60", expected.getMessage());
-        }
+        });
+        assertEquals("required entropy bits of deckSize 512 and handSize 8 is greater than 60", expected.getMessage());
 
         // ok
         new CardDealer(10, 2); // 2 out of 10 nodes
@@ -105,12 +94,10 @@ class CardDealerTest {
     void dealIntoHandWithIdentifier() {
         CardDealer dealer = CardDealer.builder().deckSize(10).handSize(4).build();
         int[] hand = new int[4];
-        try {
+        Exception expected = assertThrows(IllegalArgumentException.class, () -> {
             dealer.dealIntoHand(null, hand);
-            fail();
-        } catch (IllegalArgumentException expected) {
-            assertEquals("identifier cannot be null", expected.getMessage());
-        }
+        });
+        assertEquals("identifier cannot be null", expected.getMessage());
 
         dealer.dealIntoHand("6_616", hand);
         assertArrayEquals(new int[]{6, 0, 3, 5}, hand);
@@ -144,17 +131,15 @@ class CardDealerTest {
         dealer.dealIntoHand(1, hand); // hashValue为1
         assertArrayEquals(new int[]{1, 0, 2}, hand);
 
-        try {
+        Exception expected = assertThrows(IllegalArgumentException.class, () -> {
             dealer.dealIntoHand("x".hashCode(), null);
-        } catch (IllegalArgumentException expected) {
-            assertEquals("hand cannot be null and must have length of handSize", expected.getMessage());
-        }
+        });
+        assertEquals("hand cannot be null and must have length of handSize", expected.getMessage());
 
-        try {
+        expected = assertThrows(IllegalArgumentException.class, () -> {
             dealer.dealIntoHand("x".hashCode(), new int[2]);
-        } catch (IllegalArgumentException expected) {
-            assertEquals("hand cannot be null and must have length of handSize", expected.getMessage());
-        }
+        });
+        assertEquals("hand cannot be null and must have length of handSize", expected.getMessage());
     }
 
     @Test

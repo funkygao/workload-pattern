@@ -30,11 +30,9 @@ class FairSafeAdmissionControllerTest extends BaseConcurrentTest {
     @Test
     void basic() {
         AdmissionController controller = AdmissionController.getInstance("foo");
-        try {
+        assertThrows(NullPointerException.class, () -> {
             controller.admit(null);
-            fail();
-        } catch (NullPointerException expected) {
-        }
+        });
         assertTrue(controller.admit(Workload.ofPriority(WorkloadPriorityHelper.of(4, 6))));
         controller.feedback(WorkloadFeedback.ofQueuedNs(5 * 1000_000)); // 5ms
         controller.feedback(WorkloadFeedback.ofQueuedNs(10 * 1000_000)); // 10ms

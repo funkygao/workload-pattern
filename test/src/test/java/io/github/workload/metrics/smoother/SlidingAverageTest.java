@@ -3,42 +3,26 @@ package io.github.workload.metrics.smoother;
 import io.github.workload.BaseConcurrentTest;
 import org.junit.jupiter.api.Test;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.jupiter.api.Assertions.*;
 
 class SlidingAverageTest extends BaseConcurrentTest {
 
     @Test
     void invalidCall() {
         SlidingAverage sa = new SlidingAverage(0.2);
-        try {
+        // update before you get smoothed value
+        assertThrows(IllegalStateException.class, () -> {
             sa.smoothedValue();
-            fail();
-        } catch (IllegalStateException expected) {
-        }
+        });
 
         sa.update(0.3);
         sa.smoothedValue();
 
-        try {
-            new SlidingAverage(-1);
-            fail();
-        } catch (IllegalArgumentException expected) {
-
-        }
-
-        try {
-            new SlidingAverage(1.1);
-            fail();
-        } catch (IllegalArgumentException expected) {
-
-        }
-
-        try {
-            new SlidingAverage(1);
-            fail();
-        } catch (IllegalArgumentException expected) {
-
+        double[] invalidBetas = new double[]{-1, 1.1, 1};
+        for (double beta : invalidBetas) {
+            assertThrows(IllegalArgumentException.class, () -> {
+                new SlidingAverage(beta);
+            });
         }
     }
 

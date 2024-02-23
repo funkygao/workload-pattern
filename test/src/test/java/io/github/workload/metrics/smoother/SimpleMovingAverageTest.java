@@ -13,19 +13,13 @@ class SimpleMovingAverageTest extends BaseConcurrentTest {
     @Test
     void badCase() {
         ValueSmoother smoother = ValueSmoother.ofSMA(2);
-        try {
+        assertThrows(IllegalStateException.class, () -> {
             smoother.smoothedValue();
-            fail();
-        } catch (IllegalStateException expected) {
-
-        }
-
-        try {
+        });
+        Exception expected = assertThrows(IllegalArgumentException.class, () -> {
             new SimpleMovingAverage(0);
-            fail();
-        } catch (IllegalArgumentException expected) {
-            assertEquals("windowSize must > 0", expected.getMessage());
-        }
+        });
+        assertEquals("windowSize must > 0", expected.getMessage());
     }
 
     @Test

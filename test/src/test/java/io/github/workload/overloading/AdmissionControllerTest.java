@@ -17,33 +17,20 @@ class AdmissionControllerTest {
         assertSame(controller, AdmissionController.getInstance("foo"));
         assertNotSame(controller, AdmissionController.getInstance("bar"));
 
-        try {
+        assertThrows(NullPointerException.class, () -> {
             AdmissionController.getInstance(null);
-            fail();
-        } catch (NullPointerException ok) {
-
-        }
+        });
     }
 
     @Test
     void nonNull() {
-        try {
-            AdmissionController.getInstance(null);
-            fail();
-        } catch (NullPointerException expected) {
-        }
-
         AdmissionController controller = AdmissionController.getInstance("test");
-        try {
+        assertThrows(NullPointerException.class, () -> {
             controller.admit(null);
-            fail();
-        } catch (NullPointerException expected) {
-        }
+        });
 
-        try {
+        assertThrows(NullPointerException.class, () -> {
             controller.feedback(null);
-            fail();
-        } catch (NullPointerException expected) {
-        }
+        });
     }
 }

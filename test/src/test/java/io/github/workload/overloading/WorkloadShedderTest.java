@@ -43,11 +43,9 @@ class WorkloadShedderTest extends BaseConcurrentTest {
         assertEquals(10, key);
         // -1, beyond histogram
         assertFalse(histogram.headMap(-1, true).descendingKeySet().iterator().hasNext());
-        try {
-            key = histogram.headMap(-1, true).descendingKeySet().iterator().next();
-            fail();
-        } catch (NoSuchElementException expected) {
-        }
+        assertThrows(NoSuchElementException.class, () -> {
+            histogram.headMap(-1, true).descendingKeySet().iterator().next();
+        });
         // conclusion: headMap，只有给定的key超过的histogram最左侧值(exclusive)，iterator 才 !hasNext()
 
 

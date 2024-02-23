@@ -10,27 +10,15 @@ class ExponentialMovingAverageTest extends BaseConcurrentTest {
 
     @Test
     void invalidCall() {
-        try {
-            new ExponentialMovingAverage(0);
-            fail();
-        } catch (IllegalArgumentException expected) {
+        double[] invalidAlphas = new double[]{0, -0.1, 1.1};
+        for (double invalidAlpha : invalidAlphas) {
+            assertThrows(IllegalArgumentException.class, () -> {
+                new ExponentialMovingAverage(invalidAlpha);
+            });
         }
 
         // 1 is ok
         new ExponentialMovingAverage(1d);
-
-        try {
-            new ExponentialMovingAverage(-0.1);
-            fail();
-        } catch (IllegalArgumentException expected) {
-        }
-
-        try {
-            new ExponentialMovingAverage(1.1);
-            fail();
-        } catch (IllegalArgumentException expected) {
-        }
-
     }
 
     @Test
@@ -48,14 +36,17 @@ class ExponentialMovingAverageTest extends BaseConcurrentTest {
     }
 
     @Test
+    void getValueBeforeUpdate() {
+        final ExponentialMovingAverage ema = new ExponentialMovingAverage(0.4);
+        Exception expected = assertThrows(IllegalStateException.class, () -> {
+            ema.smoothedValue();
+        });
+        assertEquals("MUST call update() before getting value!", expected.getMessage());
+    }
+
+    @Test
     void basic() {
         ExponentialMovingAverage ema = new ExponentialMovingAverage(0.4);
-        try {
-            ema.smoothedValue();
-            fail();
-        } catch (IllegalStateException expected) {
-            assertEquals("MUST call update() before getting value!", expected.getMessage());
-        }
         ema.update(0.5);
         assertEquals(0.5, ema.smoothedValue(), DELTA);
         ema = new ExponentialMovingAverage(0.4);

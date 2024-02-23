@@ -18,11 +18,9 @@ class WorkloadShedderOnQueueTest extends BaseConcurrentTest {
     void isOverloaded() throws InterruptedException {
         WorkloadShedderOnQueue shedder = new WorkloadShedderOnQueue("test");
         // window cannot be null
-        try {
+        assertThrows(NullPointerException.class, () -> {
             shedder.isOverloaded(System.nanoTime(), null);
-            fail();
-        } catch (NullPointerException expected) {
-        }
+        });
 
         // 刚开始时，无论如何都不该过载
         assertFalse(shedder.isOverloaded(-1, shedder.currentWindow()));

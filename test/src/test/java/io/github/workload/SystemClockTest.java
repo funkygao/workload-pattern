@@ -30,12 +30,10 @@ class SystemClockTest extends BaseConcurrentTest {
 
     @Test
     void illegalArgument() {
-        try {
+        Exception expected = assertThrows(IllegalArgumentException.class, () -> {
             SystemClock.ofPrecisionMs(-1);
-            fail();
-        } catch (IllegalArgumentException expected) {
-            assertEquals("precisionMs cannot be negative", expected.getMessage());
-        }
+        });
+        assertEquals("precisionMs cannot be negative", expected.getMessage());
     }
 
     @RepeatedTest(5)

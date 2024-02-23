@@ -22,16 +22,12 @@ class WorkloadTest {
     @Test
     void badCases() {
         Workload workload = Workload.ofPriority(WorkloadPriority.fromP(300));
-        try {
+        assertThrows(IllegalArgumentException.class, () -> {
             workload.withCost(-1);
-            fail();
-        } catch (IllegalArgumentException expected) {
-        }
-        try {
+        });
+        assertThrows(IllegalArgumentException.class, () -> {
             workload.withRetryAttempted(-1);
-            fail();
-        } catch (IllegalArgumentException expected) {
-        }
+        });
     }
 
 }

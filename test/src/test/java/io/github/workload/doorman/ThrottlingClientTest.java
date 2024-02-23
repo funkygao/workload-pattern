@@ -17,11 +17,9 @@ class ThrottlingClientTest extends BaseConcurrentTest {
 
     @Test
     void badCase() {
-        try {
+        assertThrows(IllegalArgumentException.class, () -> {
             new ThrottlingClient(1);
-            fail();
-        } catch (IllegalArgumentException expected) {
-        }
+        });
 
         new ThrottlingClient(1.1);
         new ThrottlingClient(9);

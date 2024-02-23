@@ -12,33 +12,25 @@ class WorkloadPriorityTest {
 
     @Test
     void constructor() {
-        try {
+        Exception expected = assertThrows(IllegalArgumentException.class, () -> {
             WorkloadPriority.of(128, 1);
-            fail();
-        } catch (IllegalArgumentException expected) {
-            assertEquals("Out of range for B or U", expected.getMessage());
-        }
+        });
+        assertEquals("Out of range for B or U", expected.getMessage());
 
-        try {
+        expected = assertThrows(IllegalArgumentException.class, () -> {
             WorkloadPriority.of(3, 1 << 8);
-            fail();
-        } catch (IllegalArgumentException expected) {
-            assertEquals("Out of range for B or U", expected.getMessage());
-        }
+        });
+        assertEquals("Out of range for B or U", expected.getMessage());
 
-        try {
+        expected = assertThrows(IllegalArgumentException.class, () -> {
             WorkloadPriority.of(0, -1);
-            fail();
-        } catch (IllegalArgumentException expected) {
-            assertEquals("Out of range for B or U", expected.getMessage());
-        }
+        });
+        assertEquals("Out of range for B or U", expected.getMessage());
 
-        try {
+        expected = assertThrows(IllegalArgumentException.class, () -> {
             WorkloadPriority.of(-88, 1);
-            fail();
-        } catch (IllegalArgumentException expected) {
-            assertEquals("Out of range for B or U", expected.getMessage());
-        }
+        });
+        assertEquals("Out of range for B or U", expected.getMessage());
 
         WorkloadPriority.of(8, 36);
         WorkloadPriority.of(0, 0);
@@ -80,18 +72,16 @@ class WorkloadPriorityTest {
         priority = WorkloadPriority.fromP(WorkloadPriority.MAX_P);
         assertEquals(127, priority.B());
         assertEquals(127, priority.U());
-        try {
+
+        Exception expected = assertThrows(IllegalArgumentException.class, () -> {
             WorkloadPriority.fromP(-1);
-            fail();
-        } catch (IllegalArgumentException expected) {
-            assertEquals("Invalid P", expected.getMessage());
-        }
-        try {
+        });
+        assertEquals("Invalid P", expected.getMessage());
+
+        expected = assertThrows(IllegalArgumentException.class, () -> {
             WorkloadPriority.fromP(32640);
-            fail();
-        } catch (IllegalArgumentException expected) {
-            assertEquals("Invalid P", expected.getMessage());
-        }
+        });
+        assertEquals("Invalid P", expected.getMessage());
 
         // 随机数来验证fromP解析出来的(B, U)在合法区间，只要不抛出异常即可
         for (int i = 0; i < 1000; i++) {
