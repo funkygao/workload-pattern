@@ -12,4 +12,12 @@
     <name>Workload :: ShuffleSharding</name>
     <description>洗牌算法</description>
 
+    <dependencies>
+        <dependency>
+            <groupId>io.github.workload</groupId>
+            <artifactId>spec</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+    </dependencies>
+
 </project>

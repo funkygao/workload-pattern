@@ -1,5 +1,9 @@
 package io.github.workload.shufflesharding;
 
+import io.github.workload.annotations.Heuristics;
+import io.github.workload.annotations.VisibleForTesting;
+import lombok.Getter;
+
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -30,6 +34,8 @@ public class CardDealer {
     /**
      * MaxHashBits is the max bit length which can be used from hash value(source of entropy).
      */
+    @VisibleForTesting
+    @Heuristics
     static final int MaxHashBits = 60;
 
     /**
@@ -37,6 +43,7 @@ public class CardDealer {
      *
      * <p>具体应用时，该值通常代表集群总共有多少个节点.</p>
      */
+    @Getter
     private final int deckSize;
 
     /**
@@ -45,6 +52,7 @@ public class CardDealer {
      * <p>具体应用该算法时，该值通常代表为某租户分配多少个节点，即{@code NodeSubset.size}.</p>
      * <p>在{@code load balance}场景，{@link #handSize}表示对某类请求分配多少台服务器实例处理。如果为1，那么在部署过程中，该类请求无法处理；为2，只允许step=1的incremental deployment</p>
      */
+    @Getter
     private final int handSize;
 
     CardDealer(int deckSize, int handSize) throws IllegalArgumentException {
@@ -78,6 +86,7 @@ public class CardDealer {
      * @param handSize 抓到手中多少张牌
      * @return 哈希值消耗的位数
      */
+    @VisibleForTesting
     static int requiredEntropyBits(int deckSize, int handSize) {
         // 在概率论中，当选择有deckSize个可能选项时，每个选项需要消耗log_e(deckSize)比特的信息
         // 但因为计算机中常用的比特数是以二进制表示的，所以转换为以2为底的对数
@@ -131,6 +140,7 @@ public class CardDealer {
      * @param hand      手中牌. Cannot be null, and size must equal {@code handSize}
      * @throws IllegalArgumentException
      */
+    @VisibleForTesting
     void dealIntoHand(long hashValue, int[] hand) throws IllegalArgumentException {
         if (hand == null || hand.length != this.handSize) {
             throw new IllegalArgumentException("hand cannot be null and must have length of handSize");
@@ -155,6 +165,7 @@ public class CardDealer {
         dealIntoHand(hash(identifier), hand);
     }
 
+    @VisibleForTesting
     static long hash(String identifier) {
         long hashValue = 0;
         try {
