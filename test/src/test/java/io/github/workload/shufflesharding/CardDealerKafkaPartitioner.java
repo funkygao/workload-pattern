@@ -1,6 +1,7 @@
 package io.github.workload.shufflesharding;
 
-import lombok.Data;
+import io.github.workload.simulate.TenantWeight;
+import io.github.workload.simulate.TenantWorkloadSimulator;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.RepeatedTest;
 
@@ -13,6 +14,8 @@ import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class CardDealerKafkaPartitioner {
 
@@ -58,41 +61,35 @@ class CardDealerKafkaPartitioner {
                 .handSize(handSize)
                 .build();
 
-        List<TenantProducer> producers = Stream.of(
-                new TenantProducer("a", 20),
-                new TenantProducer("b", 6000),
-                new TenantProducer("c", 30),
-                new TenantProducer("d", 590),
-                new TenantProducer("e", 5),
-                new TenantProducer("f", 120)
+        List<TenantWeight> plans = Stream.of(
+                new TenantWeight("a", 20),
+                new TenantWeight("b", 6000),
+                new TenantWeight("c", 30),
+                new TenantWeight("d", 590),
+                new TenantWeight("e", 5),
+                new TenantWeight("f", 120)
         ).collect(Collectors.toList());
+        TenantWorkloadSimulator simulator = new TenantWorkloadSimulator();
+        simulator.simulateByWeights(plans);
 
         Map<Integer, List<String>> allocated = new TreeMap<>();
-        int totalWeight = producers.stream().mapToInt(TenantProducer::getWeight).sum();
-        int[] currentWeights = producers.stream().mapToInt(TenantProducer::getWeight).toArray();
-        for (int produced = 0; produced < totalWeight;) {
-            for (int i = 0; i < producers.size(); i++) {
-                if (currentWeights[i] > 0) {
-                    String tenantName = producers.get(i).name;
-
-                    final int p = partition(dealer, tenantName);
-                    List<String> messagesInPartition = allocated.get(p);
-                    if (messagesInPartition == null) {
-                        messagesInPartition = new LinkedList<>();
-                        allocated.put(p, messagesInPartition);
-                    }
-                    messagesInPartition.add(tenantName);
-
-                    currentWeights[i]--;
-                    produced++;
-                }
+        for (String tenantName : simulator) {
+            final int p = partition(dealer, tenantName);
+            List<String> messagesInPartition = allocated.get(p);
+            if (messagesInPartition == null) {
+                messagesInPartition = new LinkedList<>();
+                allocated.put(p, messagesInPartition);
             }
+            messagesInPartition.add(tenantName);
         }
+
+        int total = 0;
         for (Integer partition : allocated.keySet()) {
             List<String> messages = allocated.get(partition);
-            System.out.printf("%d %d\n", partition, messages.size());
-            System.out.println(messages);
+            System.out.printf("%2d %4d %s\n", partition, messages.size(), messages);
+            total += messages.size();
         }
+        assertEquals(total, simulator.totalWorkloads());
     }
 
     private int partition(CardDealer dealer, String uid) {
@@ -102,18 +99,4 @@ class CardDealerKafkaPartitioner {
         return hand[i];
     }
 
-    @Data
-    private static class TenantProducer {
-        String name;
-        int weight; // 权重，即该租户要发送多少条消息
-
-        TenantProducer(String name, int weight) {
-            this.name = name;
-            this.weight = weight;
-        }
-
-        int getWeight() {
-            return weight;
-        }
-    }
 }
