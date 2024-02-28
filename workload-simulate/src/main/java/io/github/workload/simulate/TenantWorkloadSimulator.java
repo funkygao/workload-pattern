@@ -12,7 +12,7 @@ public class TenantWorkloadSimulator implements Iterable<String> {
      *
      * @param weights 不同租户的权重计划
      */
-    public void simulateByWeights(List<TenantWeight> weights) {
+    public TenantWorkloadSimulator simulateByWeights(List<TenantWeight> weights) {
         // weighted round robin
         int totalWeight = weights.stream().mapToInt(TenantWeight::getWeight).sum();
         int[] currentWeights = weights.stream().mapToInt(TenantWeight::getWeight).toArray();
@@ -27,6 +27,7 @@ public class TenantWorkloadSimulator implements Iterable<String> {
                 }
             }
         }
+        return this;
     }
 
     /**

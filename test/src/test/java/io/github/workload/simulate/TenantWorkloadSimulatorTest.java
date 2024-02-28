@@ -15,12 +15,12 @@ class TenantWorkloadSimulatorTest {
         List<TenantWeight> weights = new LinkedList<>();
         weights.add(new TenantWeight("foo", 3));
         weights.add(new TenantWeight("bar", 8));
-        simulator.simulateByWeights(weights);
-        assertEquals(11, simulator.totalWorkloads());
         List<String> expectedTenantWorkloads = new LinkedList<>();
-        for (String tenantName : simulator) {
+        for (String tenantName : simulator.simulateByWeights(weights)) {
             expectedTenantWorkloads.add(tenantName);
         }
+        assertEquals(11, simulator.totalWorkloads());
+        assertEquals(expectedTenantWorkloads.size(), simulator.totalWorkloads());
         assertEquals("[foo, bar, foo, bar, foo, bar, bar, bar, bar, bar, bar]", expectedTenantWorkloads.toString());
 
         assertEquals(0, simulator.reset().totalWorkloads());

@@ -13,24 +13,20 @@ class WorkloadPrioritySimulatorTest {
     @RepeatedTest(1)
     void basic() {
         WorkloadPrioritySimulator simulator = new WorkloadPrioritySimulator();
-        simulator.simulateFullyRandomWorkloadPriority(10);
-        assertEquals(WorkloadPriority.MAX_P + 1, simulator.size());
-        for (Map.Entry<WorkloadPriority, Integer> entry : simulator) {
+        int totalRequests = 0;
+        for (Map.Entry<WorkloadPriority, Integer> entry : simulator.simulateFullyRandomWorkloadPriority(10)) {
+            totalRequests += entry.getValue();
+
             assertTrue(entry.getValue() < 10);
         }
-
-        int totalRequests = 0;
-        for (Map.Entry<WorkloadPriority, Integer> entry : simulator) {
-            totalRequests += entry.getValue();
-        }
+        assertEquals(WorkloadPriority.MAX_P + 1, simulator.size());
         assertEquals(totalRequests, simulator.totalRequests());
+
         assertEquals(0, simulator.reset().size());
 
-        simulator.simulateRpcWorkloadPriority(10);
-        assertEquals(10, simulator.totalRequests());
+        assertEquals(10, simulator.reset().simulateRpcWorkloadPriority(10).totalRequests());
 
-        simulator.reset().simulateMixedWorkloadPriority(100);
-        assertEquals(100, simulator.totalRequests());
+        assertEquals(100, simulator.reset().simulateMixedWorkloadPriority(100).totalRequests());
     }
 
 }
