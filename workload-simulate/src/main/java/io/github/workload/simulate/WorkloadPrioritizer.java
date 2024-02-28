@@ -1,9 +1,15 @@
-package io.github.workload.helper;
+package io.github.workload.simulate;
 
 import io.github.workload.WorkloadPriority;
 
 import java.util.concurrent.ThreadLocalRandom;
 
+/**
+ * 全局的业务优先级分配器.
+ *
+ * @see <a href="https://cloud.google.com/blog/products/gcp/using-load-shedding-to-survive-a-success-disaster-cre-life-lessons">Using load shedding to survive a success disaster</a>
+ * @see <a href="https://github.com/apache/hbase/blob/fdde2273006dc3b227d82b297b548885bb9cb48a/hbase-common/src/main/java/org/apache/hadoop/hbase/HConstants.java#L1149">HBase RPC Priority Definition</a>
+ */
 public class WorkloadPrioritizer {
 
     /**

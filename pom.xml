@@ -12,6 +12,7 @@
         <module>spec</module>
         <module>core</module>
         <module>heavy-tail</module>
+        <module>workload-simulate</module>
         <module>shuffle-sharding</module>
         <module>overload-control</module>
         <module>tail-tolerant</module>

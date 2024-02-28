@@ -2,7 +2,7 @@ package io.github.workload.overloading;
 
 import io.github.workload.*;
 import io.github.workload.helper.RandomUtil;
-import io.github.workload.helper.WorkloadPrioritizer;
+import io.github.workload.simulate.WorkloadPrioritizer;
 import io.github.workload.metrics.tumbling.WindowConfig;
 import org.junit.jupiter.api.*;
 import org.slf4j.Logger;
