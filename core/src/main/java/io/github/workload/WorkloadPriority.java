@@ -73,7 +73,7 @@ public class WorkloadPriority {
      * 基于{@link #U}特征值，定时随机生成优先级，但{@link #B}不变.
      *
      * @param b   {@link #B()}
-     * @param uid u值特征，例如 {@code "foo".hashCode()}
+     * @param uid u值特征，例如 {@code "foo".hashCode()}, can be negative
      * @return 一个{@link #U}随机的优先级
      */
     public static WorkloadPriority ofPeriodicRandomFromUID(int b, int uid) {

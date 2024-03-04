@@ -1,6 +1,7 @@
 package io.github.workload;
 
 import io.github.workload.helper.RandomUtil;
+import org.junit.jupiter.api.RepeatedTest;
 import org.junit.jupiter.api.Test;
 
 import java.util.HashSet;
@@ -147,6 +148,13 @@ class WorkloadPriorityTest {
         assertEquals(7, priority.B());
         priority = WorkloadPriority.ofPeriodicRandomFromUID(Integer.MIN_VALUE, 1);
         assertEquals(0, priority.B());
+    }
+
+    @RepeatedTest(100)
+    void ofPeriodicRandomFromUID_negativeUid() {
+        WorkloadPriority priority = WorkloadPriority.ofPeriodicRandomFromUID(3, -"bar".hashCode());
+        assertEquals(3, priority.B());
+        assertTrue(0 <= priority.U() && priority.U() <= 127);
     }
 
     @Test
