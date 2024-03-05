@@ -180,6 +180,12 @@ class WorkloadPriorityTest {
     }
 
     @Test
+    void simpleString() {
+        WorkloadPriority priority = WorkloadPriority.ofLowest();
+        assertEquals("priority(P=16383)", priority.simpleString());
+    }
+
+    @Test
     void test_equals() {
         WorkloadPriority priority = WorkloadPriority.of(1, 9);
         assertEquals(priority, priority);

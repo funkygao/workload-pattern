@@ -145,6 +145,10 @@ public class WorkloadPriority {
         return (B << PRIORITY_BITS) | U;
     }
 
+    public String simpleString() {
+        return "priority(P=" + P() + ")";
+    }
+
     @VisibleForTesting
     static WorkloadPriority ofPeriodicRandomFromUID(int b, int uid, long timeWindowMs) {
         int normalizedStableU = (uid & Integer.MAX_VALUE) % MAX_7BIT_VALUE;
