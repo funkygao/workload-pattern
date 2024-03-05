@@ -4,6 +4,7 @@ import io.github.workload.annotations.Immutable;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.NonNull;
 
 /**
  * 工作负荷.
@@ -19,7 +20,7 @@ public class Workload {
     private double cost;
     private int retryAttempted;
 
-    public static Workload ofPriority(WorkloadPriority priority) {
+    public static Workload ofPriority(@NonNull WorkloadPriority priority) {
         return new Workload(priority, 0, 0);
     }
 
