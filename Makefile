@@ -11,7 +11,8 @@ install:clean test
 	@mvn install
 
 deploy:clean
-	@mvn clean deploy verify
+	@mvn verify
+	@mvn deploy
 
 benchmark:
 	@cat test/*.bench
