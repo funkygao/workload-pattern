@@ -66,6 +66,11 @@ class FairSafeAdmissionController implements AdmissionController {
     }
 
     @Override
+    public WorkloadPriority admissionLevel() {
+        return shedderOnQueue.admissionLevel().getBar();
+    }
+
+    @Override
     public void feedback(@NonNull WorkloadFeedback feedback) {
         if (feedback instanceof WorkloadFeedbackOverloaded) {
             shedderOnQueue.overload(((WorkloadFeedbackOverloaded) feedback).getOverloadedAtNs());

@@ -62,6 +62,17 @@ public interface AdmissionController {
     boolean admit(@NonNull Workload workload);
 
     /**
+     * 获取当前的准入等级水位线.
+     *
+     * <p>So that server can piggyback it to client, who can implement cheap client side admission control.</p>
+     *
+     * @return current admission level
+     */
+    default WorkloadPriority admissionLevel() {
+        return null;
+    }
+
+    /**
      * Feedback of workload.
      *
      * @param feedback 反馈

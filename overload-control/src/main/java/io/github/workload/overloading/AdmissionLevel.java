@@ -3,6 +3,8 @@ package io.github.workload.overloading;
 import io.github.workload.WorkloadPriority;
 import io.github.workload.annotations.Immutable;
 import io.github.workload.annotations.VisibleForTesting;
+import lombok.AccessLevel;
+import lombok.Getter;
 import lombok.NonNull;
 
 /**
@@ -47,6 +49,7 @@ class AdmissionLevel {
      *
      * <p>优先级低于门槛值的请求都应该拒绝.</p>
      */
+    @Getter(AccessLevel.PACKAGE)
     private final WorkloadPriority bar;
 
     @VisibleForTesting
