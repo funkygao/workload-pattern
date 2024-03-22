@@ -1,5 +1,7 @@
 package io.github.workload.fairness;
 
+import io.github.workload.annotations.PoC;
+import lombok.Generated;
 import lombok.experimental.UtilityClass;
 
 /**
@@ -10,6 +12,8 @@ import lombok.experimental.UtilityClass;
  * <p>与first-come first-served相比，a flow with bursts of many packets will only punish itself and not other flows.</p>
  */
 @UtilityClass
+@PoC
+@Generated
 class WeightedMaxMinFairness {
 
 }

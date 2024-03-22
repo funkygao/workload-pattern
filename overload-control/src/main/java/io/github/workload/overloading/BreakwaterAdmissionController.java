@@ -1,8 +1,9 @@
 package io.github.workload.overloading;
 
 import io.github.workload.Workload;
-import io.github.workload.annotations.Experimental;
+import io.github.workload.annotations.PoC;
 import io.github.workload.annotations.VisibleForTesting;
+import lombok.Generated;
 import lombok.NonNull;
 
 /**
@@ -13,7 +14,8 @@ import lombok.NonNull;
  * @see <a href="https://www.usenix.org/conference/osdi20/presentation/cho">Overload Control for μs-scale RPCs with Breakwater</a>
  * @see <a href="https://github.com/shenango/caladan/blob/main/breakwater/src/bw_server.c">Implementation in C by the author</a>
  */
-@Experimental
+@PoC
+@Generated
 class BreakwaterAdmissionController implements AdmissionController {
     // controls the overcommitment and aggressiveness of the generation of credits
     @VisibleForTesting

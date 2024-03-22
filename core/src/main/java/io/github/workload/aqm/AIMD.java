@@ -1,10 +1,13 @@
 package io.github.workload.aqm;
 
+import io.github.workload.annotations.PoC;
+
 /**
  * The additive-increase/multiplicative-decrease (AIMD) algorithm.
  *
  * @see <a href="https://en.wikipedia.org/wiki/Additive_increase/multiplicative_decrease">wikipedia</a>
  */
+@PoC
 class AIMD {
     private volatile double windowSize; // 控制变量，比如TCP的拥塞窗口
     private final double alpha; // 加性增长因子

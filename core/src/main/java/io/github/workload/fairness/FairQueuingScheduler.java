@@ -1,5 +1,8 @@
 package io.github.workload.fairness;
 
+import io.github.workload.annotations.PoC;
+import lombok.Generated;
+
 import java.util.*;
 
 /**
@@ -9,6 +12,8 @@ import java.util.*;
  *
  * @see <a href="https://github.com/kubernetes/apiserver/tree/master/pkg/util/flowcontrol/fairqueuing/queueset">K8S fairqueuing应用于workload</a>
  */
+@PoC
+@Generated
 class FairQueuingScheduler {
     private Map<String, Queue<Packet>> flowQueues;
     private List<String> activeFlows;
@@ -51,6 +56,20 @@ class FairQueuingScheduler {
         System.out.println("Time: " + time + ", Flow: " + flowId + ", Processed: " + packet);
     }
 
+    @Generated
+    static class Packet {
+        private String name;
+
+        public Packet(String name) {
+            this.name = name;
+        }
+
+        @Override
+        public String toString() {
+            return name;
+        }
+    }
+
     public static void main(String[] args) {
         FairQueuingScheduler scheduler = new FairQueuingScheduler();
 
@@ -66,15 +85,3 @@ class FairQueuingScheduler {
     }
 }
 
-class Packet {
-    private String name;
-
-    public Packet(String name) {
-        this.name = name;
-    }
-
-    @Override
-    public String toString() {
-        return name;
-    }
-}

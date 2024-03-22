@@ -1,7 +1,14 @@
 package io.github.workload.doorman;
 
+import io.github.workload.annotations.ExcludeFromTestCoverage;
+import io.github.workload.annotations.PoC;
+import lombok.Generated;
+
 import java.util.concurrent.atomic.LongAdder;
 
+@PoC
+@Generated
+@ExcludeFromTestCoverage
 class Metric {
 
     /**

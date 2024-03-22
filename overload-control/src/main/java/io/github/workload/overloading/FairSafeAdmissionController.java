@@ -57,7 +57,7 @@ class FairSafeAdmissionController implements AdmissionController {
         // 进程级准入，全局采样
         final WorkloadPriority priority = workload.getPriority();
         if (!shedderOnCpu.admit(priority)) {
-            log.debug("CPU overloaded, might reject {}", priority);
+            log.warn("CPU overloaded, might reject {}", priority);
             return false;
         }
 

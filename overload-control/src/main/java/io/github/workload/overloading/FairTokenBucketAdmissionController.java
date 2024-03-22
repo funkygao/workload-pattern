@@ -2,9 +2,10 @@ package io.github.workload.overloading;
 
 import io.github.workload.Workload;
 import io.github.workload.WorkloadPriority;
-import io.github.workload.annotations.Experimental;
+import io.github.workload.annotations.PoC;
 import io.github.workload.annotations.Heuristics;
 import io.github.workload.metrics.smoother.ValueSmoother;
+import lombok.Generated;
 import lombok.NonNull;
 
 import java.util.List;
@@ -15,7 +16,8 @@ import java.util.Map;
  *
  * @see <a href="https://www.usenix.org/legacy/publications/library/proceedings/usits03/tech/full_papers/welsh/welsh_html/usits.html">Adaptive Overload Control for Busy Internet Servers</a>
  */
-@Experimental
+@PoC
+@Generated
 class FairTokenBucketAdmissionController implements AdmissionController {
     private Map<WorkloadPriority, TokenBucket> tokenBuckets;
 
@@ -55,6 +57,7 @@ class FairTokenBucketAdmissionController implements AdmissionController {
         return null;
     }
 
+    @Generated
     private static class TokenBucket {
         private static final ValueSmoother smoother = ValueSmoother.ofSA(0.7);
 

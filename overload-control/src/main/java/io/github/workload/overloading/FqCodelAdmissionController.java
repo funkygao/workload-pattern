@@ -1,7 +1,8 @@
 package io.github.workload.overloading;
 
 import io.github.workload.Workload;
-import io.github.workload.annotations.Experimental;
+import io.github.workload.annotations.PoC;
+import lombok.Generated;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 
@@ -15,7 +16,8 @@ import lombok.extern.slf4j.Slf4j;
  * @see <a href="https://github.com/facebook/folly/blob/bd600cd4e88f664f285489c76b6ad835d8367cd2/folly/executors/Codel.h">Facebook adapted CoDel on folly</a>
  */
 @Slf4j
-@Experimental
+@PoC
+@Generated
 class FqCodelAdmissionController implements AdmissionController {
     private final String name;
 

@@ -1,6 +1,8 @@
 package io.github.workload.fairness;
 
-import io.github.workload.annotations.WIP;
+import io.github.workload.annotations.ExcludeFromTestCoverage;
+import io.github.workload.annotations.PoC;
+import lombok.Generated;
 
 /**
  * DRF，a generalization of max-min fairness to multiple resources.
@@ -10,7 +12,9 @@ import io.github.workload.annotations.WIP;
  *
  * @see <a href="https://static.usenix.org/event/nsdi11/tech/full_papers/Ghodsi.pdf">The DRF Paper</a>
  */
-@WIP
+@PoC
+@Generated
+@ExcludeFromTestCoverage
 class DominantResourceFairness {
 
 }
