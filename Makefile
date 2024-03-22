@@ -17,7 +17,7 @@ deploy:clean
 benchmark:
 	@cat test/*.bench
 
-test:
+test:clean
 	@mvn test -Ptest
 
 coverage:install
