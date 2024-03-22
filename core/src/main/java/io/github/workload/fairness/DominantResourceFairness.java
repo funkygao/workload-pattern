@@ -1,6 +1,6 @@
 package io.github.workload.fairness;
 
-import io.github.workload.annotations.ExcludeFromTestCoverage;
+import io.github.workload.annotations.TestCoverageExcluded;
 import io.github.workload.annotations.PoC;
 import lombok.Generated;
 
@@ -14,7 +14,7 @@ import lombok.Generated;
  */
 @PoC
 @Generated
-@ExcludeFromTestCoverage
+@TestCoverageExcluded
 class DominantResourceFairness {
 
 }

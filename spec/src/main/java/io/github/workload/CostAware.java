@@ -1,5 +1,6 @@
 package io.github.workload;
 
+import io.github.workload.annotations.TestCoverageExcluded;
 import lombok.Generated;
 
 import java.io.Serializable;
@@ -11,6 +12,7 @@ import java.io.Serializable;
  * <p>In our experience, however, this most usually resolves to CPU, as RAM is often already over-provisioned relative to CPU.</p>
  * <p>Networks can sometimes be the scarce resource, but normally only for specialty cases.</p>
  */
+@TestCoverageExcluded
 @Generated
 public interface CostAware extends Serializable {
 
