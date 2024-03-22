@@ -7,7 +7,7 @@ import static java.lang.annotation.ElementType.*;
 import static java.lang.annotation.RetentionPolicy.CLASS;
 
 /**
- * Working in progress.
+ * Working in progress, NOT production ready.
  */
 @Target({TYPE, FIELD, METHOD, CONSTRUCTOR})
 @Retention(CLASS)

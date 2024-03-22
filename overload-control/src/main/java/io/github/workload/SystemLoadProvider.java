@@ -1,7 +1,7 @@
 package io.github.workload;
 
 /**
- * 系统负载提供者.
+ * 系统负载指标提供者.
  */
 public interface SystemLoadProvider {
 

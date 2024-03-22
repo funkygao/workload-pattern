@@ -82,6 +82,11 @@
             <artifactId>heavy-tail</artifactId>
             <version>${project.version}</version>
         </dependency>
+        <dependency>
+            <groupId>io.github.workload</groupId>
+            <artifactId>spec</artifactId>
+            <version>${project.version}</version>
+        </dependency>
 
         <dependency>
             <groupId>com.google.guava</groupId>
