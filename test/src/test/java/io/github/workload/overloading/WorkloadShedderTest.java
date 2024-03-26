@@ -3,14 +3,16 @@ package io.github.workload.overloading;
 import com.google.common.collect.ImmutableMap;
 import io.github.workload.BaseConcurrentTest;
 import io.github.workload.WorkloadPriority;
-import io.github.workload.simulate.WorkloadPrioritySimulator;
 import io.github.workload.metrics.tumbling.CountAndTimeWindowState;
 import io.github.workload.metrics.tumbling.WindowConfig;
+import io.github.workload.simulate.WorkloadPrioritySimulator;
+import one.profiler.AsyncProfiler;
 import org.apache.logging.log4j.Level;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.parallel.Execution;
 import org.junit.jupiter.api.parallel.ExecutionMode;
 
+import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.ConcurrentSkipListMap;
 
@@ -98,6 +100,23 @@ class WorkloadShedderTest extends BaseConcurrentTest {
         assertTrue(histogram.tailMap(0, false).keySet().iterator().hasNext());
 
         assertEquals("[8, 10]", histogram.tailMap(5, false).keySet().toString());
+    }
+
+    /**
+     * 单测自动跑出火焰图.
+     *
+     * @see <a href="https://github.com/async-profiler/async-profiler">Async Profiler</a>
+     */
+    @Test
+    @Disabled("shows how to generate flame graph")
+    void flameGraphed(TestInfo testInfo) throws IOException {
+        AsyncProfiler profiler = AsyncProfiler.getInstance(System.getenv("ASYNC_PROFILER_LIB"));
+        final String fileName = "pf";
+        profiler.execute(String.format("start,jfr,event=wall,file=%s.jfr", fileName));
+        adaptAdmissionLevel_overloaded_false_true(testInfo);
+        profiler.execute(String.format("stop,file=%s.jfr", fileName));
+
+        // java -cp converter.jar jfr2flame pf.jfr svg.html
     }
 
     @RepeatedTest(1)
