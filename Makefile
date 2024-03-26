@@ -5,7 +5,7 @@ package:clean
 
 clean:
 	@mvn clean
-	@rm -f test/*.bench
+	@rm -f test/*.bench test/*.html test/*.jfr test/log
 
 install:clean test
 	@mvn install
@@ -30,3 +30,7 @@ javadoc:install
 
 encapsulation:
 	@mvn io.github.dddplus:dddplus-maven-plugin:model -DrootDir=./overload-control -Dencapsulation=./doc/encapsulation.txt -X
+
+flamegraph:
+	@java -cp $(ASYNC_PROFILER_HOME)/lib/converter.jar jfr2flame test/pf.jfr test/flamegraph.html
+	@open test/flamegraph.html

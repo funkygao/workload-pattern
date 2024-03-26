@@ -30,3 +30,4 @@ doc/shufflesharding.svg
 test/log
 test/*.bench
 *.jfr
+flamegraph.html
