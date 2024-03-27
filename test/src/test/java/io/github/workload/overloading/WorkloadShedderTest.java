@@ -108,15 +108,13 @@ class WorkloadShedderTest extends BaseConcurrentTest {
      * @see <a href="https://github.com/async-profiler/async-profiler">Async Profiler</a>
      */
     @Test
-    @Disabled("shows how to generate flame graph")
+    @Disabled("shows how to generate flame graph, generate jfr file")
     void flameGraphed(TestInfo testInfo) throws IOException {
         AsyncProfiler profiler = AsyncProfiler.getInstance(System.getenv("ASYNC_PROFILER_LIB"));
         final String fileName = "pf";
         profiler.execute(String.format("start,jfr,event=wall,file=%s.jfr", fileName));
         adaptAdmissionLevel_overloaded_false_true(testInfo);
         profiler.execute(String.format("stop,file=%s.jfr", fileName));
-
-        // java -cp converter.jar jfr2flame pf.jfr svg.html
     }
 
     @RepeatedTest(1)

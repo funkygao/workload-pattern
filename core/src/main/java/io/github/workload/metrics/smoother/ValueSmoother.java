@@ -48,4 +48,11 @@ public interface ValueSmoother {
         return new SlidingAverage(beta);
     }
 
+    /**
+     * 创建一个不做数据平滑处理的实现.
+     */
+    static ValueSmoother ofLatestValue() {
+        return new LatestValue();
+    }
+
 }
