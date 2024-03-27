@@ -22,7 +22,7 @@ class AdmissionControllerFactory {
         }
 
         return (T) instances.computeIfAbsent(name, key -> {
-            log.info("register new admission controller:{}", name);
+            log.info("register for: {}", name);
             return supplier.get();
         });
     }

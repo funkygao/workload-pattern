@@ -101,6 +101,7 @@ public class SystemClock {
 
     private static void rescheduleTimerIfNec(long precisionMs) {
         if (precisionMs == 0 || precisionMs >= minPrecisionMs) {
+            log.info("precision:{}ms need not reschedule timer", precisionMs);
             return;
         }
 
