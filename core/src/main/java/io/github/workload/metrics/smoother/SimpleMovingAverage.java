@@ -1,6 +1,5 @@
 package io.github.workload.metrics.smoother;
 
-import io.github.workload.annotations.ThreadSafe;
 import io.github.workload.annotations.VisibleForTesting;
 
 import java.util.concurrent.atomic.AtomicInteger;
@@ -12,7 +11,6 @@ import java.util.concurrent.atomic.AtomicReferenceArray;
  *
  * <p>将最近N个数据点的平均值作为当前点的平滑值，可以去除短期波动，显示中期趋势</p>
  */
-@ThreadSafe
 class SimpleMovingAverage implements ValueSmoother {
     private static final long DOUBLE_LONG_SCALE = 1_000_000;
 

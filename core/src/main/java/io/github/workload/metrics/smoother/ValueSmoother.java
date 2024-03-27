@@ -9,12 +9,16 @@ import io.github.workload.annotations.ThreadSafe;
 public interface ValueSmoother {
 
     /**
-     * 接收新的采用值.
+     * 接收新的采样值.
+     *
+     * @param sample 最新的采样数据值
      */
     ValueSmoother update(double sample);
 
     /**
-     * 平滑后的值.
+     * 平滑处理后的值.
+     *
+     * @return 取决于具体实现算法，返回多次采样数据平滑处理后的值
      */
     double smoothedValue();
 
@@ -22,7 +26,6 @@ public interface ValueSmoother {
      * 创建一个指数移动平均(EMA)算法实现.
      *
      * @param alpha 近期数据权重，(0, 1]
-     * @return a new instance
      */
     static ValueSmoother ofEMA(double alpha) {
         return new ExponentialMovingAverage(alpha);
@@ -32,7 +35,6 @@ public interface ValueSmoother {
      * 创建一个简单移动平均(SMA)算法实现.
      *
      * @param windowSize 窗口大小，即保留最近多少条数据
-     * @return a new instance
      */
     static ValueSmoother ofSMA(int windowSize) {
         return new SimpleMovingAverage(windowSize);
@@ -42,7 +44,6 @@ public interface ValueSmoother {
      * 创建一个移动平均算法实现.
      *
      * @param beta the decay factor
-     * @return a new instance
      */
     static ValueSmoother ofSA(double beta) {
         return new SlidingAverage(beta);

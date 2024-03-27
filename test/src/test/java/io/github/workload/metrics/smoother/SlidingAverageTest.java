@@ -61,4 +61,21 @@ class SlidingAverageTest extends BaseConcurrentTest {
         System.out.println(sa.smoothedValue());
     }
 
+    @Test
+    void simulateKafkaAdaptiveUrgentPartitioner() {
+        ValueSmoother smoother = ValueSmoother.ofSA(0.9999);
+        double expectedUrgentPercentage = 0.2d;
+        double actualUrgentPercentage = 0d;
+        for (int i = 0; i < 1 << 20; i++) {
+            actualUrgentPercentage += 0.001;
+            final double smoothedActual = smoother.update(actualUrgentPercentage).smoothedValue();
+            final double errorRate = (smoothedActual - expectedUrgentPercentage) / expectedUrgentPercentage;
+            if (errorRate > 0.5) {
+                final double newExpected = expectedUrgentPercentage * 1.1;
+                log.info("{} expected:{}, actual:{}, err:{} 期望值调整 -> {}", i, expectedUrgentPercentage, smoothedActual, errorRate, newExpected);
+                expectedUrgentPercentage = newExpected;
+            }
+        }
+    }
+
 }

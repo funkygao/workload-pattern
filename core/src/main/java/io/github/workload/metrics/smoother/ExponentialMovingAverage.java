@@ -1,11 +1,8 @@
 package io.github.workload.metrics.smoother;
 
-import io.github.workload.annotations.ThreadSafe;
-
 /**
  * 指数移动平均(EMA)算法.
  */
-@ThreadSafe
 class ExponentialMovingAverage implements ValueSmoother {
 
     /**
@@ -15,6 +12,7 @@ class ExponentialMovingAverage implements ValueSmoother {
      * <p>0 < alpha < 1</p>
      */
     private final double alpha;
+
     private volatile Double curr;
 
     ExponentialMovingAverage(double alpha) {
