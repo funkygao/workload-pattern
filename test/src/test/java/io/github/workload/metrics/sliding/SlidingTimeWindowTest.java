@@ -30,6 +30,18 @@ class SlidingTimeWindowTest extends BaseConcurrentTest {
     }
 
     @Test
+    void calculateBucketIdx() {
+        final int windowDurationMs = 1000;
+        SimpleErrorSlidingTimeWindow window = new SimpleErrorSlidingTimeWindow(5, windowDurationMs);
+        assertEquals(0, window.calculateBucketIdx(0));
+        assertEquals(1, window.calculateBucketIdx(200));
+        assertEquals(1, window.calculateBucketIdx(201));
+        assertEquals(4, window.calculateBucketIdx(900));
+        assertEquals(0, window.calculateBucketIdx(1000));
+        assertEquals(0, window.calculateBucketIdx(1001));
+    }
+
+    @Test
     void has_only_one_bucket() {
         final int intervalMs = 1000;
         SlidingTimeWindow<Object> window = new SlidingTimeWindow<Object>(1, intervalMs) {

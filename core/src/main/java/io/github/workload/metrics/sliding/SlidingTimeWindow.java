@@ -1,11 +1,13 @@
 package io.github.workload.metrics.sliding;
 
-import io.github.workload.annotations.PoC;
 import io.github.workload.annotations.NotThreadSafe;
 import io.github.workload.annotations.ThreadSafe;
+import io.github.workload.annotations.VisibleForTesting;
 import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicReferenceArray;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -14,12 +16,41 @@ import java.util.concurrent.locks.ReentrantLock;
  *
  * <p>Borrowed from alibaba Sentinel LeapArray, with some tweaks for understanding.</p>
  *
+ * <pre>
+ * +-------------------------------------------------------------------+
+ * | SlidingTimeWindow                                                 |
+ * |+----------------------------------+                               |
+ * || AtomicReferenceArray<Bucket>     |                               |
+ * || +---+---+---+---+---+---+---+---+|                               |
+ * || | 0 | 1 | 2 | 3 |...| i |...| n ||                               |
+ * || +---+---+---+---+---+---+---+---+|                               |
+ * ||     ^                           ^|                               |
+ * ||     |                           ||                               |
+ * ||     +---- The array wraps ----->||                               |
+ * |+----------------------------------+                               |
+ * |                                                                   |
+ * | [Bucket Duration] = Total Window Duration / (n+1)                 |
+ * |                                                                   |
+ * |  Bucket 0         Bucket 1        ...        Bucket i  ...        |
+ * | +------------+   +------------+             +------------+        |
+ * | |            |   |            |             |            |        |
+ * | | Statistic  |   | Statistic  |             | Statistic  |        |
+ * | |   Data     |   |   Data     |             |   Data     |        |
+ * | |            |   |            |             |            |        |
+ * | +------------+   +------------+             +------------+        |
+ * |     |                                          |                  |
+ * |     |<-- Oldest                                | Newest -->|      |
+ * |     |                                          |                  |
+ * | <-------------- Total Window Duration --------------------------->|
+ * |                                                                   |
+ * +-------------------------------------------------------------------+
+ * </pre>
+ *
  * @param <StatisticData> type of statistic data
  */
 @Slf4j
 @ToString
 @ThreadSafe
-@PoC
 public abstract class SlidingTimeWindow<StatisticData> {
     protected final int bucketCount; // how many buckets in the sliding window
     protected final int bucketDurationMs; // time span of each bucket
@@ -41,7 +72,7 @@ public abstract class SlidingTimeWindow<StatisticData> {
     /**
      * Constructor.
      *
-     * @param bucketCount 该窗口由多少个桶构成，每个桶均分时间跨度
+     * @param bucketCount      该窗口由多少个桶构成，每个桶均分时间跨度
      * @param windowDurationMs 该窗口要保留最近多长时间的统计数据
      */
     public SlidingTimeWindow(int bucketCount, int windowDurationMs) {
@@ -56,11 +87,12 @@ public abstract class SlidingTimeWindow<StatisticData> {
 
     public Bucket<StatisticData> currentBucket(long timeMillis) {
         if (timeMillis < 0) {
+            log.error("invalid timeMillis:{}, returns null", timeMillis);
             return null;
         }
 
-        int bucketIdx = calculateBucketIdx(timeMillis);
-        long bucketStartMillis = calculateBucketStartMillis(timeMillis);
+        final int bucketIdx = calculateBucketIdx(timeMillis);
+        final long bucketStartMillis = calculateBucketStartMillis(timeMillis);
         log.trace("{}, bucket:{}, windowStart:{}", timeMillis, bucketIdx, bucketStartMillis);
         while (true) {
             Bucket<StatisticData> present = buckets.get(bucketIdx);
@@ -98,9 +130,33 @@ public abstract class SlidingTimeWindow<StatisticData> {
         }
     }
 
-    private int calculateBucketIdx(long timeMillis) {
+    /**
+     * Get aggregated value list for entire sliding window.
+     *
+     * @return aggregated value list for entire sliding window
+     */
+    public List<StatisticData> values() {
+        return values(System.currentTimeMillis());
+    }
+
+    @VisibleForTesting
+    List<StatisticData> values(long timeMillis) {
+        List<StatisticData> result = new ArrayList<>(bucketCount);
+        for (int i = 0; i < bucketCount; i++) {
+            Bucket<StatisticData> bucket = buckets.get(i);
+            if (bucket == null || !bucket.isTimeInBucket(timeMillis)) {
+                continue;
+            }
+
+            result.add(bucket.data());
+        }
+        return result;
+    }
+
+    @VisibleForTesting
+    int calculateBucketIdx(long timeMillis) {
         long timeId = timeMillis / bucketDurationMs;
-        return (int) (timeId % buckets.length());
+        return (int) (timeId % bucketCount);
     }
 
     private long calculateBucketStartMillis(long timeMillis) {

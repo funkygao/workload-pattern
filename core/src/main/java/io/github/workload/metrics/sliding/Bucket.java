@@ -8,7 +8,7 @@ package io.github.workload.metrics.sliding;
 public class Bucket<StatisticData> {
     private final long durationMs;
     private long startMillis; // [startMillis, endMillis=startMillis+durationMs)
-    private StatisticData data;
+    private final StatisticData data;
 
     Bucket(long durationMs, long startMillis, StatisticData data) {
         this.durationMs = durationMs;
@@ -24,9 +24,8 @@ public class Bucket<StatisticData> {
         return data;
     }
 
-    Bucket<StatisticData> resetStartTimeMillis(long startTimeMillis) {
+    void resetStartTimeMillis(long startTimeMillis) {
         this.startMillis = startTimeMillis;
-        return this;
     }
 
     boolean isTimeInBucket(long timeMillis) {

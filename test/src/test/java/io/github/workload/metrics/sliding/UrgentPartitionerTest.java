@@ -17,6 +17,13 @@ class UrgentPartitionerTest extends BaseConcurrentTest {
         AdaptiveWindow.Counter counter = window.currentBucket().data();
         batchSendMessages(counter);
         log.info("{}/{}, urgent messages percent:{}", counter.totalMessages, counter.urgentMessages, counter.urgentPercent());
+        long total = 0;
+        long urgent = 0;
+        for (AdaptiveWindow.Counter c : window.values()) {
+            total += c.totalMessages.longValue();
+            urgent += c.urgentMessages.longValue();
+        }
+        log.info("{}, {}", total, urgent);
     }
 
     private void batchSendMessages(AdaptiveWindow.Counter counter) {
