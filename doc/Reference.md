@@ -172,3 +172,7 @@ QPS(TPS) = 并发数 / 平均响应时长 => 并发数 = QPS * 平均响应时�
 ![](/doc/img/Kanaloa.svg)
 
 与HBase相比，Worker相当于RpcHandler，Queue相当于BlockingQueue，Dispatcher相当于RpcScheduler， QueueSampler统计(队列长度，出队速度)为Regulator(PIE算法)提供算法依据
+
+## AWS Karpenter K8S JIT Autoscaler
+
+

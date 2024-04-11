@@ -6,11 +6,10 @@ import lombok.Generated;
 import java.io.Serializable;
 
 /**
- * The cost to perform the workload, applied on DTO.
+ * The cost to perform the workload, applied on DTO/any cost calculable class.
  *
- * <p>Cost is usually expressed in terms of a finite computing resource like CPU, RAM or network bandwidth.</p>
- * <p>In our experience, however, this most usually resolves to CPU, as RAM is often already over-provisioned relative to CPU.</p>
- * <p>Networks can sometimes be the scarce resource, but normally only for specialty cases.</p>
+ * <p>局限性：该请求本身就可以计算出成本，无外部依赖。</p>
+ * <p>不适用这样的场景：请求本身看不出成本，例如：请求就是一个batchNo，它必须从存储中取出该批次下所有数据才能知道成本.</p>
  */
 @TestCoverageExcluded
 @Generated

@@ -41,6 +41,13 @@ class SystemLoad implements SystemLoadProvider {
         ScheduledExecutorService timer = Executors.newSingleThreadScheduledExecutor(new NamedThreadFactory(SystemLoad.class.getSimpleName()));
         // 60s后再开始刷新数据：JVM启动时CPU往往很高
         timer.scheduleAtFixedRate(() -> refresh(), coolOffSec, 1, TimeUnit.SECONDS);
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            try {
+                timer.shutdown();
+            } catch (Throwable ignored) {
+                log.error(ignored.getMessage(), ignored);
+            }
+        }));
     }
 
     double loadAverage() {
