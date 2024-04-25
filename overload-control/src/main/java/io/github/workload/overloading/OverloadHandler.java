@@ -13,7 +13,7 @@ import java.util.concurrent.locks.ReentrantLock;
  * <li>不均，只有(该，少量)节点过载：可以有节制地retry</li>
  * </ul>
  *
- * @see
+ * @see https://hormozk.com/capacity
  */
 public class OverloadHandler {
     private static final long RESET_INTERVAL_MS = 1000 * 60 * 5;
@@ -30,18 +30,17 @@ public class OverloadHandler {
      * @param service 服务
      */
     public void sendRequest(String service) {
-        AtomicInteger counter = counterOf(service, totalRequests);
-        counter.incrementAndGet();
+        counterOf(service, totalRequests).incrementAndGet();
     }
 
     /**
      * 在指定预算下是否可以发起重试，以便可能分发到低负载节点.
      *
-     * @param service           服务
-     * @param clientRetryBudget (0.0, 1.0)
+     * @param service     服务
+     * @param retryBudget (0.0, 1.0)，通常设为0.1，即10%
      * @return true if you can retry
      */
-    public boolean attemptRetry(String service, double clientRetryBudget) {
+    public boolean attemptRetry(String service, double retryBudget) {
         resetIfNec(service);
 
         int total = counterOf(service, totalRequests).get();
@@ -51,7 +50,7 @@ public class OverloadHandler {
 
         AtomicInteger retryCounter = counterOf(service, retryRequests);
         double retry = (double) retryCounter.get();
-        if (retry / total > clientRetryBudget) {
+        if (retry / total > retryBudget) {
             return false;
         }
 
