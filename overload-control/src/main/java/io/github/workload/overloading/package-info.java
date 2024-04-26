@@ -18,6 +18,7 @@
  * <li>Retries: per-request max attempts(e,g. 3), per-backend retry budget(e,g. 10% of all requests)</li>
  * </ol>
  *
+ * @see <a href="https://hormozk.com/capacity">Capacity control toolbox</a>
  * @see <a href="https://aws.amazon.com/cn/builders-library/using-load-shedding-to-avoid-overload/">Using load shedding to avoid overload</a>
  * @see <a href="https://www.cs.columbia.edu/~ruigu/papers/socc18-final100.pdf">微信的过载保护</a>
  * @see <a href="https://www.usenix.org/legacy/publications/library/proceedings/usits03/tech/full_papers/welsh/welsh_html/usits.html">Adaptive Overload Control for Busy Internet Servers</a>
