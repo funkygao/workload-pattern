@@ -16,4 +16,12 @@
         <maven.javadoc.skip>true</maven.javadoc.skip>
     </properties>
 
+    <dependencies>
+        <dependency>
+            <groupId>io.github.workload</groupId>
+            <artifactId>core</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+    </dependencies>
+
 </project>

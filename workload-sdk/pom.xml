@@ -26,6 +26,11 @@
             <artifactId>overload-control</artifactId>
             <version>${project.version}</version>
         </dependency>
+        <dependency>
+            <groupId>io.github.workload</groupId>
+            <artifactId>tail-tolerant</artifactId>
+            <version>${project.version}</version>
+        </dependency>
     </dependencies>
 
 </project>
