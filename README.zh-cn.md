@@ -17,8 +17,6 @@ Languages： [English](README.md) | 中文
 
 The following metrics are often used as scheduling objectives for a workload scheduling strategy: load balancing, economic principles, time horizon minimization, and quality of service (QoS).
 
-## 工作负载调度模式
-
 ### 随机发牌算法
 
 ### 过载调度保护

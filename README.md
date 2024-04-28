@@ -19,10 +19,6 @@ The following metrics are often used as scheduling objectives for a workload sch
 
 ## Patterns
 
-### Heavy Tail
-
-### Shuffle Sharding
-
 ### Overload Control
 
 A hosting platform can take one or more of three actions during an overload:
@@ -30,7 +26,9 @@ A hosting platform can take one or more of three actions during an overload:
 - turn away excess requests and preferentially service only “important” requests
 - degrade the performance of admitted requests in order to service a larger number of aggregate requests
 
-### Tail Latency
+### Shuffle Sharding
+
+### Heavy Tail Tolerant
 
 ## References
 
