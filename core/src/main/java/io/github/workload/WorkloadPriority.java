@@ -14,6 +14,8 @@ import java.util.concurrent.TimeUnit;
 /**
  * 工作负荷优先级，first citizen of overload fair protection mechanism.
  *
+ * <p>It is immutable and global visible：这要求它在进程内、进程间进行隐式透明传递.</p>
+ * <p>下层/游以上层/游为准，因为上层具有更准确的场景和体验感知能力.</p>
  * <p>It can be applied on RPC Request, MQ Message, AsyncTask, anything you name it that is runnable.</p>
  * <p>
  * <p>该机制赋能混部，提升部署密度，增加goodput.</p>

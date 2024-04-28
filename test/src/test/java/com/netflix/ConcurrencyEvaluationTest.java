@@ -13,6 +13,9 @@ class ConcurrencyEvaluationTest {
     @Test
     void Gradient2Limit_demo() {
         Gradient2Limit limit = Gradient2Limit.newDefault();
+        limit = Gradient2Limit.newBuilder()
+                .maxConcurrency(200)
+                .build();
     }
 
 }
