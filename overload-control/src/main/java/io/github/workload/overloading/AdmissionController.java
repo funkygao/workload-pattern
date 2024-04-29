@@ -16,11 +16,9 @@ import lombok.NonNull;
 public interface AdmissionController {
     /**
      * CPU使用率到达多少被认为CPU过载.
-     *
-     * <p>75%</p>
      */
     @Heuristics
-    double CPU_USAGE_UPPER_BOUND = 0.75;
+    double CPU_USAGE_UPPER_BOUND = 0.8;
 
     /**
      * CPU过载判断的静默期(in second)：解决启动时CPU飙高导致的误判断.
@@ -28,7 +26,7 @@ public interface AdmissionController {
      * <p>15分钟</p>
      */
     @Heuristics
-    long CPU_OVERLOAD_COOL_OFF_SEC = 15 * 60;
+    long CPU_OVERLOAD_COOL_OFF_SEC = 10 * 60;
 
     /**
      * 获取指定类型的准入控制器实例.
