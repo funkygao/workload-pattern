@@ -18,12 +18,14 @@ class WorkloadShedderOnCpu extends WorkloadShedder {
     private static final SystemClock coolOffClock = SystemClock.ofPrecisionMs(1000);
 
     @Heuristics
-    private static final double EMA_ALPHA = 0.6d;
+    static final double EMA_ALPHA = 0.25d;
     @Heuristics("局限性：low false positive rate is not guaranteed")
     private final double cpuUsageUpperBound;
     @Heuristics
     private final long coolOffMs;
-    private final ValueSmoother valueSmoother;
+
+    @VisibleForTesting
+    final ValueSmoother valueSmoother;
 
     @VisibleForTesting
     SystemLoadProvider loadProvider;
