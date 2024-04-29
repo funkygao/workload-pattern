@@ -16,19 +16,40 @@ import java.util.List;
 @Slf4j
 public class GreedySafeInvoker {
 
-    public <IN, E extends Throwable> void invoke(List<IN> items, int partitionSize, @NonNull ThrowingConsumer<Partition<IN>, E> partitionConsumer, GreedyConfig config) throws E {
-        processItems(items, partitionSize, partition -> {
+    /**
+     * 处理大数据集分批任务的方法，无返回值场景.
+     *
+     * @param items             要处理的数据集
+     * @param config            大报文保护的配置
+     * @param partitionConsumer 处理每一个({@link Partition})数据处理者
+     * @param <IN>              输入数据类型
+     * @param <E>               异常类型
+     * @throws E 如果在处理数据时发生异常
+     */
+    public <IN, E extends Throwable> void invoke(List<IN> items, GreedyConfig config, @NonNull ThrowingConsumer<Partition<IN>, E> partitionConsumer) throws E {
+        processItems(items, config.getPartitionSize(), partition -> {
             partitionConsumer.accept(partition);
             return null; // 用于void方法
         }, config);
     }
 
-    public <OUT, IN, E extends Throwable> List<OUT> invoke(List<IN> items, int partitionSize, @NonNull ThrowingFunction<Partition<IN>, List<OUT>, E> partitionFunction, GreedyConfig config) throws E {
-        return processItems(items, partitionSize, partitionFunction, config);
+    /**
+     * 处理大数据集分批任务的方法，有返回值场景.
+     *
+     * @param items             要处理的数据集
+     * @param config            大报文保护的配置
+     * @param partitionFunction 处理每一个({@link Partition})数据处理者
+     * @param <OUT>             结果数据类型
+     * @param <IN>              输入数据类型
+     * @param <E>               异常类型
+     * @return 结果集
+     * @throws E 如果在处理数据时发生异常
+     */
+    public <OUT, IN, E extends Throwable> List<OUT> invoke(List<IN> items, GreedyConfig config, @NonNull ThrowingFunction<Partition<IN>, List<OUT>, E> partitionFunction) throws E {
+        return processItems(items, config.getPartitionSize(), partitionFunction, config);
     }
 
     private <OUT, IN, E extends Throwable> List<OUT> processItems(List<IN> items, int partitionSize, ThrowingFunction<Partition<IN>, List<OUT>, E> processor, GreedyConfig config) throws E {
-        validateConfig(partitionSize, config);
         if (items == null || items.isEmpty()) {
             return new ArrayList<>();
         }
@@ -49,25 +70,11 @@ public class GreedySafeInvoker {
             }
         }
 
-        if (itemsProcessed > config.greedyThreshold) {
-            if (config.thresholdExceededAction != null) {
-                config.thresholdExceededAction.execute(itemsProcessed);
-            } else {
-                log.warn("items processed:{} > {}", itemsProcessed, config.greedyThreshold);
-            }
-
+        if (itemsProcessed > config.getGreedyThreshold()) {
+            config.getThresholdExceededAction().accept(itemsProcessed);
         }
 
         return results;
-    }
-
-    private void validateConfig(int partitionSize, GreedyConfig config) {
-        if (partitionSize <= 0) {
-            throw new IllegalArgumentException("partitionSize must be greater than 0");
-        }
-        if (config.greedyThreshold <= partitionSize) {
-            throw new IllegalArgumentException("greedyThreshold must be greater than partitionSize");
-        }
     }
 
     @RequiredArgsConstructor
@@ -83,21 +90,4 @@ public class GreedySafeInvoker {
         }
     }
 
-    public class GreedyConfig {
-        private final int greedyThreshold;
-        private final ThresholdExceededAction thresholdExceededAction;
-
-        public GreedyConfig(int greedyThreshold, ThresholdExceededAction thresholdExceededAction) {
-            this.greedyThreshold = greedyThreshold;
-            this.thresholdExceededAction = thresholdExceededAction;
-        }
-
-        public static GreedyConfig of(int greedyThreshold, ThresholdExceededAction action) {
-            return new GreedyConfig(greedyThreshold, action);
-        }
-    }
-
-    public interface ThresholdExceededAction {
-        void execute(int itemsProcessed);
-    }
 }

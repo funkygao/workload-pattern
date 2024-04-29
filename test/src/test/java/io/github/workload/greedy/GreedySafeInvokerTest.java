@@ -17,53 +17,64 @@ class GreedySafeInvokerTest extends BaseConcurrentTest {
 
     @Test
     void edge_cases() {
-        Exception expected = assertThrows(IllegalArgumentException.class, () -> GreedySafeInvoker.invoke(null, 0, partition -> {
-        }, GreedySafeInvoker.GreedyConfig.of(1, null)));
+        Exception expected = assertThrows(IllegalArgumentException.class, () -> GreedySafeInvoker.invoke(null,
+                GreedyConfig.newBuilder().partitionSize(0).greedyThreshold(1).build(),
+                partition -> {
+                }));
         assertEquals("partitionSize must be greater than 0", expected.getMessage());
-        expected = assertThrows(IllegalArgumentException.class, () -> GreedySafeInvoker.invoke(null, 5, partition -> {
-        }, GreedySafeInvoker.GreedyConfig.of(1, null)));
+        expected = assertThrows(IllegalArgumentException.class, () -> GreedySafeInvoker.invoke(null,
+                GreedyConfig.newBuilder().partitionSize(5).greedyThreshold(1).build(),
+                partition -> {
+                }));
         assertEquals("greedyThreshold must be greater than partitionSize", expected.getMessage());
 
-        expected = assertThrows(IllegalArgumentException.class, () -> GreedySafeInvoker.invoke(null, 0, partition -> {
-            return new ArrayList<MockOrder>();
-        }, GreedySafeInvoker.GreedyConfig.of(12, null)));
+        expected = assertThrows(IllegalArgumentException.class, () -> GreedySafeInvoker.invoke(null,
+                GreedyConfig.newBuilder().partitionSize(0).greedyThreshold(12).build(),
+                partition -> {
+                    return new ArrayList<MockOrder>();
+                }));
         assertEquals("partitionSize must be greater than 0", expected.getMessage());
-        expected = assertThrows(IllegalArgumentException.class, () -> GreedySafeInvoker.invoke(null, 4, partition -> {
-            return new ArrayList<MockOrder>();
-        }, GreedySafeInvoker.GreedyConfig.of(2, null)));
+        expected = assertThrows(IllegalArgumentException.class, () -> GreedySafeInvoker.invoke(null,
+                GreedyConfig.newBuilder().partitionSize(4).greedyThreshold(2).build(),
+                partition -> {
+                    return new ArrayList<MockOrder>();
+                }));
         assertEquals("greedyThreshold must be greater than partitionSize", expected.getMessage());
 
 
-        GreedySafeInvoker.invoke(null, 10, partition -> {}, GreedySafeInvoker.GreedyConfig.of(12, null));
-        GreedySafeInvoker.invoke(new ArrayList<MockOrder>(), 10, partition -> {}, GreedySafeInvoker.GreedyConfig.of(12, null));
+        GreedySafeInvoker.invoke(null,
+                GreedyConfig.newBuilder().partitionSize(10).greedyThreshold(12).build(),
+                partition -> {
+                });
+        GreedySafeInvoker.invoke(new ArrayList<MockOrder>(),
+                GreedyConfig.newBuilder().partitionSize(10).greedyThreshold(12).build(),
+                partition -> {
+                });
 
-        List<MockOrder> orders = GreedySafeInvoker.invoke(null, 2, partition -> {
-            return new ArrayList<>();
-        }, GreedySafeInvoker.GreedyConfig.of(12, null));
+        List<MockOrder> orders = GreedySafeInvoker.invoke(null,
+                GreedyConfig.newBuilder().partitionSize(2).greedyThreshold(12).build(),
+                partition -> {
+                    return new ArrayList<>();
+                });
         assertTrue(orders.isEmpty());
-        orders = GreedySafeInvoker.invoke(new ArrayList<>(), 2, partition -> {
-            return new ArrayList<>();
-        }, GreedySafeInvoker.GreedyConfig.of(12, null));
+        orders = GreedySafeInvoker.invoke(new ArrayList<>(),
+                GreedyConfig.newBuilder().partitionSize(2).greedyThreshold(12).build(),
+                partition -> {
+                    return new ArrayList<>();
+                });
         assertTrue(orders.isEmpty());
     }
 
     @Test
     void runWithoutResult_happyCase() {
         List<String> orderNos = generateOrderNos(180);
-        GreedySafeInvoker.invoke(orderNos, 10, partition -> {
-            List<MockOrder> orders = dao.getOrders(partition.getItems());
-            log.info("partition id={}", partition.getId());
-        }, GreedySafeInvoker.GreedyConfig.of(120, null));
+        GreedySafeInvoker.invoke(orderNos,
+                GreedyConfig.newBuilder().partitionSize(10).greedyThreshold(120).build(),
+                partition -> {
+                    List<MockOrder> orders = dao.getOrders(partition.getItems());
+                    log.info("partition id={}", partition.getId());
+                });
 
-    }
-
-    @Test
-    void runWithoutResult_illegalArgument() {
-        List<String> orderNos = generateOrderNos(180);
-        assertThrows(IllegalArgumentException.class, () -> {
-            GreedySafeInvoker.invoke(orderNos, 120, partition -> {
-            }, GreedySafeInvoker.GreedyConfig.of(10, null));
-        });
     }
 
     @Test
@@ -71,10 +82,12 @@ class GreedySafeInvokerTest extends BaseConcurrentTest {
     void runWithoutResult_access_whole_set_not_allowed() {
         List<String> orderNos = generateOrderNos(180);
         Exception expected = assertThrows(IllegalStateException.class, () -> {
-            GreedySafeInvoker.invoke(orderNos, 10, partition -> {
-                //dao.getOrders(partition.getItems());
-                dao.getOrders(orderNos);
-            }, GreedySafeInvoker.GreedyConfig.of(11, null));
+            GreedySafeInvoker.invoke(orderNos,
+                    GreedyConfig.newBuilder().partitionSize(10).greedyThreshold(120).build(),
+                    partition -> {
+                        //dao.getOrders(partition.getItems());
+                        dao.getOrders(orderNos);
+                    });
         });
         assertEquals("BUG! Partition not accessed, accessing the whole dataset?", expected.getMessage());
     }
@@ -83,19 +96,23 @@ class GreedySafeInvokerTest extends BaseConcurrentTest {
     @DisplayName("演示分批发送kafka消息")
     void demo_kafka_batch_send() throws Exception {
         List<String> orderNos = generateOrderNos(123);
-        GreedySafeInvoker.invoke(orderNos, 100, partition -> {
-            List<MockOrder> orders = dao.getOrders(partition.getItems());
-            producer.sendMessage(orders);
-        }, GreedySafeInvoker.GreedyConfig.of(120, null));
+        GreedySafeInvoker.invoke(orderNos,
+                GreedyConfig.newBuilder().partitionSize(100).greedyThreshold(120).build(),
+                partition -> {
+                    List<MockOrder> orders = dao.getOrders(partition.getItems());
+                    producer.sendMessage(orders);
+                });
     }
 
     @Test
     @DisplayName("演示批量调用RPC")
     void demo_rpc_batch_call() {
         List<String> orderNos = generateOrderNos(30);
-        List<MockOrder> orders = GreedySafeInvoker.invoke(orderNos, 30, partition -> {
-            return rpc.fetchOrders(partition.getItems());
-        }, GreedySafeInvoker.GreedyConfig.of(50, null));
+        List<MockOrder> orders = GreedySafeInvoker.invoke(orderNos,
+                GreedyConfig.newBuilder().partitionSize(30).greedyThreshold(1000).build(),
+                partition -> {
+                    return rpc.fetchOrders(partition.getItems());
+                });
         assertEquals(30, orders.size());
         assertEquals(1, orders.get(1).getId());
     }
