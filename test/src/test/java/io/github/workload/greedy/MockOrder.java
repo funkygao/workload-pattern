@@ -1,8 +1,13 @@
 package io.github.workload.greedy;
 
-import lombok.AllArgsConstructor;
-
-@AllArgsConstructor
-public class MockOrder {
+class MockOrder {
     private final Integer id;
+
+    public MockOrder(Integer id) {
+        this.id = id;
+    }
+
+    public Integer getId() {
+        return id;
+    }
 }
