@@ -9,12 +9,12 @@ class WorkloadFeedbackTest {
     @Test
     void factory() {
         WorkloadFeedback overloaded = WorkloadFeedback.ofOverloaded();
-        assertTrue(overloaded instanceof WorkloadFeedbackOverloaded);
-        WorkloadFeedbackOverloaded overloaded1 = (WorkloadFeedbackOverloaded) overloaded;
-        assertNotEquals(0, overloaded1.getOverloadedAtNs());
+        assertTrue(overloaded instanceof WorkloadFeedback.Overload);
+        WorkloadFeedback.Overload overloaded1 = (WorkloadFeedback.Overload) overloaded;
+        assertNotEquals(0, overloaded1.getOverloadAtNs());
 
         WorkloadFeedback queued = WorkloadFeedback.ofQueuedNs(300);
-        WorkloadFeedbackQueued queued1 = (WorkloadFeedbackQueued) queued;
+        WorkloadFeedback.Queued queued1 = (WorkloadFeedback.Queued) queued;
         assertEquals(300, queued1.getQueuedNs());
     }
 

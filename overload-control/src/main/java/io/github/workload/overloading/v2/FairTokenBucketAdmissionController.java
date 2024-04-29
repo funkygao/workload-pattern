@@ -7,7 +7,6 @@ import io.github.workload.annotations.Heuristics;
 import io.github.workload.metrics.smoother.ValueSmoother;
 import io.github.workload.overloading.AdmissionController;
 import io.github.workload.overloading.WorkloadFeedback;
-import io.github.workload.overloading.WorkloadFeedbackQueued;
 import lombok.Generated;
 import lombok.NonNull;
 
@@ -39,7 +38,7 @@ class FairTokenBucketAdmissionController implements AdmissionController {
 
     @Override
     public void feedback(@NonNull WorkloadFeedback feedback) {
-        WorkloadFeedbackQueued queued = (WorkloadFeedbackQueued) feedback;
+        WorkloadFeedback.Queued queued = (WorkloadFeedback.Queued) feedback;
         WorkloadPriority priority = WorkloadPriority.fromP(5); // TODO feedback里缺少priority信息
         TokenBucket tokenBucket = tokenBuckets.get(priority);
         int action = tokenBucket.update(queued.getQueuedNs());

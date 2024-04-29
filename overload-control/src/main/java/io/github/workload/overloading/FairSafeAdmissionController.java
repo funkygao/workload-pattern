@@ -76,13 +76,13 @@ class FairSafeAdmissionController implements AdmissionController {
 
     @Override
     public void feedback(@NonNull WorkloadFeedback feedback) {
-        if (feedback instanceof WorkloadFeedbackOverloaded) {
-            shedderOnQueue.overload(((WorkloadFeedbackOverloaded) feedback).getOverloadedAtNs());
+        if (feedback instanceof WorkloadFeedback.Overload) {
+            shedderOnQueue.overload(((WorkloadFeedback.Overload) feedback).getOverloadAtNs());
             return;
         }
 
-        if (feedback instanceof WorkloadFeedbackQueued) {
-            shedderOnQueue.addWaitingNs(((WorkloadFeedbackQueued) feedback).getQueuedNs());
+        if (feedback instanceof WorkloadFeedback.Queued) {
+            shedderOnQueue.addWaitingNs(((WorkloadFeedback.Queued) feedback).getQueuedNs());
         }
     }
 
