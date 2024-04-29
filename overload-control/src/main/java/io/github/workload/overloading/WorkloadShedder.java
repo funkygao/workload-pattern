@@ -82,10 +82,11 @@ abstract class WorkloadShedder {
     // penalize low priority workloads
     private void shedMore(CountAndTimeWindowState lastWindow) {
         final int admitted = lastWindow.admitted();
+        final int requested = lastWindow.requested();
         final int expectedToDrop = (int) (policy.getDropRate() * admitted);
         if (expectedToDrop == 0) {
             // 上个周期的准入量太少，无法决策抛弃哪个 TODO
-            log.info("[{}] unable to shed more: too few window admitted {}", name, admitted);
+            log.info("[{}] unable to shed more: too few window admitted {}/{}", name, admitted, requested);
             return;
         }
 
@@ -147,9 +148,11 @@ abstract class WorkloadShedder {
         }
 
         final int admitted = lastWindow.admitted();
+        final int requested = lastWindow.requested();
         final int expectedToAdmit = (int) (policy.getRecoverRate() * admitted);
         if (expectedToAdmit == 0) {
-            log.info("[{}] unable to admit more: too few window admitted {}, requested:{}", name, admitted, lastWindow.requested());
+            log.info("[{}] idle window admit all: {}/{}", name, admitted, requested);
+            admissionLevel = AdmissionLevel.ofAdmitAll();
             return;
         }
 
