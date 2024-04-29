@@ -2,7 +2,6 @@ package io.github.workload.overloading;
 
 import io.github.workload.SystemClock;
 import io.github.workload.WorkloadPriority;
-import io.github.workload.annotations.Heuristics;
 import io.github.workload.annotations.ThreadSafe;
 import io.github.workload.annotations.VisibleForTesting;
 import io.github.workload.metrics.tumbling.CountAndTimeRolloverStrategy;
@@ -27,26 +26,16 @@ abstract class WorkloadShedder {
 
     private static final int ADMIT_ALL_P = AdmissionLevel.ofAdmitAll().P();
 
-    /**
-     * 降速时允许的过度丢弃最大误差率.
-     *
-     * <p>过度丢弃是因为优先级的数量分布是不均匀的，存在跳动.</p>
-     *
-     * @see <a href="https://www.envoyproxy.io/docs/envoy/latest/intro/arch_overview/upstream/load_balancing/panic_threshold.html">envoy panic threshold</a>
-     */
-    @Heuristics
-    private static final double OVER_SHED_BOUND = 1.01d; // 101%
-
-    @Heuristics
-    private static final double OVER_ADMIT_BOUND = 0.5d; // TODO
+    private static final double OVER_SHED_BOUND = JVM.getDouble(JVM.OVER_SHED_BOUND, 1.01d);
+    private static final double OVER_ADMIT_BOUND = JVM.getDouble(JVM.OVER_ADMIT_BOUND, 0.5d); // TODO
+    private static final double SHED_DROP_RATE = JVM.getDouble(JVM.SHED_DROP_RATE, 0.05d);
+    private static final double SHED_RECOVER_RATE = JVM.getDouble(JVM.SHED_RECOVER_RATE, 0.015d);
 
     protected final String name;
-    private volatile AdmissionLevel admissionLevel = AdmissionLevel.ofAdmitAll();
-
-    private final TumblingWindow<CountAndTimeWindowState> window;
-    private final WorkloadSheddingPolicy policy = new WorkloadSheddingPolicy();
-
     protected final long startupMs;
+
+    private volatile AdmissionLevel admissionLevel = AdmissionLevel.ofAdmitAll();
+    private final TumblingWindow<CountAndTimeWindowState> window;
 
     protected abstract boolean isOverloaded(long nowNs, CountAndTimeWindowState windowState);
 
@@ -83,7 +72,7 @@ abstract class WorkloadShedder {
     private void shedMore(CountAndTimeWindowState lastWindow) {
         final int admitted = lastWindow.admitted();
         final int requested = lastWindow.requested();
-        final int expectedToDrop = (int) (policy.getDropRate() * admitted);
+        final int expectedToDrop = (int) (SHED_DROP_RATE * admitted);
         if (expectedToDrop == 0) {
             // 上个周期的准入量太少，无法决策抛弃哪个 TODO
             log.info("[{}] unable to shed more: too few window admitted {}/{}", name, admitted, requested);
@@ -149,7 +138,7 @@ abstract class WorkloadShedder {
 
         final int admitted = lastWindow.admitted();
         final int requested = lastWindow.requested();
-        final int expectedToAdmit = (int) (policy.getRecoverRate() * admitted);
+        final int expectedToAdmit = (int) (SHED_RECOVER_RATE * admitted);
         if (expectedToAdmit == 0) {
             log.info("[{}] idle window admit all: {}/{}", name, admitted, requested);
             admissionLevel = AdmissionLevel.ofAdmitAll();
@@ -189,7 +178,7 @@ abstract class WorkloadShedder {
 
     @VisibleForTesting
     double dropRate() {
-        return policy.getDropRate();
+        return SHED_DROP_RATE;
     }
 
     @VisibleForTesting

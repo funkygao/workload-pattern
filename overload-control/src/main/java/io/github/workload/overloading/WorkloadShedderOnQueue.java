@@ -1,6 +1,5 @@
 package io.github.workload.overloading;
 
-import io.github.workload.annotations.Heuristics;
 import io.github.workload.annotations.VisibleForTesting;
 import io.github.workload.metrics.tumbling.CountAndTimeWindowState;
 import lombok.Generated;
@@ -9,18 +8,10 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 class WorkloadShedderOnQueue extends WorkloadShedder {
+    @VisibleForTesting
+    static final long AVG_QUEUED_MS_UPPER_BOUND = JVM.getLong(JVM.AVG_QUEUED_MS_UPPER_BOUND, 200);
 
-    /**
-     * 配置：平均排队时长多大被认为过载.
-     */
-    @Heuristics
-    public static final long AVG_QUEUED_MS_UPPER_BOUND = 200;
-
-    /**
-     * 最近一次显式过载的时间.
-     */
-    private volatile long overloadedAtNs = 0;
-
+    private volatile long overloadedAtNs = 0; // 最近一次显式过载的时间
     private final long timeCycleNs;
 
     WorkloadShedderOnQueue(String name) {

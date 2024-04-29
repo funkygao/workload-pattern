@@ -102,13 +102,10 @@ class SystemLoad implements SystemLoadProvider {
         processUpTimeMs = newProcessUpTime;
 
         if (log.isDebugEnabled()) {
-            log.debug("cpuUsage:{}, loadAvg:{}, cpuCores:{}, getSystemLoadAverage:{}, getSystemCpuLoad:{}, getProcessCpuTime:{}ms, processUpTime:{}ms",
+            log.debug("cpuUsage:{}, loadAvg:{}, cpuCores:{} processUpTime:{}ms",
                     cpuUsage(),
                     loadAverage(),
                     cpuCores,
-                    currentLoadAverage,
-                    newSystemCpuUsage,
-                    processCpuTimeNs / 1_000_000, // ns -> ms
                     processUpTimeMs);
         }
     }
