@@ -16,78 +16,62 @@ import java.util.List;
 @Slf4j
 public class GreedySafeInvoker {
 
-    public <IN, E extends Throwable> void invoke(List<IN> items, int partitionSize, @NonNull ThrowingConsumer<Partition<IN>, E> partitionConsumer, int greedyThreshold) throws E {
-        if (partitionSize <= 0) {
-            throw new IllegalArgumentException("partitionSize must be greater than 0");
-        }
-        if (greedyThreshold <= partitionSize) {
-            throw new IllegalArgumentException("greedyThreshold must be greater than partitionSize");
-        }
-        if (items == null || items.isEmpty()) {
-            return;
-        }
-
-        int partitionId = 0;
-        int itemsProcessed = 0;
-        for (int start = 0; start < items.size(); start += partitionSize) {
-            final int end = Math.min(items.size(), start + partitionSize);
-            // items.subList不会创建原始列表的物理副本，它只是创建了一个视图，不增加GC压力
-            List<IN> partitionData = items.subList(start, end);
-            Partition<IN> partition = new Partition<>(partitionData, partitionId);
+    public <IN, E extends Throwable> void invoke(List<IN> items, int partitionSize, @NonNull ThrowingConsumer<Partition<IN>, E> partitionConsumer, GreedyConfig config) throws E {
+        processItems(items, partitionSize, partition -> {
             partitionConsumer.accept(partition);
-            if (!partition.accessed) {
-                throw new IllegalStateException("BUG! Partition<" + items.get(0).getClass().getSimpleName() + "> not accessed, accessing the whole dataset?");
-            }
-
-            itemsProcessed += partitionData.size();
-            partitionId++;
-        }
-
-        if (itemsProcessed > greedyThreshold) {
-            log.warn("items processed:{} > {}", itemsProcessed, greedyThreshold);
-        }
+            return null; // 用于void方法
+        }, config);
     }
 
-    public <OUT, IN, E extends Throwable> List<OUT> invoke(List<IN> items, int partitionSize, @NonNull ThrowingFunction<Partition<IN>, List<OUT>, E> partitionFunction, int greedyThreshold) throws E {
-        if (partitionSize <= 0) {
-            throw new IllegalArgumentException("partitionSize must be greater than 0");
-        }
-        if (greedyThreshold <= partitionSize) {
-            throw new IllegalArgumentException("greedyThreshold must be greater than partitionSize");
-        }
+    public <OUT, IN, E extends Throwable> List<OUT> invoke(List<IN> items, int partitionSize, @NonNull ThrowingFunction<Partition<IN>, List<OUT>, E> partitionFunction, GreedyConfig config) throws E {
+        return processItems(items, partitionSize, partitionFunction, config);
+    }
+
+    private <OUT, IN, E extends Throwable> List<OUT> processItems(List<IN> items, int partitionSize, ThrowingFunction<Partition<IN>, List<OUT>, E> processor, GreedyConfig config) throws E {
+        validateConfig(partitionSize, config);
         if (items == null || items.isEmpty()) {
             return new ArrayList<>();
         }
 
-        List<OUT> results = new ArrayList<>(items.size());
-        int partitionId = 0;
+        List<OUT> results = new ArrayList<>();
         int itemsProcessed = 0;
-        for (int start = 0; start < items.size(); start += partitionSize) {
+        for (int start = 0, partitionId = 0; start < items.size(); start += partitionSize, partitionId++) {
             final int end = Math.min(items.size(), start + partitionSize);
-            // items.subList不会创建原始列表的物理副本，它只是创建了一个视图，不增加GC压力
             List<IN> partitionData = items.subList(start, end);
             Partition<IN> partition = new Partition<>(partitionData, partitionId);
-            List<OUT> partitionResult = partitionFunction.accept(partition);
-            if (!partition.accessed) {
-                throw new IllegalStateException("BUG! Partition<" + items.get(0).getClass().getSimpleName() + "> not accessed, accessing the whole dataset?");
+            List<OUT> partitionResult = processor.apply(partition);
+            if (partitionResult != null) {
+                results.addAll(partitionResult);
             }
-
-            results.addAll(partitionResult);
-
             itemsProcessed += partitionData.size();
-            partitionId++;
+            if (!partition.accessed) {
+                throw new IllegalStateException("BUG! Partition not accessed, accessing the whole dataset?");
+            }
         }
 
-        if (itemsProcessed > greedyThreshold) {
-            log.warn("items processed:{} > {}", itemsProcessed, greedyThreshold);
+        if (itemsProcessed > config.greedyThreshold) {
+            if (config.thresholdExceededAction != null) {
+                config.thresholdExceededAction.execute(itemsProcessed);
+            } else {
+                log.warn("items processed:{} > {}", itemsProcessed, config.greedyThreshold);
+            }
+
         }
 
         return results;
     }
 
-    // 避免partition处理器误用问题：本该范围子集却访问了全集
+    private void validateConfig(int partitionSize, GreedyConfig config) {
+        if (partitionSize <= 0) {
+            throw new IllegalArgumentException("partitionSize must be greater than 0");
+        }
+        if (config.greedyThreshold <= partitionSize) {
+            throw new IllegalArgumentException("greedyThreshold must be greater than partitionSize");
+        }
+    }
+
     @RequiredArgsConstructor
-    public static class Partition<T> {
+    public class Partition<T> {
         private final List<T> items;
         @Getter
         private final int id;
@@ -97,5 +81,23 @@ public class GreedySafeInvoker {
             accessed = true;
             return items;
         }
+    }
+
+    public class GreedyConfig {
+        private final int greedyThreshold;
+        private final ThresholdExceededAction thresholdExceededAction;
+
+        public GreedyConfig(int greedyThreshold, ThresholdExceededAction thresholdExceededAction) {
+            this.greedyThreshold = greedyThreshold;
+            this.thresholdExceededAction = thresholdExceededAction;
+        }
+
+        public static GreedyConfig of(int greedyThreshold, ThresholdExceededAction action) {
+            return new GreedyConfig(greedyThreshold, action);
+        }
+    }
+
+    public interface ThresholdExceededAction {
+        void execute(int itemsProcessed);
     }
 }

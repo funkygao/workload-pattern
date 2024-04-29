@@ -18,32 +18,32 @@ class GreedySafeInvokerTest extends BaseConcurrentTest {
     @Test
     void edge_cases() {
         Exception expected = assertThrows(IllegalArgumentException.class, () -> GreedySafeInvoker.invoke(null, 0, partition -> {
-        }, 1));
+        }, GreedySafeInvoker.GreedyConfig.of(1, null)));
         assertEquals("partitionSize must be greater than 0", expected.getMessage());
         expected = assertThrows(IllegalArgumentException.class, () -> GreedySafeInvoker.invoke(null, 5, partition -> {
-        }, 1));
+        }, GreedySafeInvoker.GreedyConfig.of(1, null)));
         assertEquals("greedyThreshold must be greater than partitionSize", expected.getMessage());
 
         expected = assertThrows(IllegalArgumentException.class, () -> GreedySafeInvoker.invoke(null, 0, partition -> {
             return new ArrayList<MockOrder>();
-        }, 12));
+        }, GreedySafeInvoker.GreedyConfig.of(12, null)));
         assertEquals("partitionSize must be greater than 0", expected.getMessage());
         expected = assertThrows(IllegalArgumentException.class, () -> GreedySafeInvoker.invoke(null, 4, partition -> {
             return new ArrayList<MockOrder>();
-        }, 2));
+        }, GreedySafeInvoker.GreedyConfig.of(2, null)));
         assertEquals("greedyThreshold must be greater than partitionSize", expected.getMessage());
 
 
-        GreedySafeInvoker.invoke(null, 10, partition -> {}, 12);
-        GreedySafeInvoker.invoke(new ArrayList<MockOrder>(), 10, partition -> {}, 12);
+        GreedySafeInvoker.invoke(null, 10, partition -> {}, GreedySafeInvoker.GreedyConfig.of(12, null));
+        GreedySafeInvoker.invoke(new ArrayList<MockOrder>(), 10, partition -> {}, GreedySafeInvoker.GreedyConfig.of(12, null));
 
         List<MockOrder> orders = GreedySafeInvoker.invoke(null, 2, partition -> {
             return new ArrayList<>();
-        }, 12);
+        }, GreedySafeInvoker.GreedyConfig.of(12, null));
         assertTrue(orders.isEmpty());
         orders = GreedySafeInvoker.invoke(new ArrayList<>(), 2, partition -> {
             return new ArrayList<>();
-        }, 12);
+        }, GreedySafeInvoker.GreedyConfig.of(12, null));
         assertTrue(orders.isEmpty());
     }
 
@@ -53,7 +53,7 @@ class GreedySafeInvokerTest extends BaseConcurrentTest {
         GreedySafeInvoker.invoke(orderNos, 10, partition -> {
             List<MockOrder> orders = dao.getOrders(partition.getItems());
             log.info("partition id={}", partition.getId());
-        }, 120);
+        }, GreedySafeInvoker.GreedyConfig.of(120, null));
 
     }
 
@@ -62,7 +62,7 @@ class GreedySafeInvokerTest extends BaseConcurrentTest {
         List<String> orderNos = generateOrderNos(180);
         assertThrows(IllegalArgumentException.class, () -> {
             GreedySafeInvoker.invoke(orderNos, 120, partition -> {
-            }, 10);
+            }, GreedySafeInvoker.GreedyConfig.of(10, null));
         });
     }
 
@@ -74,9 +74,9 @@ class GreedySafeInvokerTest extends BaseConcurrentTest {
             GreedySafeInvoker.invoke(orderNos, 10, partition -> {
                 //dao.getOrders(partition.getItems());
                 dao.getOrders(orderNos);
-            }, 11);
+            }, GreedySafeInvoker.GreedyConfig.of(11, null));
         });
-        assertEquals("BUG! Partition<String> not accessed, accessing the whole dataset?", expected.getMessage());
+        assertEquals("BUG! Partition not accessed, accessing the whole dataset?", expected.getMessage());
     }
 
     @Test
@@ -86,7 +86,7 @@ class GreedySafeInvokerTest extends BaseConcurrentTest {
         GreedySafeInvoker.invoke(orderNos, 100, partition -> {
             List<MockOrder> orders = dao.getOrders(partition.getItems());
             producer.sendMessage(orders);
-        }, 1000);
+        }, GreedySafeInvoker.GreedyConfig.of(120, null));
     }
 
     @Test
@@ -95,7 +95,7 @@ class GreedySafeInvokerTest extends BaseConcurrentTest {
         List<String> orderNos = generateOrderNos(30);
         List<MockOrder> orders = GreedySafeInvoker.invoke(orderNos, 30, partition -> {
             return rpc.fetchOrders(partition.getItems());
-        }, 50);
+        }, GreedySafeInvoker.GreedyConfig.of(50, null));
         assertEquals(30, orders.size());
         assertEquals(1, orders.get(1).getId());
     }
