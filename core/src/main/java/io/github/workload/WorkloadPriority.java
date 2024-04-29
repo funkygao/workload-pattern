@@ -133,7 +133,7 @@ public class WorkloadPriority {
     }
 
     public String simpleString() {
-        return "priority(P=" + P() + ")";
+        return "priority(P=" + P() + ",B=" + B + ")";
     }
 
     @VisibleForTesting

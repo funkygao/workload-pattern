@@ -182,7 +182,11 @@ class WorkloadPriorityTest {
     @Test
     void simpleString() {
         WorkloadPriority priority = WorkloadPriority.ofLowest();
-        assertEquals("priority(P=16383)", priority.simpleString());
+        assertEquals("priority(P=16383,B=127)", priority.simpleString());
+        priority = WorkloadPriority.fromP(5138);
+        assertEquals("priority(P=5138,B=40)", priority.simpleString());
+        priority = WorkloadPriority.fromP(1391);
+        assertEquals("priority(P=1391,B=10)", priority.simpleString());
     }
 
     @Test
