@@ -1,10 +1,8 @@
-package io.github.workload.overloading;
+package io.github.workload.overloading.v2;
 
 import io.github.workload.BaseConcurrentTest;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
-
-import static org.junit.jupiter.api.Assertions.*;
 
 class BreakwaterAdmissionControllerTest extends BaseConcurrentTest {
 

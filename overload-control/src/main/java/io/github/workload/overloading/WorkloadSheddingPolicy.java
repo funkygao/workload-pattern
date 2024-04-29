@@ -12,7 +12,7 @@ class WorkloadSheddingPolicy {
      * 降速因子.
      */
     @Heuristics
-    private final double dropRate = 0.05; // 5%
+    private final double dropRate = 0.05;
 
     /**
      * 提速因子.
@@ -21,5 +21,5 @@ class WorkloadSheddingPolicy {
      * <p>相当于冷却周期，如果没有它会造成负载短时间下降造成大量请求被放行，严重时打满CPU</p>
      */
     @Heuristics
-    private final double recoverRate = 0.015; // 1.5%
+    private final double recoverRate = 0.015;
 }

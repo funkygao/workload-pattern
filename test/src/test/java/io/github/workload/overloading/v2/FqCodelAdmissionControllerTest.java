@@ -1,4 +1,4 @@
-package io.github.workload.overloading;
+package io.github.workload.overloading.v2;
 
 import org.junit.jupiter.api.Test;
 

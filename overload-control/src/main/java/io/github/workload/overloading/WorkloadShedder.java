@@ -38,7 +38,7 @@ abstract class WorkloadShedder {
     private static final double OVER_SHED_BOUND = 1.01d; // 101%
 
     @Heuristics
-    private static final double OVER_ADMIT_BOUND = 0.5d;
+    private static final double OVER_ADMIT_BOUND = 0.5d; // TODO
 
     protected final String name;
     private volatile AdmissionLevel admissionLevel = AdmissionLevel.ofAdmitAll();
@@ -46,7 +46,7 @@ abstract class WorkloadShedder {
     private final TumblingWindow<CountAndTimeWindowState> window;
     private final WorkloadSheddingPolicy policy = new WorkloadSheddingPolicy();
 
-    private final long startupMs;
+    protected final long startupMs;
 
     protected abstract boolean isOverloaded(long nowNs, CountAndTimeWindowState windowState);
 
@@ -61,7 +61,7 @@ abstract class WorkloadShedder {
                     }
                 }
         );
-        this.window = new TumblingWindow(config, name, System.nanoTime());
+        this.window = new TumblingWindow<>(config, name, System.nanoTime());
     }
 
     boolean admit(@NonNull WorkloadPriority priority) {

@@ -42,8 +42,8 @@ class FairSafeAdmissionController implements AdmissionController {
     /**
      * The optimistic throttling.
      *
-     * <p>shared singleton in JVM: not shed load until you reach global capacity.</p>
-     * <p>The downside of optimistic throttling, is that you'll spike over your global maximum while you start shedding load.</p>
+     * <p>Shared singleton in JVM: not shed load until you reach global capacity.</p>
+     * <p>The downside of optimistic throttling is that you'll spike over your global maximum while you start shedding load.</p>
      * <p>Most users will only experience this momentary overload in the form of slightly higher latency.</p>
      */
     private static final WorkloadShedderOnCpu shedderOnCpu = new WorkloadShedderOnCpu(CPU_USAGE_UPPER_BOUND, CPU_OVERLOAD_COOL_OFF_SEC);
@@ -57,12 +57,16 @@ class FairSafeAdmissionController implements AdmissionController {
         // 进程级准入，全局采样
         final WorkloadPriority priority = workload.getPriority();
         if (!shedderOnCpu.admit(priority)) {
-            log.warn("CPU overloaded, might reject {}", priority);
+            log.warn("{}:shared CPU saturated, shed {}", shedderOnQueue.name, priority.simpleString());
             return false;
         }
 
         // 具体类型的业务准入，局部采样
-        return shedderOnQueue.admit(priority);
+        boolean ok = shedderOnQueue.admit(priority);
+        if (!ok) {
+            log.warn("{}:queuing busy, shed {}", shedderOnQueue.name, priority.simpleString());
+        }
+        return ok;
     }
 
     @Override

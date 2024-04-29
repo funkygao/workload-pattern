@@ -1,8 +1,10 @@
-package io.github.workload.overloading;
+package io.github.workload.overloading.v2;
 
 import io.github.workload.Workload;
 import io.github.workload.annotations.PoC;
 import io.github.workload.annotations.VisibleForTesting;
+import io.github.workload.overloading.AdmissionController;
+import io.github.workload.overloading.WorkloadFeedback;
 import lombok.Generated;
 import lombok.NonNull;
 

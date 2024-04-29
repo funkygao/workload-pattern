@@ -1,7 +1,9 @@
-package io.github.workload.overloading;
+package io.github.workload.overloading.v2;
 
 import io.github.workload.Workload;
 import io.github.workload.annotations.PoC;
+import io.github.workload.overloading.AdmissionController;
+import io.github.workload.overloading.WorkloadFeedback;
 import lombok.Generated;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
@@ -18,10 +20,10 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @PoC
 @Generated
-class FqCodelAdmissionController implements AdmissionController {
+public class FqCodelAdmissionController implements AdmissionController {
     private final String name;
 
-    FqCodelAdmissionController(String name) {
+    public FqCodelAdmissionController(String name) {
         this.name = name;
     }
 

@@ -46,7 +46,7 @@ class WorkloadShedderOnQueue extends WorkloadShedder {
     }
 
     void overload(long overloadedAtNs) {
-        log.trace("[{}] got explicit overload event", name);
+        log.info("[{}] got explicit overload feedback", name);
         this.overloadedAtNs = overloadedAtNs;
     }
 

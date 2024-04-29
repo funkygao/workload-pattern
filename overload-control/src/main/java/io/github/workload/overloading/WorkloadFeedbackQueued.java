@@ -1,12 +1,11 @@
 package io.github.workload.overloading;
 
 import io.github.workload.annotations.Immutable;
-import lombok.AccessLevel;
 import lombok.Getter;
 
+@Getter
 @Immutable
-class WorkloadFeedbackQueued implements WorkloadFeedback {
-    @Getter(AccessLevel.PACKAGE)
+public class WorkloadFeedbackQueued implements WorkloadFeedback {
     private final long queuedNs;
 
     /**

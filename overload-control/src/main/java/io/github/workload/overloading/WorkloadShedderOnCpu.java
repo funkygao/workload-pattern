@@ -23,7 +23,6 @@ class WorkloadShedderOnCpu extends WorkloadShedder {
     private final double cpuUsageUpperBound;
     @Heuristics
     private final long coolOffMs;
-    private final long startupMs;
     private final ValueSmoother valueSmoother;
 
     @VisibleForTesting
@@ -33,7 +32,6 @@ class WorkloadShedderOnCpu extends WorkloadShedder {
         super("CPU");
         this.cpuUsageUpperBound = cpuUsageUpperBound;
         this.coolOffMs = coolOffSec * 1000;
-        this.startupMs = coolOffClock.currentTimeMillis();
         this.loadProvider = SystemLoad.getInstance(coolOffSec);
         this.valueSmoother = ValueSmoother.ofEMA(EMA_ALPHA);
         log.info("[{}] created with upper bound:{}, cool off:{}sec", this.name, cpuUsageUpperBound, coolOffSec);
@@ -49,7 +47,7 @@ class WorkloadShedderOnCpu extends WorkloadShedder {
         double cpuUsage = smoothedCpuUsage();
         boolean overloaded = cpuUsage > cpuUsageUpperBound;
         if (overloaded) {
-            log.warn("CPU BUSY, usage: {} > {}", cpuUsage, cpuUsageUpperBound);
+            log.warn("CPU BUSY with utilization:{} > {}", cpuUsage, cpuUsageUpperBound);
         }
         return overloaded;
     }

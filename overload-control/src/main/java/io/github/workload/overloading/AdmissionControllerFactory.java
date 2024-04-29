@@ -10,8 +10,8 @@ import java.util.function.Supplier;
 
 @Slf4j
 class AdmissionControllerFactory {
-    // within JVM, instances can be for rpc/http/mq/worker/etc
-    private static final Map<String, AdmissionController> instances = new ConcurrentHashMap<>(8);
+    // within JVM, name can be: rpc/http/mq/worker/etc
+    private static final Map<String /* name */, AdmissionController> instances = new ConcurrentHashMap<>(8);
 
     static <T extends AdmissionController> T getInstance(@NonNull String name, @NonNull Supplier<T> supplier) {
         // https://github.com/apache/shardingsphere/pull/13275/files
@@ -22,7 +22,7 @@ class AdmissionControllerFactory {
         }
 
         return (T) instances.computeIfAbsent(name, key -> {
-            log.info("register for: {}", name);
+            log.info("register for:{}", name);
             return supplier.get();
         });
     }

@@ -14,11 +14,7 @@ public class RandomUtil {
     }
 
     public static boolean randomTrue() {
-        if (ThreadLocalRandom.current().nextDouble() > 0.5) {
-            return true;
-        }
-
-        return false;
+        return ThreadLocalRandom.current().nextDouble() > 0.5;
     }
 
     public static boolean randomTrue(int possibilityThousandth) {
