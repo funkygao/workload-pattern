@@ -69,9 +69,9 @@ class AdmissionLevelTest {
     @Test
     void testToString() {
         AdmissionLevel level = AdmissionLevel.ofAdmitAll();
-        assertEquals("AdmissionLevel(B=127,U=127;P=16383)", level.toString());
+        assertEquals("AdmissionLevel(P=16383)", level.toString());
         level = level.changeBar(WorkloadPriorityHelper.of(5, 9).P());
-        assertEquals("AdmissionLevel(B=5,U=9;P=649)", level.toString());
+        assertEquals("AdmissionLevel(P=649)", level.toString());
     }
 }
 

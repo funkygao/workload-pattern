@@ -82,7 +82,7 @@ class AdmissionLevel {
 
     @Override
     public String toString() {
-        return "AdmissionLevel(B=" + bar.B() + ",U=" + bar.U() + ";P=" + bar.P() + ")";
+        return "AdmissionLevel(P=" + bar.P() + ")";
     }
 
     @Override

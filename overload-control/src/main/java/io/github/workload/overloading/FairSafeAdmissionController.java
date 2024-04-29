@@ -57,14 +57,14 @@ class FairSafeAdmissionController implements AdmissionController {
         // 进程级准入，全局采样
         final WorkloadPriority priority = workload.getPriority();
         if (!shedderOnCpu.admit(priority)) {
-            log.warn("{}:shared CPU saturated, shed {}", shedderOnQueue.name, priority.simpleString());
+            log.warn("{}:shared CPU saturated, shed {} behind {}", shedderOnQueue.name, priority.simpleString(), shedderOnCpu.admissionLevel());
             return false;
         }
 
         // 具体类型的业务准入，局部采样
         boolean ok = shedderOnQueue.admit(priority);
         if (!ok) {
-            log.warn("{}:queuing busy, shed {}", shedderOnQueue.name, priority.simpleString());
+            log.warn("{}:queuing busy, shed {} behind {}", shedderOnQueue.name, priority.simpleString(), shedderOnQueue.admissionLevel());
         }
         return ok;
     }

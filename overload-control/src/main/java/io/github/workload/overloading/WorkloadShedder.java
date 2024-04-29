@@ -149,7 +149,7 @@ abstract class WorkloadShedder {
         final int admitted = lastWindow.admitted();
         final int expectedToAdmit = (int) (policy.getRecoverRate() * admitted);
         if (expectedToAdmit == 0) {
-            log.info("[{}] unable to admit more: too few window admitted {}", name, admitted);
+            log.info("[{}] unable to admit more: too few window admitted {}, requested:{}", name, admitted, lastWindow.requested());
             return;
         }
 
@@ -195,7 +195,6 @@ abstract class WorkloadShedder {
         this.admissionLevel = this.admissionLevel.changeBar(WorkloadPriority.MAX_P);
     }
 
-    @VisibleForTesting
     AdmissionLevel admissionLevel() {
         return admissionLevel;
     }
