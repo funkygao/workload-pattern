@@ -59,7 +59,7 @@ public interface AdmissionController {
      * @return current admission level
      */
     default WorkloadPriority admissionLevel() {
-        return null;
+        return WorkloadPriority.ofLowest();
     }
 
     /**
