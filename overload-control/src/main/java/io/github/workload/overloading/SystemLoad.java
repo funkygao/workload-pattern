@@ -40,7 +40,7 @@ class SystemLoad implements SystemLoadProvider {
     private SystemLoad(long coolOffSec) {
         ScheduledExecutorService timer = Executors.newSingleThreadScheduledExecutor(new NamedThreadFactory(SystemLoad.class.getSimpleName()));
         // 60s后再开始刷新数据：JVM启动时CPU往往很高
-        timer.scheduleAtFixedRate(() -> refresh(), coolOffSec, 1, TimeUnit.SECONDS);
+        timer.scheduleAtFixedRate(this::safeRefresh, coolOffSec, 1, TimeUnit.SECONDS);
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             try {
                 timer.shutdown();
@@ -57,6 +57,15 @@ class SystemLoad implements SystemLoadProvider {
     @Override
     public double cpuUsage() {
         return currentCpuUsage;
+    }
+
+    // ScheduledExecutorService的实现通常不会对抛异常的任务进行重新调度
+    private void safeRefresh() {
+        try {
+            refresh();
+        } catch (Throwable why) {
+            log.error("refresh cpu utilization fails", why);
+        }
     }
 
     private void refresh() {
