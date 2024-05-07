@@ -34,7 +34,7 @@ abstract class WorkloadShedder {
     protected final String name;
     protected final long startupMs;
 
-    private volatile AdmissionLevel admissionLevel = AdmissionLevel.ofAdmitAll();
+    private volatile AdmissionLevel admissionLevel = AdmissionLevel.ofAdmitAll(); // TODO AtomicReference
     private final TumblingWindow<CountAndTimeWindowState> window;
 
     protected abstract boolean isOverloaded(long nowNs, CountAndTimeWindowState windowState);
@@ -55,17 +55,21 @@ abstract class WorkloadShedder {
 
     boolean admit(@NonNull WorkloadPriority priority) {
         boolean admitted = admissionLevel.admit(priority);
-        final long nowNs = System.nanoTime();
-        window.advance(priority, admitted, nowNs);
+        window.advance(priority, admitted, System.nanoTime());
         return admitted;
     }
 
-    protected CountAndTimeWindowState currentWindow() {
-        return window.current();
+    AdmissionLevel admissionLevel() {
+        return admissionLevel;
     }
 
-    protected WindowConfig<CountAndTimeWindowState> windowConfig() {
-        return window.getConfig();
+    @VisibleForTesting
+    void adaptAdmissionLevel(boolean overloaded, CountAndTimeWindowState lastWindow) {
+        if (overloaded) {
+            shedMore(lastWindow);
+        } else {
+            admitMore(lastWindow);
+        }
     }
 
     // penalize low priority workloads
@@ -176,6 +180,14 @@ abstract class WorkloadShedder {
         }
     }
 
+    protected CountAndTimeWindowState currentWindow() {
+        return window.current();
+    }
+
+    protected WindowConfig<CountAndTimeWindowState> windowConfig() {
+        return window.getConfig();
+    }
+
     @VisibleForTesting
     double dropRate() {
         return SHED_DROP_RATE;
@@ -185,27 +197,6 @@ abstract class WorkloadShedder {
     void resetForTesting() {
         this.window.resetForTesting();
         this.admissionLevel = this.admissionLevel.changeBar(WorkloadPriority.MAX_P);
-    }
-
-    AdmissionLevel admissionLevel() {
-        return admissionLevel;
-    }
-
-    /**
-     * Cross request adaptation.
-     *
-     * <ul>
-     * <li>examine recent behavior</li>
-     * <li>take action to improve latency of future requests</li>
-     * </ul>
-     */
-    @VisibleForTesting
-    void adaptAdmissionLevel(boolean overloaded, CountAndTimeWindowState lastWindow) {
-        if (overloaded) {
-            shedMore(lastWindow);
-        } else {
-            admitMore(lastWindow);
-        }
     }
 
 }

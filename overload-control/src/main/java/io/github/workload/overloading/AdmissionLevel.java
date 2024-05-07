@@ -41,7 +41,7 @@ import lombok.NonNull;
  * </pre>
  */
 @Immutable
-class AdmissionLevel {
+class AdmissionLevel { // TODO kill it
     private static final AdmissionLevel ADMIT_ALL = new AdmissionLevel(WorkloadPriority.ofLowest());
 
     /**
