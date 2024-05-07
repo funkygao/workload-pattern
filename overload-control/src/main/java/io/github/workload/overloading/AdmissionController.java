@@ -26,8 +26,7 @@ public interface AdmissionController {
      * @return a singleton(by name) of the admission control instance
      */
     static AdmissionController getInstance(@NonNull String name) {
-        return AdmissionControllerFactory.getInstance(name,
-                () -> new FairSafeAdmissionController(name));
+        return getInstance(name, null);
     }
 
     /**
