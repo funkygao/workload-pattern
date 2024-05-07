@@ -36,12 +36,6 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 @Slf4j
 class FairSafeAdmissionController implements AdmissionController {
-    /**
-     * The pessimistic throttling.
-     */
-    private final WorkloadShedderOnQueue shedderOnQueue;
-
-    private final IMetricsTracker metricsTracker;
 
     /**
      * The optimistic throttling.
@@ -51,6 +45,13 @@ class FairSafeAdmissionController implements AdmissionController {
      * <p>Most users will only experience this momentary overload in the form of slightly higher latency.</p>
      */
     private static final WorkloadShedderOnCpu shedderOnCpu = new WorkloadShedderOnCpu(CPU_USAGE_UPPER_BOUND, CPU_OVERLOAD_COOL_OFF_SEC);
+
+    /**
+     * The pessimistic throttling.
+     */
+    private final WorkloadShedderOnQueue shedderOnQueue;
+
+    private final IMetricsTracker metricsTracker;
 
     FairSafeAdmissionController(String name) {
         this(name, null);
