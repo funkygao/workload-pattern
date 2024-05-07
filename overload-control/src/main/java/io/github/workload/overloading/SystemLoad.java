@@ -39,19 +39,22 @@ class SystemLoad implements SystemLoadProvider {
 
     private SystemLoad(long coolOffSec) {
         ScheduledExecutorService timer = Executors.newSingleThreadScheduledExecutor(new NamedThreadFactory(SystemLoad.class.getSimpleName()));
-        // 60s后再开始刷新数据：JVM启动时CPU往往很高
+        // 冷静期后才开始刷新数据：JVM启动时CPU往往很高
         timer.scheduleAtFixedRate(this::safeRefresh, coolOffSec, 1, TimeUnit.SECONDS);
+        
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             try {
                 timer.shutdown();
-            } catch (Throwable ignored) {
-                log.error(ignored.getMessage(), ignored);
+                if (!timer.awaitTermination(3, TimeUnit.SECONDS)) {
+                    timer.shutdownNow();
+                }
+            } catch (InterruptedException why) {
+                Thread.currentThread().interrupt();
+                log.error("Interrupted during shutdown", why);
+            } catch (Exception why) {
+                log.error("Error during executor shutdown", why);
             }
         }));
-    }
-
-    double loadAverage() {
-        return currentLoadAverage;
     }
 
     @Override
@@ -63,8 +66,8 @@ class SystemLoad implements SystemLoadProvider {
     private void safeRefresh() {
         try {
             refresh();
-        } catch (Throwable why) {
-            log.error("refresh cpu utilization fails", why);
+        } catch (Exception why) {
+            log.error("Refresh of CPU utilization failed", why);
         }
     }
 
@@ -110,12 +113,6 @@ class SystemLoad implements SystemLoadProvider {
         processCpuTimeNs = newProcessCpuTime;
         processUpTimeMs = newProcessUpTime;
 
-        if (log.isDebugEnabled()) {
-            log.debug("cpuUsage:{}, loadAvg:{}, cpuCores:{} processUpTime:{}ms",
-                    cpuUsage(),
-                    loadAverage(),
-                    cpuCores,
-                    processUpTimeMs);
-        }
+        log.debug("cpuUsage:{}, loadAvg:{}, cpuCores:{} processUpTime:{}ms", currentCpuUsage, currentLoadAverage, cpuCores, processUpTimeMs);
     }
 }
