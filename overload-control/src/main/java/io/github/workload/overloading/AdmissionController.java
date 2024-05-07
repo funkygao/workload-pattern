@@ -3,6 +3,7 @@ package io.github.workload.overloading;
 import io.github.workload.Workload;
 import io.github.workload.WorkloadPriority;
 import io.github.workload.annotations.ThreadSafe;
+import io.github.workload.overloading.metrics.IMetricsTrackerFactory;
 import lombok.NonNull;
 
 /**
@@ -22,10 +23,25 @@ public interface AdmissionController {
      * <p>对于相同的类型，返回的是同一份实例：以类型为单位的单例.</p>
      *
      * @param name name(or type) of the admission control
+     * @return a singleton(by name) of the admission control instance
      */
     static AdmissionController getInstance(@NonNull String name) {
         return AdmissionControllerFactory.getInstance(name,
                 () -> new FairSafeAdmissionController(name));
+    }
+
+    /**
+     * 获取指定类型的准入控制器实例，并指定指标采集器工厂.
+     *
+     * <p>对于相同的类型，返回的是同一份实例：以类型为单位的单例.</p>
+     *
+     * @param name                  name(or type) of the admission control
+     * @param metricsTrackerFactory factory that creates metrics tracker
+     * @return a singleton(by name) of the admission control instance
+     */
+    static AdmissionController getInstance(@NonNull String name, IMetricsTrackerFactory metricsTrackerFactory) {
+        return AdmissionControllerFactory.getInstance(name,
+                () -> new FairSafeAdmissionController(name, metricsTrackerFactory));
     }
 
     /**

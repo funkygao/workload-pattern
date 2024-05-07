@@ -3,6 +3,8 @@ package io.github.workload.overloading;
 import io.github.workload.Workload;
 import io.github.workload.WorkloadPriority;
 import io.github.workload.annotations.VisibleForTesting;
+import io.github.workload.overloading.metrics.IMetricsTracker;
+import io.github.workload.overloading.metrics.IMetricsTrackerFactory;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 
@@ -39,6 +41,8 @@ class FairSafeAdmissionController implements AdmissionController {
      */
     private final WorkloadShedderOnQueue shedderOnQueue;
 
+    private final IMetricsTracker metricsTracker;
+
     /**
      * The optimistic throttling.
      *
@@ -49,14 +53,24 @@ class FairSafeAdmissionController implements AdmissionController {
     private static final WorkloadShedderOnCpu shedderOnCpu = new WorkloadShedderOnCpu(CPU_USAGE_UPPER_BOUND, CPU_OVERLOAD_COOL_OFF_SEC);
 
     FairSafeAdmissionController(String name) {
+        this(name, null);
+    }
+
+    FairSafeAdmissionController(String name, IMetricsTrackerFactory metricsTrackerFactory) {
         this.shedderOnQueue = new WorkloadShedderOnQueue(name);
+        if (metricsTrackerFactory == null) {
+            this.metricsTracker = new NopMetricsTracker();
+        } else {
+            this.metricsTracker = metricsTrackerFactory.create(name);
+        }
     }
 
     @Override
     public boolean admit(@NonNull Workload workload) {
-        // 进程级准入，全局采样
         final WorkloadPriority priority = workload.getPriority();
+        metricsTracker.enter(workload.getPriority());
         if (!shedderOnCpu.admit(priority)) {
+            metricsTracker.shedByCpu(priority);
             log.warn("{}:shared CPU saturated, shed {} behind {}", shedderOnQueue.name, priority.simpleString(), shedderOnCpu.admissionLevel());
             return false;
         }
@@ -64,6 +78,7 @@ class FairSafeAdmissionController implements AdmissionController {
         // 具体类型的业务准入，局部采样
         boolean ok = shedderOnQueue.admit(priority);
         if (!ok) {
+            metricsTracker.shedByQueue(priority);
             log.warn("{}:queuing busy, shed {} behind {}", shedderOnQueue.name, priority.simpleString(), shedderOnQueue.admissionLevel());
         }
         return ok;
@@ -96,4 +111,7 @@ class FairSafeAdmissionController implements AdmissionController {
         return shedderOnCpu;
     }
 
+    private static class NopMetricsTracker implements IMetricsTracker {
+
+    }
 }
