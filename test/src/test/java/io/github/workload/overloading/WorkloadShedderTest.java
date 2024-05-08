@@ -113,13 +113,13 @@ class WorkloadShedderTest extends BaseConcurrentTest {
         AsyncProfiler profiler = AsyncProfiler.getInstance(System.getenv("ASYNC_PROFILER_LIB"));
         final String fileName = "pf";
         profiler.execute(String.format("start,jfr,event=wall,file=%s.jfr", fileName));
-        adaptAdmissionLevel_overloaded_false_true(testInfo);
+        adaptWatermark_overloaded_false_true(testInfo);
         profiler.execute(String.format("stop,file=%s.jfr", fileName));
     }
 
     @RepeatedTest(1)
     @DisplayName("模拟过载后的 workload shed")
-    void adaptAdmissionLevel_overloaded_false_true(TestInfo testInfo) {
+    void adaptWatermark_overloaded_false_true(TestInfo testInfo) {
         log.info("{}", testInfo.getDisplayName());
 
         // 为了排除运行速度的影响，把窗口的时间周期放大：只以请求次数为周期
@@ -131,8 +131,8 @@ class WorkloadShedderTest extends BaseConcurrentTest {
         FairSafeAdmissionController admissionController = (FairSafeAdmissionController) AdmissionController.getInstance("RPC");
         final WorkloadShedder shedder = admissionController.shedderOnQueue();
         // 刚启动时，P为最大值(最低优先级)
-        final int initialP = shedder.admissionLevel().P();
-        assertEquals(initialP, shedder.admissionLevel().P());
+        final int initialP = shedder.watermark().P();
+        assertEquals(initialP, shedder.watermark().P());
         assertEquals(WorkloadPriority.MAX_P, initialP);
 
         WorkloadPrioritySimulator generator = new WorkloadPrioritySimulator().simulateFullyRandomWorkloadPriority(50);
@@ -151,23 +151,23 @@ class WorkloadShedderTest extends BaseConcurrentTest {
 
         log.info("没有过载，调整admission level不变化");
         for (int i = 0; i < 10; i++) {
-            shedder.adaptAdmissionLevel(false, currentWindow);
-            assertEquals(initialP, shedder.admissionLevel().P());
+            shedder.adaptWatermark(false, currentWindow);
+            assertEquals(initialP, shedder.watermark().P());
         }
 
         log.info("显式过载，看看调整到哪个优先级。当前窗口，histogram size:{}, {}", currentWindow.histogram().size(), currentWindow.histogram());
-        WorkloadPriority lastLevel = shedder.admissionLevel();
+        WorkloadPriority lastLevel = shedder.watermark();
         for (int i = 0; i < (1 / WorkloadShedder.DROP_RATE); i++) {
-            shedder.adaptAdmissionLevel(true, currentWindow);
-            log.debug("adapted {}: {} -> {}", lastLevel.P() - shedder.admissionLevel().P(), lastLevel, shedder.admissionLevel());
-            if (lastLevel.equals(shedder.admissionLevel())) {
+            shedder.adaptWatermark(true, currentWindow);
+            log.debug("adapted {}: {} -> {}", lastLevel.P() - shedder.watermark().P(), lastLevel, shedder.watermark());
+            if (lastLevel.equals(shedder.watermark())) {
                 log.info("admission level cannot be adapted any more, STOPPED!");
                 break;
             }
 
             // 每次调整一定是 admission level 更优先的：提升门槛值
-            assertTrue(shedder.admissionLevel().P() <= lastLevel.P());
-            lastLevel = shedder.admissionLevel();
+            assertTrue(shedder.watermark().P() <= lastLevel.P());
+            lastLevel = shedder.watermark();
         }
 
         generator.reset().simulateFewWorkloadPriority();
@@ -179,20 +179,20 @@ class WorkloadShedderTest extends BaseConcurrentTest {
         }
         final CountAndTimeWindowState currentWindow1 = shedder.currentWindow();
         log.info("模拟当前窗口请求量低于100的场景 histogram:{}", currentWindow1.histogram());
-        shedder.adaptAdmissionLevel(true, currentWindow1);
-        shedder.adaptAdmissionLevel(true, currentWindow1);
+        shedder.adaptWatermark(true, currentWindow1);
+        shedder.adaptWatermark(true, currentWindow1);
 
         shedder.resetForTesting();
         final CountAndTimeWindowState currentWindow2 = shedder.currentWindow();
         log.info("模拟当前窗口1个请求都没有的场景 histogram:{}", currentWindow2.histogram());
-        shedder.adaptAdmissionLevel(true, currentWindow2);
-        shedder.adaptAdmissionLevel(true, currentWindow2);
+        shedder.adaptWatermark(true, currentWindow2);
+        shedder.adaptWatermark(true, currentWindow2);
     }
 
     @RepeatedTest(2)
     @Execution(ExecutionMode.SAME_THREAD)
     @DisplayName("先过载，再恢复")
-    void adaptAdmissionLevel_shedMore_then_admitMore(TestInfo testInfo) {
+    void adaptWatermark_shedMore_then_admitMore(TestInfo testInfo) {
         log.info("{}", testInfo.getDisplayName());
 
         System.setProperty("workload.window.DEFAULT_TIME_CYCLE_MS", "50000000");
@@ -211,15 +211,15 @@ class WorkloadShedderTest extends BaseConcurrentTest {
         List<Integer> shedHistory = new LinkedList<>();
         final CountAndTimeWindowState currentWindow = shedder.currentWindow();
         log.info("histogram:size:{}, {}", currentWindow.histogram().size(), currentWindow.histogram());
-        WorkloadPriority lastLevel = shedder.admissionLevel();
+        WorkloadPriority lastLevel = shedder.watermark();
         shedHistory.add(lastLevel.P());
         log.info("overloaded, shed more...");
         int sheddingTimes = 0;
         for (int i = 0; i < (1 / WorkloadShedder.DROP_RATE); i++) {
             // 已过载
-            shedder.adaptAdmissionLevel(true, currentWindow);
-            log.debug("adapted {}: {} -> {}", lastLevel.P() - shedder.admissionLevel().P(), lastLevel, shedder.admissionLevel());
-            if (lastLevel.equals(shedder.admissionLevel())) {
+            shedder.adaptWatermark(true, currentWindow);
+            log.debug("adapted {}: {} -> {}", lastLevel.P() - shedder.watermark().P(), lastLevel, shedder.watermark());
+            if (lastLevel.equals(shedder.watermark())) {
                 sheddingTimes = i + 1;
                 log.info("cannot shed any more:{}", sheddingTimes);
                 break;
@@ -231,8 +231,8 @@ class WorkloadShedderTest extends BaseConcurrentTest {
             }
 
             // 每次调整一定是 admission level 更优先的：提升门槛值
-            assertTrue(shedder.admissionLevel().P() <= lastLevel.P());
-            lastLevel = shedder.admissionLevel();
+            assertTrue(shedder.watermark().P() <= lastLevel.P());
+            lastLevel = shedder.watermark();
             shedHistory.add(lastLevel.P());
         }
 
@@ -244,23 +244,23 @@ class WorkloadShedderTest extends BaseConcurrentTest {
         boolean everAdmitted = false;
         for (int i = 0; i < Integer.MAX_VALUE; i++) {
             // 未过载
-            shedder.adaptAdmissionLevel(false, currentWindow);
-            if (lastLevel.equals(shedder.admissionLevel())) {
+            shedder.adaptWatermark(false, currentWindow);
+            if (lastLevel.equals(shedder.watermark())) {
                 admittingTimes = i + 1;
                 log.info("cannot admit any more:{}", admittingTimes);
                 break;
             }
 
             // 每次调整一定是 admission level 更优先的：提升门槛值
-            assertTrue(shedder.admissionLevel().P() >= lastLevel.P());
-            lastLevel = shedder.admissionLevel();
+            assertTrue(shedder.watermark().P() >= lastLevel.P());
+            lastLevel = shedder.watermark();
             admitHistory.add(lastLevel.P());
             everAdmitted = true;
         }
 
         if (everAdmitted) {
             // 完全恢复
-            assertEquals(WorkloadPriority.MAX_P, shedder.admissionLevel().P());
+            assertEquals(WorkloadPriority.MAX_P, shedder.watermark().P());
         }
 
         log.info("shed:{}, admit:{}", shedHistory, admitHistory);
@@ -302,7 +302,7 @@ class WorkloadShedderTest extends BaseConcurrentTest {
 
     @RepeatedTest(10)
     @DisplayName("固定请求分布的并发测试")
-    void adaptAdmissionLevel_dropMore_unbalanced(TestInfo testInfo) throws InterruptedException {
+    void adaptWatermark_dropMore_unbalanced(TestInfo testInfo) throws InterruptedException {
         //System.setProperty("workload.window.DEFAULT_TIME_CYCLE_MS", "50000000");
         FairSafeAdmissionController admissionController = (FairSafeAdmissionController) AdmissionController.getInstance("RPC");
         WorkloadShedder shedder = admissionController.shedderOnQueue();
@@ -318,7 +318,7 @@ class WorkloadShedderTest extends BaseConcurrentTest {
         log.info("{} {}", testInfo.getDisplayName(), shedder);
 
         injectWorkloads(shedder, P2Requests);
-        shedder.adaptAdmissionLevel(true, shedder.currentWindow());
+        shedder.adaptWatermark(true, shedder.currentWindow());
     }
 
     private void injectWorkloads(WorkloadShedder shedder, Map<Integer, Integer> P2Requests) {

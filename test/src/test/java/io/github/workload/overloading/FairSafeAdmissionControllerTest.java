@@ -59,10 +59,10 @@ class FairSafeAdmissionControllerTest extends BaseConcurrentTest {
 
         // 没有过overload，level不会变
         WorkloadPriority admitAll = WorkloadPriority.ofLowest();
-        assertEquals(admitAll, FairSafeAdmissionController.shedderOnCpu().admissionLevel());
-        assertEquals(admitAll, mqController.shedderOnQueue().admissionLevel());
-        assertEquals(admitAll, rpcController.shedderOnQueue().admissionLevel());
-        assertEquals(admitAll, webController.shedderOnQueue().admissionLevel());
+        assertEquals(admitAll, FairSafeAdmissionController.shedderOnCpu().watermark());
+        assertEquals(admitAll, mqController.shedderOnQueue().watermark());
+        assertEquals(admitAll, rpcController.shedderOnQueue().watermark());
+        assertEquals(admitAll, webController.shedderOnQueue().watermark());
     }
 
     private void simulateServiceRandomlyOverload(int sleepBound, Sysload sysload) throws InterruptedException {

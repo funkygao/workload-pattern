@@ -71,7 +71,7 @@ class FairSafeAdmissionController implements AdmissionController {
         metricsTracker.enter(workload.getPriority());
         if (!shedderOnCpu.admit(priority)) {
             metricsTracker.shedByCpu(priority);
-            log.warn("{}:shared CPU saturated, shed {} above watermark {}", shedderOnQueue.name, priority.simpleString(), shedderOnCpu.admissionLevel().simpleString());
+            log.warn("{}:shared CPU saturated, shed {}, watermark {}", shedderOnQueue.name, priority.simpleString(), shedderOnCpu.watermark().simpleString());
             return false;
         }
 
@@ -79,7 +79,7 @@ class FairSafeAdmissionController implements AdmissionController {
         boolean ok = shedderOnQueue.admit(priority);
         if (!ok) {
             metricsTracker.shedByQueue(priority);
-            log.warn("{}:queuing busy, shed {} above watermark {}", shedderOnQueue.name, priority.simpleString(), shedderOnQueue.admissionLevel().simpleString());
+            log.warn("{}:queuing busy, shed {}, watermark {}", shedderOnQueue.name, priority.simpleString(), shedderOnQueue.watermark().simpleString());
         }
         return ok;
     }

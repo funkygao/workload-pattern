@@ -43,7 +43,7 @@ abstract class WorkloadShedder {
                 new CountAndTimeRolloverStrategy() {
                     @Override
                     public void onRollover(long nowNs, CountAndTimeWindowState snapshot, TumblingWindow<CountAndTimeWindowState> window) {
-                        adaptAdmissionLevel(isOverloaded(nowNs, snapshot), snapshot);
+                        adaptWatermark(isOverloaded(nowNs, snapshot), snapshot);
                     }
                 }
         );
@@ -56,7 +56,7 @@ abstract class WorkloadShedder {
         return admitted;
     }
 
-    WorkloadPriority admissionLevel() {
+    WorkloadPriority watermark() {
         return watermark;
     }
 
@@ -68,7 +68,7 @@ abstract class WorkloadShedder {
      * </ul>
      */
     @VisibleForTesting
-    void adaptAdmissionLevel(boolean overloaded, CountAndTimeWindowState lastWindow) {
+    void adaptWatermark(boolean overloaded, CountAndTimeWindowState lastWindow) {
         // TODO 基于上一个窗口来调整下一个窗口的watermark，那么如果这2个窗口的请求分布有很大差异怎么办？
         // 不仅考虑上一个窗口的数据，而且将前几个窗口的数据也纳入考虑，并对近期的数据给予更高的权重。这样可以平滑过渡并减少单个窗口数据变化对watermark调整的影响
         if (overloaded) {
@@ -95,7 +95,7 @@ abstract class WorkloadShedder {
         int accumulatedToDrop = 0;
         // histogram: (6, 3) -> (9, 10) -> ... -> (112, 2) -> (195, 11) -> (1894, 3)
         // expectedDropNextCycle:4
-        // admissionLevel.P=1999/1894, 要切换到112，但195是过度抛弃了，errorRate=(11+3-4)/4=10/4=2.5
+        // watermark.P=1999/1894, 要切换到112，但195是过度抛弃了，errorRate=(11+3-4)/4=10/4=2.5
         // TODO should we respect currentP?
         final Iterator<Map.Entry<Integer, AtomicInteger>> descendingEntries = histogram.headMap(currentP, true).descendingMap().entrySet().iterator();
         if (!descendingEntries.hasNext()) {
@@ -160,7 +160,6 @@ abstract class WorkloadShedder {
         int accumulatedToAdmit = 0;
         final Iterator<Map.Entry<Integer, AtomicInteger>> ascendingP = lastWindow.histogram().tailMap(currentP, false).entrySet().iterator();
         if (!ascendingP.hasNext()) {
-            // TODO log
             log.warn("[{}] beyond tail of histogram, {} -> {}", name, watermark.simpleString(), WorkloadPriority.ofLowest().simpleString());
             watermark = WorkloadPriority.ofLowest();
             return;
