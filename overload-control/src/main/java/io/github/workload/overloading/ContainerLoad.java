@@ -2,7 +2,7 @@ package io.github.workload.overloading;
 
 import com.sun.management.OperatingSystemMXBean;
 import io.github.workload.NamedThreadFactory;
-import io.github.workload.SystemLoadProvider;
+import io.github.workload.Sysload;
 import lombok.extern.slf4j.Slf4j;
 
 import java.lang.management.ManagementFactory;
@@ -26,32 +26,35 @@ import java.util.concurrent.TimeUnit;
  * @see <a href="https://cloud.tencent.com/developer/article/1760923">Sentinel在docker中获取CPU利用率的一个BUG</a>
  */
 @Slf4j
-class SystemLoad implements SystemLoadProvider {
+class ContainerLoad implements Sysload {
     private volatile double currentLoadAverage = -1;
     private volatile double currentCpuUsage = -1;
 
     private long processCpuTimeNs = 0; // 当前进程累计占用CPU时长
     private long processUpTimeMs = 0; // 当前进程累计运行时长
 
-    static SystemLoad getInstance(long coolOffSec) {
-        return new SystemLoad(coolOffSec);
+    static ContainerLoad getInstance(long coolOffSec) {
+        return new ContainerLoad(coolOffSec);
     }
 
-    private SystemLoad(long coolOffSec) {
-        ScheduledExecutorService timer = Executors.newSingleThreadScheduledExecutor(new NamedThreadFactory(SystemLoad.class.getSimpleName()));
-        // 60s后再开始刷新数据：JVM启动时CPU往往很高
+    private ContainerLoad(long coolOffSec) {
+        ScheduledExecutorService timer = Executors.newSingleThreadScheduledExecutor(new NamedThreadFactory(ContainerLoad.class.getSimpleName()));
+        // 冷静期后才开始刷新数据：JVM启动时CPU往往很高
         timer.scheduleAtFixedRate(this::safeRefresh, coolOffSec, 1, TimeUnit.SECONDS);
+        
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             try {
                 timer.shutdown();
-            } catch (Throwable ignored) {
-                log.error(ignored.getMessage(), ignored);
+                if (!timer.awaitTermination(3, TimeUnit.SECONDS)) {
+                    timer.shutdownNow();
+                }
+            } catch (InterruptedException why) {
+                Thread.currentThread().interrupt();
+                log.error("Interrupted during shutdown", why);
+            } catch (Exception why) {
+                log.error("Error during executor shutdown", why);
             }
         }));
-    }
-
-    double loadAverage() {
-        return currentLoadAverage;
     }
 
     @Override
@@ -63,8 +66,8 @@ class SystemLoad implements SystemLoadProvider {
     private void safeRefresh() {
         try {
             refresh();
-        } catch (Throwable why) {
-            log.error("refresh cpu utilization fails", why);
+        } catch (Exception why) {
+            log.error("Refresh of CPU utilization failed", why);
         }
     }
 
@@ -110,12 +113,6 @@ class SystemLoad implements SystemLoadProvider {
         processCpuTimeNs = newProcessCpuTime;
         processUpTimeMs = newProcessUpTime;
 
-        if (log.isDebugEnabled()) {
-            log.debug("cpuUsage:{}, loadAvg:{}, cpuCores:{} processUpTime:{}ms",
-                    cpuUsage(),
-                    loadAverage(),
-                    cpuCores,
-                    processUpTimeMs);
-        }
+        log.debug("cpuUsage:{}, loadAvg:{}, cpuCores:{} processUpTime:{}ms", currentCpuUsage, currentLoadAverage, cpuCores, processUpTimeMs);
     }
 }

@@ -1,5 +1,6 @@
 package io.github.workload.overloading;
 
+import io.github.workload.HyperParameter;
 import io.github.workload.Workload;
 import io.github.workload.WorkloadPriority;
 import io.github.workload.annotations.VisibleForTesting;
@@ -25,7 +26,7 @@ import java.util.concurrent.ConcurrentHashMap;
  *       <li>上层应用可以设定<a href="https://www.envoyproxy.io/docs/envoy/latest/intro/arch_overview/upstream/load_balancing/panic_threshold.html">envoy panic threshold</a>那样的shed阈值做保护</li>
  *   </ul>
  * </li>
- * <li>某个请求(canary request)导致CPU瞬间从低暴涨到100%：shuffle sharding可以
+ * <li>上线了毒代码，canary request 导致CPU瞬间从低暴涨到100%：shuffle sharding可以
  *   <ul>
  *     <li>crash，例如：某个bug导致死循环/StackOverflow，而该bug在某种请求条件下才触发</li>
  *     <li>high priority workload long delay，例如：误把{@link ConcurrentHashMap#contains(Object)}当做O(1)，配合parallelStream，当数据量多时CPU彪高</li>
@@ -36,12 +37,8 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 @Slf4j
 class FairSafeAdmissionController implements AdmissionController {
-    /**
-     * The pessimistic throttling.
-     */
-    private final WorkloadShedderOnQueue shedderOnQueue;
-
-    private final IMetricsTracker metricsTracker;
+    static final long CPU_OVERLOAD_COOL_OFF_SEC = HyperParameter.getLong(Heuristic.CPU_OVERLOAD_COOL_OFF_SEC, 10 * 60);
+    static final double CPU_USAGE_UPPER_BOUND = HyperParameter.getDouble(Heuristic.CPU_USAGE_UPPER_BOUND, 0.75);
 
     /**
      * The optimistic throttling.
@@ -52,17 +49,20 @@ class FairSafeAdmissionController implements AdmissionController {
      */
     private static final WorkloadShedderOnCpu shedderOnCpu = new WorkloadShedderOnCpu(CPU_USAGE_UPPER_BOUND, CPU_OVERLOAD_COOL_OFF_SEC);
 
+    /**
+     * The pessimistic throttling.
+     */
+    private final WorkloadShedderOnQueue shedderOnQueue;
+
+    private final IMetricsTracker metricsTracker;
+
     FairSafeAdmissionController(String name) {
         this(name, null);
     }
 
     FairSafeAdmissionController(String name, IMetricsTrackerFactory metricsTrackerFactory) {
         this.shedderOnQueue = new WorkloadShedderOnQueue(name);
-        if (metricsTrackerFactory == null) {
-            this.metricsTracker = new NopMetricsTracker();
-        } else {
-            this.metricsTracker = metricsTrackerFactory.create(name);
-        }
+        this.metricsTracker = metricsTrackerFactory != null ? metricsTrackerFactory.create(name) : new NopMetricsTracker();
     }
 
     @Override
@@ -71,7 +71,7 @@ class FairSafeAdmissionController implements AdmissionController {
         metricsTracker.enter(workload.getPriority());
         if (!shedderOnCpu.admit(priority)) {
             metricsTracker.shedByCpu(priority);
-            log.warn("{}:shared CPU saturated, shed {} behind {}", shedderOnQueue.name, priority.simpleString(), shedderOnCpu.admissionLevel());
+            log.warn("{}:shared CPU saturated, shed {}, watermark {}", shedderOnQueue.name, priority.simpleString(), shedderOnCpu.watermark().simpleString());
             return false;
         }
 
@@ -79,14 +79,9 @@ class FairSafeAdmissionController implements AdmissionController {
         boolean ok = shedderOnQueue.admit(priority);
         if (!ok) {
             metricsTracker.shedByQueue(priority);
-            log.warn("{}:queuing busy, shed {} behind {}", shedderOnQueue.name, priority.simpleString(), shedderOnQueue.admissionLevel());
+            log.warn("{}:queuing busy, shed {}, watermark {}", shedderOnQueue.name, priority.simpleString(), shedderOnQueue.watermark().simpleString());
         }
         return ok;
-    }
-
-    @Override
-    public WorkloadPriority admissionLevel() {
-        return shedderOnQueue.admissionLevel().getBar();
     }
 
     @Override

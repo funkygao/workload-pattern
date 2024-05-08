@@ -33,6 +33,7 @@ public class WorkloadPriority {
 
     private static final int PRIORITY_BITS = 7;
     private static final int MAX_7BIT_VALUE = (1 << PRIORITY_BITS) - 1;
+    private static final WorkloadPriority LOWEST = of(MAX_7BIT_VALUE, MAX_7BIT_VALUE);
 
     public static final int MAX_P = ofLowest().P(); // 16383
 
@@ -71,7 +72,7 @@ public class WorkloadPriority {
      * 创建一个优先级最低的{@link WorkloadPriority}.
      */
     public static WorkloadPriority ofLowest() {
-        return of(MAX_7BIT_VALUE, MAX_7BIT_VALUE);
+        return LOWEST;
     }
 
     /**
@@ -165,6 +166,19 @@ public class WorkloadPriority {
         });
 
         return of((b & Integer.MAX_VALUE) % MAX_7BIT_VALUE, us.U);
+    }
+
+    /**
+     * 基于目标P值生成目标优先级.
+     *
+     * @param targetP 目标P值
+     */
+    public WorkloadPriority deriveFrom(int targetP) {
+        if (this.P() == targetP) {
+            return this;
+        }
+
+        return fromP(targetP);
     }
 
     @Override

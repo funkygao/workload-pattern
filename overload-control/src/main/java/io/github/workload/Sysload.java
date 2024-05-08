@@ -3,7 +3,7 @@ package io.github.workload;
 /**
  * 系统负载指标提供者.
  */
-public interface SystemLoadProvider {
+public interface Sysload {
 
     /**
      * 最近的CPU利用率，[0.0, 1.0].

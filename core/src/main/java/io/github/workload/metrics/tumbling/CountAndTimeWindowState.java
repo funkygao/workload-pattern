@@ -31,7 +31,7 @@ public class CountAndTimeWindowState extends WindowState {
      */
     private final LongAdder accumulatedQueuedNs;
 
-    private final ConcurrentSkipListMap<Integer /* priority */, AtomicInteger /* requested */> histogram;
+    private final ConcurrentSkipListMap<Integer /* WorkloadPriority.P */, AtomicInteger /* requested */> histogram;
 
     CountAndTimeWindowState(long startNs) {
         super();
@@ -42,7 +42,7 @@ public class CountAndTimeWindowState extends WindowState {
     }
 
     /**
-     * 各个{@link WorkloadPriority}的请求数量分布.
+     * 各个{@link WorkloadPriority#P()}的请求数量分布.
      */
     public ConcurrentSkipListMap<Integer, AtomicInteger> histogram() {
         return histogram;
@@ -90,11 +90,13 @@ public class CountAndTimeWindowState extends WindowState {
 
     @Override
     protected void logRollover(String prefix, long nowNs, WindowState nextWindow, WindowConfig config) {
-        log.debug("[{}] after:{}ms, swapped window:{} -> {}, admitted:{}/{}, error:{}",
-                prefix, (nowNs - startNs) / NS_PER_MS,
-                this.hashCode(), nextWindow.hashCode(),
-                this.admitted(), this.requested(),
-                this.requested() - config.getRequestCycle());
+        if (log.isDebugEnabled()) {
+            log.debug("[{}] after:{}ms, swapped window:{} -> {}, admitted:{}/{}, error:{}",
+                    prefix, (nowNs - startNs) / NS_PER_MS,
+                    this.hashCode(), nextWindow.hashCode(),
+                    this.admitted(), this.requested(),
+                    this.requested() - config.getRequestCycle());
+        }
     }
 
     @Override

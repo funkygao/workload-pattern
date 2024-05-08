@@ -1,7 +1,7 @@
 package io.github.workload.overloading;
 
-import io.github.workload.SystemClock;
-import io.github.workload.SystemLoadProvider;
+import io.github.workload.HyperParameter;
+import io.github.workload.Sysload;
 import io.github.workload.annotations.VisibleForTesting;
 import io.github.workload.metrics.smoother.ValueSmoother;
 import io.github.workload.metrics.tumbling.CountAndTimeWindowState;
@@ -14,34 +14,26 @@ import lombok.extern.slf4j.Slf4j;
  */
 @Slf4j
 class WorkloadShedderOnCpu extends WorkloadShedder {
-    private static final SystemClock coolOffClock = SystemClock.ofPrecisionMs(1000);
-    private static final double CPU_EMA_ALPHA = JVM.getDouble(JVM.CPU_EMA_ALPHA, 0.25d);
+    private static final double CPU_EMA_ALPHA = HyperParameter.getDouble(Heuristic.CPU_EMA_ALPHA, 0.25d);
 
     private final double cpuUsageUpperBound;
-    private final long coolOffMs;
 
     @VisibleForTesting
     final ValueSmoother valueSmoother;
 
     @VisibleForTesting("not final, so that test can mock")
-    SystemLoadProvider loadProvider;
+    Sysload sysload;
 
     WorkloadShedderOnCpu(double cpuUsageUpperBound, long coolOffSec) {
         super("CPU");
         this.cpuUsageUpperBound = cpuUsageUpperBound;
-        this.coolOffMs = coolOffSec * 1000;
-        this.loadProvider = SystemLoad.getInstance(coolOffSec);
+        this.sysload = ContainerLoad.getInstance(coolOffSec); // 过了静默期才采样CPU
         this.valueSmoother = ValueSmoother.ofEMA(CPU_EMA_ALPHA);
         log.info("[{}] created with upper bound:{}, cool off:{}sec, ema alpha:{}", this.name, cpuUsageUpperBound, coolOffSec, CPU_EMA_ALPHA);
     }
 
     @Override
     protected boolean isOverloaded(long nowNs, CountAndTimeWindowState windowState) {
-        if (coolOffMs > 0 && coolOffClock.currentTimeMillis() - startupMs < coolOffMs) {
-            // 有静默期，而且在静默期内，永远认为不过载
-            return false;
-        }
-
         final double cpuUsage = smoothedCpuUsage();
         final boolean overloaded = cpuUsage > cpuUsageUpperBound;
         if (overloaded) {
@@ -51,7 +43,7 @@ class WorkloadShedderOnCpu extends WorkloadShedder {
     }
 
     private double smoothedCpuUsage() {
-        double cpuUsage = loadProvider.cpuUsage();
+        double cpuUsage = sysload.cpuUsage();
         return valueSmoother.update(cpuUsage).smoothedValue();
     }
 
