@@ -61,11 +61,7 @@ class FairSafeAdmissionController implements AdmissionController {
 
     FairSafeAdmissionController(String name, IMetricsTrackerFactory metricsTrackerFactory) {
         this.shedderOnQueue = new WorkloadShedderOnQueue(name);
-        if (metricsTrackerFactory == null) {
-            this.metricsTracker = new NopMetricsTracker();
-        } else {
-            this.metricsTracker = metricsTrackerFactory.create(name);
-        }
+        this.metricsTracker = metricsTrackerFactory != null ? metricsTrackerFactory.create(name) : new NopMetricsTracker();
     }
 
     @Override
