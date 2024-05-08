@@ -1,6 +1,5 @@
 package io.github.workload.overloading;
 
-import io.github.workload.SystemClock;
 import io.github.workload.WorkloadPriority;
 import io.github.workload.annotations.ThreadSafe;
 import io.github.workload.annotations.VisibleForTesting;
@@ -22,17 +21,16 @@ import java.util.concurrent.atomic.AtomicInteger;
 @Slf4j
 @ThreadSafe
 abstract class WorkloadShedder {
-    private static final double OVER_SHED_BOUND = JVM.getDouble(JVM.OVER_SHED_BOUND, 1.01d);
-    private static final double OVER_ADMIT_BOUND = JVM.getDouble(JVM.OVER_ADMIT_BOUND, 0.5d); // TODO
-    private static final double SHED_DROP_RATE = JVM.getDouble(JVM.SHED_DROP_RATE, 0.05d);
-    private static final double SHED_RECOVER_RATE = JVM.getDouble(JVM.SHED_RECOVER_RATE, 0.015d);
-    private static final SystemClock coolOffClock = SystemClock.ofPrecisionMs(1000);
+    static final double OVER_SHED_BOUND = JVM.getDouble(JVM.OVER_SHED_BOUND, 1.01d);
+    static final double OVER_ADMIT_BOUND = JVM.getDouble(JVM.OVER_ADMIT_BOUND, 0.5d); // TODO
+    static final double DROP_RATE = JVM.getDouble(JVM.SHED_DROP_RATE, 0.05d);
+    static final double RECOVER_RATE = JVM.getDouble(JVM.SHED_RECOVER_RATE, 0.015d);
 
     protected final String name;
     private final TumblingWindow<CountAndTimeWindowState> window;
 
     /**
-     * 准入等级水位线，其优先级越高则准入控制越严格.
+     * 准入等级水位线/准入门槛，其优先级越高则准入控制越严格，即门槛越高.
      */
     private volatile WorkloadPriority watermark = WorkloadPriority.ofLowest();
 
@@ -72,11 +70,12 @@ abstract class WorkloadShedder {
 
     // penalize low priority workloads
     private void shedMore(CountAndTimeWindowState lastWindow) {
+        // 确保在精确提高 watermark 时，不会因为过度抛弃低优先级请求而影响服务的整体可用性，尽可能保持高 goodput
         final int admitted = lastWindow.admitted();
         final int requested = lastWindow.requested();
-        final int expectedToDrop = (int) (SHED_DROP_RATE * admitted);
+        final int expectedToDrop = (int) (DROP_RATE * admitted);
         if (expectedToDrop == 0) {
-            // 上个周期的准入量太少，无法决策抛弃哪个 TODO
+            // 上个周期的准入量太少，无法决策抛弃哪个 TODO 不调整watermark？会不会负载已经恢复正常但新请求一直被拒绝？
             log.info("[{}] unable to shed more: too few window admitted {}/{}", name, admitted, requested);
             return;
         }
@@ -132,6 +131,7 @@ abstract class WorkloadShedder {
         }
     }
 
+    // reward low priority workloads
     private void admitMore(CountAndTimeWindowState lastWindow) {
         final int currentP = watermark.P();
         if (WorkloadPriority.MAX_P == currentP) {
@@ -140,7 +140,7 @@ abstract class WorkloadShedder {
 
         final int admitted = lastWindow.admitted();
         final int requested = lastWindow.requested();
-        final int expectedToAdmit = (int) (SHED_RECOVER_RATE * admitted);
+        final int expectedToAdmit = (int) (RECOVER_RATE * admitted);
         if (expectedToAdmit == 0) {
             log.info("[{}] idle window admit all: {}/{}", name, admitted, requested);
             watermark = WorkloadPriority.ofLowest();
@@ -190,11 +190,6 @@ abstract class WorkloadShedder {
     private boolean underWatermark(WorkloadPriority priority) {
         // 在水位线以下的请求放行
         return priority.P() <= watermark.P();
-    }
-
-    @VisibleForTesting
-    double dropRate() {
-        return SHED_DROP_RATE;
     }
 
     @VisibleForTesting

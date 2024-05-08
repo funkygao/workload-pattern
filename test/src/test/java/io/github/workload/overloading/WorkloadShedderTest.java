@@ -157,7 +157,7 @@ class WorkloadShedderTest extends BaseConcurrentTest {
 
         log.info("显式过载，看看调整到哪个优先级。当前窗口，histogram size:{}, {}", currentWindow.histogram().size(), currentWindow.histogram());
         WorkloadPriority lastLevel = shedder.admissionLevel();
-        for (int i = 0; i < (1 / shedder.dropRate()); i++) {
+        for (int i = 0; i < (1 / WorkloadShedder.DROP_RATE); i++) {
             shedder.adaptAdmissionLevel(true, currentWindow);
             log.debug("adapted {}: {} -> {}", lastLevel.P() - shedder.admissionLevel().P(), lastLevel, shedder.admissionLevel());
             if (lastLevel.equals(shedder.admissionLevel())) {
@@ -215,7 +215,7 @@ class WorkloadShedderTest extends BaseConcurrentTest {
         shedHistory.add(lastLevel.P());
         log.info("overloaded, shed more...");
         int sheddingTimes = 0;
-        for (int i = 0; i < (1 / shedder.dropRate()); i++) {
+        for (int i = 0; i < (1 / WorkloadShedder.DROP_RATE); i++) {
             // 已过载
             shedder.adaptAdmissionLevel(true, currentWindow);
             log.debug("adapted {}: {} -> {}", lastLevel.P() - shedder.admissionLevel().P(), lastLevel, shedder.admissionLevel());
@@ -225,7 +225,7 @@ class WorkloadShedderTest extends BaseConcurrentTest {
                 break;
             }
 
-            if (i == (1 / shedder.dropRate()) - 1) {
+            if (i == (1 / WorkloadShedder.DROP_RATE) - 1) {
                 sheddingTimes = i + 1;
                 log.info("drained, stop shed any more:{}", sheddingTimes);
             }
