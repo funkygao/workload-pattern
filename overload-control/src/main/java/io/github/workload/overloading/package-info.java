@@ -1,14 +1,8 @@
 /**
  * 基于QoS公平的自适应过载保护算法，应对brief burst/skewed traffic.
  *
- * <p>实现基于业务公平的高效柔性服务.</p>
- * <ul>Where does the burst traffic come from?
- * <li>Over time</li>
- * <li>Over space</li>
- * </ul>
- * <blockquote cite="https://cloud.google.com/blog/products/gcp/how-to-avoid-a-self-inflicted-ddos-attack-cre-life-lessons">
- *  the self-inflicted DDoS: The biggest DDos threat to your application isn’t from some shadowy third party, but from your own code!
- * </blockquote>
+ * <p>Load shedding is a technique that allows your system to serve nominal capacity, regardless of how much traffic is being sent to it, in order to maintain availability.</p>
+ *
  * <ol>Load shedding principles:
  * <li>Sustain peak performance</li>
  * <li>Isolation: misbehaving customers never hurt anyone(but themselves)</li>
