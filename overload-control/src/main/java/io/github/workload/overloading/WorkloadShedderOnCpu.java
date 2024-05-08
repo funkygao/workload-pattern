@@ -18,7 +18,6 @@ class WorkloadShedderOnCpu extends WorkloadShedder {
     private static final double CPU_EMA_ALPHA = JVM.getDouble(JVM.CPU_EMA_ALPHA, 0.25d);
 
     private final double cpuUsageUpperBound;
-    private final long coolOffMs;
 
     @VisibleForTesting
     final ValueSmoother valueSmoother;
@@ -29,19 +28,13 @@ class WorkloadShedderOnCpu extends WorkloadShedder {
     WorkloadShedderOnCpu(double cpuUsageUpperBound, long coolOffSec) {
         super("CPU");
         this.cpuUsageUpperBound = cpuUsageUpperBound;
-        this.coolOffMs = coolOffSec * 1000;
-        this.loadProvider = SystemLoad.getInstance(coolOffSec);
+        this.loadProvider = SystemLoad.getInstance(coolOffSec); // 过了静默期才采样CPU
         this.valueSmoother = ValueSmoother.ofEMA(CPU_EMA_ALPHA);
         log.info("[{}] created with upper bound:{}, cool off:{}sec, ema alpha:{}", this.name, cpuUsageUpperBound, coolOffSec, CPU_EMA_ALPHA);
     }
 
     @Override
     protected boolean isOverloaded(long nowNs, CountAndTimeWindowState windowState) {
-        if (coolOffMs > 0 && coolOffClock.currentTimeMillis() - startupMs < coolOffMs) {
-            // 有静默期，而且在静默期内，永远认为不过载
-            return false;
-        }
-
         final double cpuUsage = smoothedCpuUsage();
         final boolean overloaded = cpuUsage > cpuUsageUpperBound;
         if (overloaded) {

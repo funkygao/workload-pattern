@@ -29,20 +29,17 @@ abstract class WorkloadShedder {
     private static final SystemClock coolOffClock = SystemClock.ofPrecisionMs(1000);
 
     protected final String name;
-    protected final long startupMs; // TODO 仅仅为了CPU静默期，kill it
+    private final TumblingWindow<CountAndTimeWindowState> window;
 
     /**
      * 准入等级水位线，其优先级越高则准入控制越严格.
      */
     private volatile WorkloadPriority watermark = WorkloadPriority.ofLowest();
 
-    private final TumblingWindow<CountAndTimeWindowState> window;
-
     protected abstract boolean isOverloaded(long nowNs, CountAndTimeWindowState windowState);
 
     protected WorkloadShedder(String name) {
         this.name = name;
-        this.startupMs = coolOffClock.currentTimeMillis();
         WindowConfig<CountAndTimeWindowState> config = WindowConfig.create(
                 new CountAndTimeRolloverStrategy() {
                     @Override
@@ -182,11 +179,11 @@ abstract class WorkloadShedder {
         }
     }
 
-    protected CountAndTimeWindowState currentWindow() {
+    protected final CountAndTimeWindowState currentWindow() {
         return window.current();
     }
 
-    protected WindowConfig<CountAndTimeWindowState> windowConfig() {
+    protected final WindowConfig<CountAndTimeWindowState> windowConfig() {
         return window.getConfig();
     }
 
