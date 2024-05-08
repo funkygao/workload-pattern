@@ -4,7 +4,6 @@ import io.github.workload.Workload;
 import io.github.workload.annotations.PoC;
 import io.github.workload.annotations.VisibleForTesting;
 import io.github.workload.overloading.AdmissionController;
-import io.github.workload.overloading.WorkloadFeedback;
 import lombok.Generated;
 import lombok.NonNull;
 
@@ -40,7 +39,7 @@ class BreakwaterAdmissionController implements AdmissionController {
     }
 
     @Override
-    public void feedback(@NonNull WorkloadFeedback feedback) {
+    public void feedback(@NonNull AdmissionController.Feedback feedback) {
 
     }
 

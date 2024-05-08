@@ -48,4 +48,16 @@ class AdmissionControllerTest {
         WorkloadPriority priority = WorkloadPriority.fromP(10);
         controller.admit(Workload.ofPriority(priority));
     }
+
+    @Test
+    void feedback() {
+        AdmissionController.Feedback overloaded = AdmissionController.Feedback.ofOverloaded();
+        assertTrue(overloaded instanceof AdmissionController.Feedback.Overload);
+        AdmissionController.Feedback.Overload overloaded1 = (AdmissionController.Feedback.Overload) overloaded;
+        assertNotEquals(0, overloaded1.getOverloadAtNs());
+
+        AdmissionController.Feedback queued = AdmissionController.Feedback.ofQueuedNs(300);
+        AdmissionController.Feedback.Queued queued1 = (AdmissionController.Feedback.Queued) queued;
+        assertEquals(300, queued1.getQueuedNs());
+    }
 }

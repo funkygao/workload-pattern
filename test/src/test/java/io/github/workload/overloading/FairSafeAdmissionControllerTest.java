@@ -34,8 +34,8 @@ class FairSafeAdmissionControllerTest extends BaseConcurrentTest {
             controller.admit(null);
         });
         assertTrue(controller.admit(Workload.ofPriority(WorkloadPriorityHelper.of(4, 6))));
-        controller.feedback(WorkloadFeedback.ofQueuedNs(5 * 1000_000)); // 5ms
-        controller.feedback(WorkloadFeedback.ofQueuedNs(10 * 1000_000)); // 10ms
+        controller.feedback(AdmissionController.Feedback.ofQueuedNs(5 * 1000_000)); // 5ms
+        controller.feedback(AdmissionController.Feedback.ofQueuedNs(10 * 1000_000)); // 10ms
     }
 
     @RepeatedTest(10)
@@ -86,15 +86,15 @@ class FairSafeAdmissionControllerTest extends BaseConcurrentTest {
             // 随机制造局部过载
             if (RandomUtil.randomTrue(2)) {
                 log.info("{}\uD83D\uDCA5 overload SQS ...", i);
-                mqController.feedback(WorkloadFeedback.ofOverloaded());
+                mqController.feedback(AdmissionController.Feedback.ofOverloaded());
             }
             if (RandomUtil.randomTrue(4)) {
                 log.info("{}\uD83D\uDCA5 overload RPC ...", i);
-                rpcController.feedback(WorkloadFeedback.ofOverloaded());
+                rpcController.feedback(AdmissionController.Feedback.ofOverloaded());
             }
             if (RandomUtil.randomTrue(1)) {
                 log.info("{}\uD83D\uDCA5 overload WEB ...", i);
-                webController.feedback(WorkloadFeedback.ofOverloaded());
+                webController.feedback(AdmissionController.Feedback.ofOverloaded());
             }
 
             // 对于 CPU shedder，each iteration 3 times admit，因此 cpu overload至少要等 i=682/1s 后才进入保护

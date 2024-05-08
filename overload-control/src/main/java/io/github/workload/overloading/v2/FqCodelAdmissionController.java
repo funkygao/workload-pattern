@@ -3,7 +3,6 @@ package io.github.workload.overloading.v2;
 import io.github.workload.Workload;
 import io.github.workload.annotations.PoC;
 import io.github.workload.overloading.AdmissionController;
-import io.github.workload.overloading.WorkloadFeedback;
 import lombok.Generated;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
@@ -33,7 +32,7 @@ public class FqCodelAdmissionController implements AdmissionController {
     }
 
     @Override
-    public void feedback(@NonNull WorkloadFeedback feedback) {
+    public void feedback(@NonNull AdmissionController.Feedback feedback) {
 
     }
 }

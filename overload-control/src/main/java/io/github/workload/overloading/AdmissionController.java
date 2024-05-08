@@ -3,6 +3,7 @@ package io.github.workload.overloading;
 import io.github.workload.Workload;
 import io.github.workload.annotations.ThreadSafe;
 import io.github.workload.overloading.metrics.IMetricsTrackerFactory;
+import lombok.Getter;
 import lombok.NonNull;
 
 /**
@@ -22,11 +23,11 @@ public interface AdmissionController {
     boolean admit(@NonNull Workload workload);
 
     /**
-     * Feedback of workload from the application.
+     * Feedback of workload execution from the application.
      *
      * @param feedback 反馈
      */
-    void feedback(@NonNull WorkloadFeedback feedback);
+    void feedback(@NonNull Feedback feedback);
 
     /**
      * 获取指定类型的准入控制器实例，名称粒度的单例.
@@ -48,4 +49,39 @@ public interface AdmissionController {
                 () -> new FairSafeAdmissionController(name, metricsTrackerFactory));
     }
 
+    interface Feedback {
+        /**
+         * 直接进入过载状态：显式过载反馈.
+         *
+         * <p>相当于TCP的ECN(Explicit Congestion Notification).</p>
+         */
+        static Feedback ofOverloaded() {
+            return new Overload(System.nanoTime());
+        }
+
+        /**
+         * 反馈当前工作负荷的排队时长：隐式过载检测.
+         *
+         * @param queuedNs queued duration in nano seconds
+         */
+        static Feedback ofQueuedNs(long queuedNs) {
+            return new Queued((queuedNs));
+        }
+
+        @Getter
+        class Overload implements Feedback {
+            private final long overloadAtNs;
+            private Overload(long overloadAtNs) {
+                this.overloadAtNs = overloadAtNs;
+            }
+        }
+
+        @Getter
+        class Queued implements Feedback {
+            private final long queuedNs;
+            private Queued(long queuedNs) {
+                this.queuedNs = queuedNs;
+            }
+        }
+    }
 }
