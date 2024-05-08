@@ -168,6 +168,19 @@ public class WorkloadPriority {
         return of((b & Integer.MAX_VALUE) % MAX_7BIT_VALUE, us.U);
     }
 
+    /**
+     * 基于目标P值生成目标优先级.
+     *
+     * @param targetP 目标P值
+     */
+    public WorkloadPriority deriveFrom(int targetP) {
+        if (this.P() == targetP) {
+            return this;
+        }
+
+        return fromP(targetP);
+    }
+
     @Override
     public boolean equals(Object o) {
         if (o == this) {

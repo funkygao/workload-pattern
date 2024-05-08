@@ -112,6 +112,19 @@ class WorkloadPriorityTest {
     }
 
     @Test
+    void derive() {
+        WorkloadPriority priority = WorkloadPriority.ofLowest();
+        WorkloadPriority priority1 = priority.deriveFrom(WorkloadPriority.MAX_P);
+        assertSame(priority1, priority);
+
+        priority = WorkloadPriority.of(1, 3);
+        priority1 = priority.deriveFrom(WorkloadPriority.of(2, 1).P());
+        assertNotEquals(priority1, priority);
+        priority1 = priority.deriveFrom(WorkloadPriority.of(1, 3).P());
+        assertSame(priority1, priority);
+    }
+
+    @Test
     void consistentEncodeDecode() {
         for (int B = 0; B < 128; B++) {
             for (int U = 0; U < 128; U++) {
