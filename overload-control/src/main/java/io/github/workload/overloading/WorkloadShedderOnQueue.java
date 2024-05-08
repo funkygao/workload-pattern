@@ -10,7 +10,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 class WorkloadShedderOnQueue extends WorkloadShedder {
     @VisibleForTesting
-    static final long AVG_QUEUED_MS_UPPER_BOUND = HyperParameter.getLong(JVM.AVG_QUEUED_MS_UPPER_BOUND, 200);
+    static final long AVG_QUEUED_MS_UPPER_BOUND = HyperParameter.getLong(Heuristic.AVG_QUEUED_MS_UPPER_BOUND, 200);
 
     private volatile long overloadedAtNs = 0; // 最近一次显式过载的时间
     private final long timeCycleNs;

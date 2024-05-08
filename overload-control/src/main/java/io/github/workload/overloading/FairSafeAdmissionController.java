@@ -37,8 +37,8 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 @Slf4j
 class FairSafeAdmissionController implements AdmissionController {
-    static final long CPU_OVERLOAD_COOL_OFF_SEC = HyperParameter.getLong(JVM.CPU_OVERLOAD_COOL_OFF_SEC, 10 * 60);
-    static final double CPU_USAGE_UPPER_BOUND = HyperParameter.getDouble(JVM.CPU_USAGE_UPPER_BOUND, 0.75);
+    static final long CPU_OVERLOAD_COOL_OFF_SEC = HyperParameter.getLong(Heuristic.CPU_OVERLOAD_COOL_OFF_SEC, 10 * 60);
+    static final double CPU_USAGE_UPPER_BOUND = HyperParameter.getDouble(Heuristic.CPU_USAGE_UPPER_BOUND, 0.75);
 
     /**
      * The optimistic throttling.

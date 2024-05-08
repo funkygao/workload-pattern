@@ -22,10 +22,10 @@ import java.util.concurrent.atomic.AtomicInteger;
 @Slf4j
 @ThreadSafe
 abstract class WorkloadShedder {
-    static final double OVER_SHED_BOUND = HyperParameter.getDouble(JVM.OVER_SHED_BOUND, 1.01d);
-    static final double OVER_ADMIT_BOUND = HyperParameter.getDouble(JVM.OVER_ADMIT_BOUND, 0.5d); // TODO
-    static final double DROP_RATE = HyperParameter.getDouble(JVM.SHED_DROP_RATE, 0.05d);
-    static final double RECOVER_RATE = HyperParameter.getDouble(JVM.SHED_RECOVER_RATE, 0.015d);
+    static final double OVER_SHED_BOUND = HyperParameter.getDouble(Heuristic.OVER_SHED_BOUND, 1.01d);
+    static final double OVER_ADMIT_BOUND = HyperParameter.getDouble(Heuristic.OVER_ADMIT_BOUND, 0.5d); // TODO
+    static final double DROP_RATE = HyperParameter.getDouble(Heuristic.SHED_DROP_RATE, 0.05d);
+    static final double RECOVER_RATE = HyperParameter.getDouble(Heuristic.SHED_RECOVER_RATE, 0.015d);
 
     protected final String name;
     private final TumblingWindow<CountAndTimeWindowState> window;

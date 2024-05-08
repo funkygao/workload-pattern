@@ -14,7 +14,7 @@ import lombok.extern.slf4j.Slf4j;
  */
 @Slf4j
 class WorkloadShedderOnCpu extends WorkloadShedder {
-    private static final double CPU_EMA_ALPHA = HyperParameter.getDouble(JVM.CPU_EMA_ALPHA, 0.25d);
+    private static final double CPU_EMA_ALPHA = HyperParameter.getDouble(Heuristic.CPU_EMA_ALPHA, 0.25d);
 
     private final double cpuUsageUpperBound;
 
