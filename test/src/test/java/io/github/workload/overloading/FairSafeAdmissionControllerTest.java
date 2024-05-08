@@ -44,7 +44,7 @@ class FairSafeAdmissionControllerTest extends BaseConcurrentTest {
         FairSafeAdmissionController mqController = (FairSafeAdmissionController) AdmissionController.getInstance("MQ");
         FairSafeAdmissionController rpcController = (FairSafeAdmissionController) AdmissionController.getInstance("RPC");
         FairSafeAdmissionController webController = (FairSafeAdmissionController) AdmissionController.getInstance("Web");
-        FairSafeAdmissionController.shedderOnCpu().loadProvider = new AlwaysHealthySystemLoad();
+        FairSafeAdmissionController.shedderOnCpu().sysload = new AlwaysHealthySystemLoad();
         for (int i = 0; i < WindowConfig.DEFAULT_REQUEST_CYCLE + 1; i++) {
             log.info("loop: {}", i + 1);
             // 默认情况下，都放行：除非此时CPU已经高了
@@ -65,13 +65,13 @@ class FairSafeAdmissionControllerTest extends BaseConcurrentTest {
         assertEquals(admitAll, webController.shedderOnQueue().admissionLevel());
     }
 
-    private void simulateServiceRandomlyOverload(int sleepBound, SystemLoadProvider systemLoadProvider) throws InterruptedException {
+    private void simulateServiceRandomlyOverload(int sleepBound, Sysload sysload) throws InterruptedException {
         log.info("window(time:{}ms, count:{})", HyperParameter.getLong(HyperParameter.WINDOW_TIME_CYCLE_MS, 1000), HyperParameter.getLong(HyperParameter.WINDOW_REQUEST_CYCLE, 2 << 10));
-        log.info("randomly overload start, random sleep bound:{}ms, cpu load:{}", sleepBound, systemLoadProvider.getClass().getSimpleName());
+        log.info("randomly overload start, random sleep bound:{}ms, cpu load:{}", sleepBound, sysload.getClass().getSimpleName());
         FairSafeAdmissionController mqController = (FairSafeAdmissionController) AdmissionController.getInstance("SQS");
         FairSafeAdmissionController rpcController = (FairSafeAdmissionController) AdmissionController.getInstance("RPC");
         FairSafeAdmissionController webController = (FairSafeAdmissionController) AdmissionController.getInstance("WEB");
-        FairSafeAdmissionController.shedderOnCpu().loadProvider = systemLoadProvider;
+        FairSafeAdmissionController.shedderOnCpu().sysload = sysload;
         int loops = WindowConfig.DEFAULT_REQUEST_CYCLE * 5;
         for (int i = 0; i < loops; i++) {
             WorkloadPriority mq = WorkloadPrioritizer.randomMQ();
@@ -126,7 +126,7 @@ class FairSafeAdmissionControllerTest extends BaseConcurrentTest {
         simulateServiceRandomlyOverload(60, new RandomCpuLoadProvider());
     }
 
-    private static class RandomCpuLoadProvider implements SystemLoadProvider {
+    private static class RandomCpuLoadProvider implements Sysload {
         private static final Logger log = LoggerFactory.getLogger(RandomCpuLoadProvider.class);
 
         @Override
@@ -137,7 +137,7 @@ class FairSafeAdmissionControllerTest extends BaseConcurrentTest {
         }
     }
 
-    private static class AlwaysHealthySystemLoad implements SystemLoadProvider {
+    private static class AlwaysHealthySystemLoad implements Sysload {
         @Override
         public double cpuUsage() {
             return 0;

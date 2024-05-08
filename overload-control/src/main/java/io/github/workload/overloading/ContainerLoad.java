@@ -2,7 +2,7 @@ package io.github.workload.overloading;
 
 import com.sun.management.OperatingSystemMXBean;
 import io.github.workload.NamedThreadFactory;
-import io.github.workload.SystemLoadProvider;
+import io.github.workload.Sysload;
 import lombok.extern.slf4j.Slf4j;
 
 import java.lang.management.ManagementFactory;
@@ -26,19 +26,19 @@ import java.util.concurrent.TimeUnit;
  * @see <a href="https://cloud.tencent.com/developer/article/1760923">Sentinel在docker中获取CPU利用率的一个BUG</a>
  */
 @Slf4j
-class SystemLoad implements SystemLoadProvider {
+class ContainerLoad implements Sysload {
     private volatile double currentLoadAverage = -1;
     private volatile double currentCpuUsage = -1;
 
     private long processCpuTimeNs = 0; // 当前进程累计占用CPU时长
     private long processUpTimeMs = 0; // 当前进程累计运行时长
 
-    static SystemLoad getInstance(long coolOffSec) {
-        return new SystemLoad(coolOffSec);
+    static ContainerLoad getInstance(long coolOffSec) {
+        return new ContainerLoad(coolOffSec);
     }
 
-    private SystemLoad(long coolOffSec) {
-        ScheduledExecutorService timer = Executors.newSingleThreadScheduledExecutor(new NamedThreadFactory(SystemLoad.class.getSimpleName()));
+    private ContainerLoad(long coolOffSec) {
+        ScheduledExecutorService timer = Executors.newSingleThreadScheduledExecutor(new NamedThreadFactory(ContainerLoad.class.getSimpleName()));
         // 冷静期后才开始刷新数据：JVM启动时CPU往往很高
         timer.scheduleAtFixedRate(this::safeRefresh, coolOffSec, 1, TimeUnit.SECONDS);
         

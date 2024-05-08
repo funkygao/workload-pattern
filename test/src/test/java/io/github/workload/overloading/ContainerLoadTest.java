@@ -1,6 +1,6 @@
 package io.github.workload.overloading;
 
-import io.github.workload.SystemLoadProvider;
+import io.github.workload.Sysload;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.RepeatedTest;
 import org.junit.jupiter.api.parallel.Execution;
@@ -8,10 +8,10 @@ import org.junit.jupiter.api.parallel.ExecutionMode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-class SystemLoadTest {
-    private static final Logger log = LoggerFactory.getLogger(SystemLoadTest.class);
+class ContainerLoadTest {
+    private static final Logger log = LoggerFactory.getLogger(ContainerLoadTest.class);
 
-    SystemLoadProvider loadProvider = SystemLoad.getInstance(0);
+    Sysload loadProvider = ContainerLoad.getInstance(0);
 
     @RepeatedTest(10)
     @Execution(ExecutionMode.CONCURRENT)
