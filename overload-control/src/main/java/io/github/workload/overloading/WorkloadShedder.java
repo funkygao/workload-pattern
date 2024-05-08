@@ -51,7 +51,7 @@ abstract class WorkloadShedder {
     }
 
     boolean admit(@NonNull WorkloadPriority priority) {
-        boolean admitted = underWatermark(priority);
+        boolean admitted = satisfyWatermark(priority);
         window.advance(priority, admitted, System.nanoTime());
         return admitted;
     }
@@ -197,7 +197,7 @@ abstract class WorkloadShedder {
         return window.getConfig();
     }
 
-    private boolean underWatermark(WorkloadPriority priority) {
+    private boolean satisfyWatermark(WorkloadPriority priority) {
         // 在水位线以下的请求放行
         return priority.P() <= watermark.P();
     }
