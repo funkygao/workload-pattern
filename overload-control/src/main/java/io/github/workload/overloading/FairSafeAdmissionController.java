@@ -1,5 +1,6 @@
 package io.github.workload.overloading;
 
+import io.github.workload.HyperParameter;
 import io.github.workload.Workload;
 import io.github.workload.WorkloadPriority;
 import io.github.workload.annotations.VisibleForTesting;
@@ -36,8 +37,8 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 @Slf4j
 class FairSafeAdmissionController implements AdmissionController {
-    static final long CPU_OVERLOAD_COOL_OFF_SEC = JVM.getLong(JVM.CPU_OVERLOAD_COOL_OFF_SEC, 10 * 60);
-    static final double CPU_USAGE_UPPER_BOUND = JVM.getDouble(JVM.CPU_USAGE_UPPER_BOUND, 0.75);
+    static final long CPU_OVERLOAD_COOL_OFF_SEC = HyperParameter.getLong(JVM.CPU_OVERLOAD_COOL_OFF_SEC, 10 * 60);
+    static final double CPU_USAGE_UPPER_BOUND = HyperParameter.getDouble(JVM.CPU_USAGE_UPPER_BOUND, 0.75);
 
     /**
      * The optimistic throttling.

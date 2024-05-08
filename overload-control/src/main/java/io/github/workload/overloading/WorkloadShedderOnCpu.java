@@ -1,6 +1,6 @@
 package io.github.workload.overloading;
 
-import io.github.workload.SystemClock;
+import io.github.workload.HyperParameter;
 import io.github.workload.SystemLoadProvider;
 import io.github.workload.annotations.VisibleForTesting;
 import io.github.workload.metrics.smoother.ValueSmoother;
@@ -14,8 +14,7 @@ import lombok.extern.slf4j.Slf4j;
  */
 @Slf4j
 class WorkloadShedderOnCpu extends WorkloadShedder {
-    private static final SystemClock coolOffClock = SystemClock.ofPrecisionMs(1000);
-    private static final double CPU_EMA_ALPHA = JVM.getDouble(JVM.CPU_EMA_ALPHA, 0.25d);
+    private static final double CPU_EMA_ALPHA = HyperParameter.getDouble(JVM.CPU_EMA_ALPHA, 0.25d);
 
     private final double cpuUsageUpperBound;
 

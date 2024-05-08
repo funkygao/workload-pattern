@@ -1,5 +1,6 @@
 package io.github.workload.metrics.tumbling;
 
+import io.github.workload.HyperParameter;
 import io.github.workload.annotations.Immutable;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -18,14 +19,8 @@ import java.util.concurrent.TimeUnit;
 @Getter(AccessLevel.PACKAGE)
 public class WindowConfig<S extends WindowState> {
     public static final long NS_PER_MS = TimeUnit.MILLISECONDS.toNanos(1);
-
-    public static final long DEFAULT_TIME_CYCLE_NS = System.getProperty("workload.window.DEFAULT_TIME_CYCLE_MS") != null ?
-            TimeUnit.MILLISECONDS.toNanos(Long.valueOf(System.getProperty("workload.window.DEFAULT_TIME_CYCLE_MS"))) :
-            TimeUnit.MILLISECONDS.toNanos(1000); // 1s
-
-    public static final int DEFAULT_REQUEST_CYCLE = System.getProperty("workload.window.DEFAULT_REQUEST_CYCLE") != null ?
-            Integer.valueOf(System.getProperty("workload.window.DEFAULT_REQUEST_CYCLE")) :
-            2 << 10; // 2K
+    public static final long DEFAULT_TIME_CYCLE_NS = TimeUnit.MILLISECONDS.toNanos(HyperParameter.getLong(HyperParameter.WINDOW_TIME_CYCLE_MS, 1000)); // 1s
+    public static final int DEFAULT_REQUEST_CYCLE = HyperParameter.getInt(HyperParameter.WINDOW_REQUEST_CYCLE, 2 << 10);
 
     /**
      * 时间周期.

@@ -66,7 +66,7 @@ class FairSafeAdmissionControllerTest extends BaseConcurrentTest {
     }
 
     private void simulateServiceRandomlyOverload(int sleepBound, SystemLoadProvider systemLoadProvider) throws InterruptedException {
-        log.info("window(time:{}ms, count:{})", System.getProperty("workload.window.DEFAULT_TIME_CYCLE_MS"), System.getProperty("workload.window.DEFAULT_REQUEST_CYCLE"));
+        log.info("window(time:{}ms, count:{})", HyperParameter.getLong(HyperParameter.WINDOW_TIME_CYCLE_MS, 1000), HyperParameter.getLong(HyperParameter.WINDOW_REQUEST_CYCLE, 2 << 10));
         log.info("randomly overload start, random sleep bound:{}ms, cpu load:{}", sleepBound, systemLoadProvider.getClass().getSimpleName());
         FairSafeAdmissionController mqController = (FairSafeAdmissionController) AdmissionController.getInstance("SQS");
         FairSafeAdmissionController rpcController = (FairSafeAdmissionController) AdmissionController.getInstance("RPC");

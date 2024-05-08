@@ -1,5 +1,6 @@
 package io.github.workload.overloading;
 
+import io.github.workload.HyperParameter;
 import io.github.workload.WorkloadPriority;
 import io.github.workload.annotations.ThreadSafe;
 import io.github.workload.annotations.VisibleForTesting;
@@ -21,10 +22,10 @@ import java.util.concurrent.atomic.AtomicInteger;
 @Slf4j
 @ThreadSafe
 abstract class WorkloadShedder {
-    static final double OVER_SHED_BOUND = JVM.getDouble(JVM.OVER_SHED_BOUND, 1.01d);
-    static final double OVER_ADMIT_BOUND = JVM.getDouble(JVM.OVER_ADMIT_BOUND, 0.5d); // TODO
-    static final double DROP_RATE = JVM.getDouble(JVM.SHED_DROP_RATE, 0.05d);
-    static final double RECOVER_RATE = JVM.getDouble(JVM.SHED_RECOVER_RATE, 0.015d);
+    static final double OVER_SHED_BOUND = HyperParameter.getDouble(JVM.OVER_SHED_BOUND, 1.01d);
+    static final double OVER_ADMIT_BOUND = HyperParameter.getDouble(JVM.OVER_ADMIT_BOUND, 0.5d); // TODO
+    static final double DROP_RATE = HyperParameter.getDouble(JVM.SHED_DROP_RATE, 0.05d);
+    static final double RECOVER_RATE = HyperParameter.getDouble(JVM.SHED_RECOVER_RATE, 0.015d);
 
     protected final String name;
     private final TumblingWindow<CountAndTimeWindowState> window;
@@ -59,6 +60,13 @@ abstract class WorkloadShedder {
         return watermark;
     }
 
+    /**
+     * <ul>处理 {@link #watermark} 调整时，需要：
+     * <li>更精确地根据当前的负载和请求优先级来调整</li>
+     * <li>能够正确处理极端情况，如请求量极少或极多时的情况</li>
+     * <li>调整是平滑的，避免因为过于激进的调整导致服务质量波动</li>
+     * </ul>
+     */
     @VisibleForTesting
     void adaptAdmissionLevel(boolean overloaded, CountAndTimeWindowState lastWindow) {
         if (overloaded) {
