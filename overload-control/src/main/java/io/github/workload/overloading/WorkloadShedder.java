@@ -69,6 +69,8 @@ abstract class WorkloadShedder {
      */
     @VisibleForTesting
     void adaptAdmissionLevel(boolean overloaded, CountAndTimeWindowState lastWindow) {
+        // TODO 基于上一个窗口来调整下一个窗口的watermark，那么如果这2个窗口的请求分布有很大差异怎么办？
+        // 不仅考虑上一个窗口的数据，而且将前几个窗口的数据也纳入考虑，并对近期的数据给予更高的权重。这样可以平滑过渡并减少单个窗口数据变化对watermark调整的影响
         if (overloaded) {
             shedMore(lastWindow);
         } else {

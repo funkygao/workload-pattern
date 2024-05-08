@@ -26,7 +26,7 @@ import java.util.concurrent.ConcurrentHashMap;
  *       <li>上层应用可以设定<a href="https://www.envoyproxy.io/docs/envoy/latest/intro/arch_overview/upstream/load_balancing/panic_threshold.html">envoy panic threshold</a>那样的shed阈值做保护</li>
  *   </ul>
  * </li>
- * <li>某个请求(canary request)导致CPU瞬间从低暴涨到100%：shuffle sharding可以
+ * <li>上线了毒代码，canary request 导致CPU瞬间从低暴涨到100%：shuffle sharding可以
  *   <ul>
  *     <li>crash，例如：某个bug导致死循环/StackOverflow，而该bug在某种请求条件下才触发</li>
  *     <li>high priority workload long delay，例如：误把{@link ConcurrentHashMap#contains(Object)}当做O(1)，配合parallelStream，当数据量多时CPU彪高</li>
