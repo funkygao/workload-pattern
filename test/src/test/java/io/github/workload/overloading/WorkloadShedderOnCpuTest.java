@@ -16,13 +16,13 @@ class WorkloadShedderOnCpuTest {
 
     @Test
     void basic() {
-        WorkloadShedderOnCpu shedder = new WorkloadShedderOnCpu(AdmissionController.CPU_USAGE_UPPER_BOUND, 0);
+        WorkloadShedderOnCpu shedder = new WorkloadShedderOnCpu(FairSafeAdmissionController.CPU_USAGE_UPPER_BOUND, 0);
         assertFalse(shedder.isOverloaded(System.nanoTime(), null));
     }
 
     @Test
     void forceOverloaded() throws InterruptedException {
-        WorkloadShedderOnCpu shedder = new WorkloadShedderOnCpu(AdmissionController.CPU_USAGE_UPPER_BOUND, 1);
+        WorkloadShedderOnCpu shedder = new WorkloadShedderOnCpu(FairSafeAdmissionController.CPU_USAGE_UPPER_BOUND, 1);
         CpuStressLoader.burnCPUs();
         for (int i = 0; i < 10; i++) {
             if (shedder.isOverloaded(0, null)) {

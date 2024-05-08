@@ -58,7 +58,7 @@ class FairSafeAdmissionControllerTest extends BaseConcurrentTest {
         }
 
         // 没有过overload，level不会变
-        AdmissionLevel admitAll = AdmissionLevel.ofAdmitAll();
+        WorkloadPriority admitAll = WorkloadPriority.ofLowest();
         assertEquals(admitAll, FairSafeAdmissionController.shedderOnCpu().admissionLevel());
         assertEquals(admitAll, mqController.shedderOnQueue().admissionLevel());
         assertEquals(admitAll, rpcController.shedderOnQueue().admissionLevel());

@@ -22,19 +22,20 @@ import java.util.concurrent.atomic.AtomicInteger;
 @Slf4j
 @ThreadSafe
 abstract class WorkloadShedder {
-    private static final SystemClock coolOffClock = SystemClock.ofPrecisionMs(1000);
-
-    private static final int ADMIT_ALL_P = AdmissionLevel.ofAdmitAll().P();
-
     private static final double OVER_SHED_BOUND = JVM.getDouble(JVM.OVER_SHED_BOUND, 1.01d);
     private static final double OVER_ADMIT_BOUND = JVM.getDouble(JVM.OVER_ADMIT_BOUND, 0.5d); // TODO
     private static final double SHED_DROP_RATE = JVM.getDouble(JVM.SHED_DROP_RATE, 0.05d);
     private static final double SHED_RECOVER_RATE = JVM.getDouble(JVM.SHED_RECOVER_RATE, 0.015d);
+    private static final SystemClock coolOffClock = SystemClock.ofPrecisionMs(1000);
 
     protected final String name;
-    protected final long startupMs;
+    protected final long startupMs; // TODO 仅仅为了CPU静默期，kill it
 
-    private volatile AdmissionLevel admissionLevel = AdmissionLevel.ofAdmitAll(); // TODO AtomicReference
+    /**
+     * 准入等级水位线，其优先级越高则准入控制越严格.
+     */
+    private volatile WorkloadPriority watermark = WorkloadPriority.ofLowest();
+
     private final TumblingWindow<CountAndTimeWindowState> window;
 
     protected abstract boolean isOverloaded(long nowNs, CountAndTimeWindowState windowState);
@@ -54,13 +55,13 @@ abstract class WorkloadShedder {
     }
 
     boolean admit(@NonNull WorkloadPriority priority) {
-        boolean admitted = admissionLevel.admit(priority);
+        boolean admitted = underWatermark(priority);
         window.advance(priority, admitted, System.nanoTime());
         return admitted;
     }
 
-    AdmissionLevel admissionLevel() {
-        return admissionLevel;
+    WorkloadPriority admissionLevel() {
+        return watermark;
     }
 
     @VisibleForTesting
@@ -83,7 +84,7 @@ abstract class WorkloadShedder {
             return;
         }
 
-        final int currentP = admissionLevel.P();
+        final int currentP = watermark.P();
         final ConcurrentSkipListMap<Integer, AtomicInteger> histogram = lastWindow.histogram();
         int accumulatedToDrop = 0;
         // histogram: (6, 3) -> (9, 10) -> ... -> (112, 2) -> (195, 11) -> (1894, 3)
@@ -112,31 +113,31 @@ abstract class WorkloadShedder {
                 if (descendingEntries.hasNext() && errorRate < OVER_SHED_BOUND) {
                     // 误差率可接受，and candidate is not head, candidate will shed workload
                     targetP = descendingEntries.next().getKey();
-                    log.warn("[{}] shed more({}/{}), error:{}, window admitted:{}, {} -> {}", name, accumulatedToDrop, expectedToDrop, errorRate, admitted, admissionLevel, targetP);
+                    log.warn("[{}] shed more({}/{}), error:{}, window admitted:{}, {} -> {}", name, accumulatedToDrop, expectedToDrop, errorRate, admitted, watermark.simpleString(), targetP);
                 } else {
                     targetP = candidateP; // this candidate wil not shed workload
                     // 备选项并没有被shed，提前加上去的退回来
                     accumulatedToDrop -= candidateRequested;
                     // errRate might be negative: below expectation
                     errorRate = (double) (accumulatedToDrop - expectedToDrop) / expectedToDrop;
-                    log.warn("[{}] degraded shed more({}/{}), error:{}, window admitted:{}, {} -> {}", name, accumulatedToDrop, expectedToDrop, errorRate, admitted, admissionLevel, targetP);
+                    log.warn("[{}] degraded shed more({}/{}), error:{}, window admitted:{}, {} -> {}", name, accumulatedToDrop, expectedToDrop, errorRate, admitted, watermark.simpleString(), targetP);
                 }
-                admissionLevel = admissionLevel.changeBar(targetP);
+                watermark = watermark.deriveFrom(targetP);
                 return;
             }
 
             if (!descendingEntries.hasNext()) {
                 // 还不够扣呢，但已经没有可扣的了：we should never shed all
-                log.warn("[{}] histogram head reached, degraded shed more({}/{}), window admitted:{}, {} -> {}", name, accumulatedToDrop, expectedToDrop, admitted, admissionLevel, candidateP);
-                admissionLevel = admissionLevel.changeBar(candidateP);
+                log.warn("[{}] histogram head reached, degraded shed more({}/{}), window admitted:{}, {} -> {}", name, accumulatedToDrop, expectedToDrop, admitted, watermark.simpleString(), candidateP);
+                watermark = watermark.deriveFrom(candidateP);
                 return;
             }
         }
     }
 
     private void admitMore(CountAndTimeWindowState lastWindow) {
-        final int currentP = admissionLevel.P();
-        if (ADMIT_ALL_P == currentP) {
+        final int currentP = watermark.P();
+        if (WorkloadPriority.MAX_P == currentP) {
             return;
         }
 
@@ -145,15 +146,16 @@ abstract class WorkloadShedder {
         final int expectedToAdmit = (int) (SHED_RECOVER_RATE * admitted);
         if (expectedToAdmit == 0) {
             log.info("[{}] idle window admit all: {}/{}", name, admitted, requested);
-            admissionLevel = AdmissionLevel.ofAdmitAll();
+            watermark = WorkloadPriority.ofLowest();
             return;
         }
 
         int accumulatedToAdmit = 0;
         final Iterator<Map.Entry<Integer, AtomicInteger>> ascendingP = lastWindow.histogram().tailMap(currentP, false).entrySet().iterator();
         if (!ascendingP.hasNext()) {
-            log.warn("[{}] beyond tail of histogram, {} -> {}", name, admissionLevel, AdmissionLevel.ofAdmitAll());
-            admissionLevel = AdmissionLevel.ofAdmitAll();
+            // TODO log
+            log.warn("[{}] beyond tail of histogram, {} -> {}", name, watermark.simpleString(), WorkloadPriority.ofLowest().simpleString());
+            watermark = WorkloadPriority.ofLowest();
             return;
         }
 
@@ -167,14 +169,14 @@ abstract class WorkloadShedder {
             }
 
             if (accumulatedToAdmit >= expectedToAdmit) { // TODO error rate
-                log.warn("[{}] admit more({}/{}), window admitted:{}, {} -> {}", name, accumulatedToAdmit, expectedToAdmit, admitted, admissionLevel, candidateP);
-                admissionLevel = admissionLevel.changeBar(candidateP);
+                log.warn("[{}] admit more({}/{}), window admitted:{}, {} -> {}", name, accumulatedToAdmit, expectedToAdmit, admitted, watermark.simpleString(), candidateP);
+                watermark = watermark.deriveFrom(candidateP);
                 return;
             }
 
             if (!ascendingP.hasNext()) {
                 log.warn("[{}] histogram tail reached but still not enough for admit more: happy to admit all", name);
-                admissionLevel = AdmissionLevel.ofAdmitAll();
+                watermark = WorkloadPriority.ofLowest();
                 return;
             }
         }
@@ -188,6 +190,11 @@ abstract class WorkloadShedder {
         return window.getConfig();
     }
 
+    private boolean underWatermark(WorkloadPriority priority) {
+        // 在水位线以下的请求放行
+        return priority.P() <= watermark.P();
+    }
+
     @VisibleForTesting
     double dropRate() {
         return SHED_DROP_RATE;
@@ -196,7 +203,7 @@ abstract class WorkloadShedder {
     @VisibleForTesting
     void resetForTesting() {
         this.window.resetForTesting();
-        this.admissionLevel = this.admissionLevel.changeBar(WorkloadPriority.MAX_P);
+        this.watermark = WorkloadPriority.ofLowest();
     }
 
 }

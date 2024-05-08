@@ -36,6 +36,8 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 @Slf4j
 class FairSafeAdmissionController implements AdmissionController {
+    static final long CPU_OVERLOAD_COOL_OFF_SEC = JVM.getLong(JVM.CPU_OVERLOAD_COOL_OFF_SEC, 10 * 60);
+    static final double CPU_USAGE_UPPER_BOUND = JVM.getDouble(JVM.CPU_USAGE_UPPER_BOUND, 0.75);
 
     /**
      * The optimistic throttling.
@@ -72,7 +74,7 @@ class FairSafeAdmissionController implements AdmissionController {
         metricsTracker.enter(workload.getPriority());
         if (!shedderOnCpu.admit(priority)) {
             metricsTracker.shedByCpu(priority);
-            log.warn("{}:shared CPU saturated, shed {} behind {}", shedderOnQueue.name, priority.simpleString(), shedderOnCpu.admissionLevel());
+            log.warn("{}:shared CPU saturated, shed {} above watermark {}", shedderOnQueue.name, priority.simpleString(), shedderOnCpu.admissionLevel().simpleString());
             return false;
         }
 
@@ -80,14 +82,9 @@ class FairSafeAdmissionController implements AdmissionController {
         boolean ok = shedderOnQueue.admit(priority);
         if (!ok) {
             metricsTracker.shedByQueue(priority);
-            log.warn("{}:queuing busy, shed {} behind {}", shedderOnQueue.name, priority.simpleString(), shedderOnQueue.admissionLevel());
+            log.warn("{}:queuing busy, shed {} above watermark {}", shedderOnQueue.name, priority.simpleString(), shedderOnQueue.admissionLevel().simpleString());
         }
         return ok;
-    }
-
-    @Override
-    public WorkloadPriority admissionLevel() {
-        return shedderOnQueue.admissionLevel().getBar();
     }
 
     @Override
