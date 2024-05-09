@@ -7,7 +7,7 @@ import lombok.Getter;
 import lombok.NonNull;
 
 /**
- * 基于反馈控制原理的自适应式工作负载准入控制器.
+ * 基于反馈控制原理的自适应式工作负载准入控制器，前置保护.
  *
  * <p>Regulate incoming requests and shed excess trivial workload.</p>
  */
