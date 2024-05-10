@@ -1,6 +1,5 @@
 package io.github.workload.metrics.noise;
 
-import com.jd.jsf.limiter.util.ZScoreDeNoise;
 import org.junit.jupiter.api.Test;
 
 import java.util.Random;
@@ -10,7 +9,7 @@ class ZScoreDenoiserTest {
     @Test
     void basic() {
         double[] ds = new double[400];
-        ZScoreDeNoise deNoise = new ZScoreDeNoise(200);
+        ZScoreDenoiser deNoise = new ZScoreDenoiser(200);
         Random random = new Random();
         int c = 0;
         for (int i = 0; i < 400; ++i) {
