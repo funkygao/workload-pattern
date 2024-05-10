@@ -7,7 +7,7 @@ import lombok.Getter;
 import lombok.NonNull;
 
 /**
- * 基于反馈控制原理的自适应式工作负载准入控制器，前置保护.
+ * 基于反馈控制原理的自适应式工作负荷准入控制器，前置保护.
  *
  * <p>Regulate incoming requests and shed excess trivial workload.</p>
  */
@@ -18,7 +18,7 @@ public interface AdmissionController {
      * 决定工作负荷是否准入.
      *
      * @param workload the computational workload
-     * @return true if admitted, or else rejected
+     * @return false表示当下如果执行该workload可能恶化系统负载，应用层根据场景做动作：可能直接解决请求，也可能降速，etc
      */
     boolean admit(@NonNull Workload workload);
 
