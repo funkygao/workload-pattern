@@ -8,7 +8,7 @@ import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * 基于FQ-CoDel算法的工作负载准入控制器.
+ * 基于FQ-CoDel算法的工作负荷准入控制器.
  *
  * <p>基本思路：if every request has experienced queueing delay greater than the target (5ms) during the past interval (100ms), then we shed load.</p>
  *
