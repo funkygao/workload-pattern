@@ -13,8 +13,20 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * 面向QoS的自适应式工作负载准入管制，可用于RPC/异步任务排队/MQ消费等场景.
- * 集成了基于(队列delay，优先级/QoS，CPU饱和)的基于<a href="https://arxiv.org/abs/1806.04075">Overload Control for Scaling WeChat Microservices</a>的准入控制器实现.
+ * 面向QoS的自适应式工作负荷准入管制，可用于RPC/异步任务排队/MQ消费等场景.
+ *
+ * <p>集成了(队列delay，优先级/QoS，CPU饱和)的基于<a href="https://arxiv.org/abs/1806.04075">Overload Control for Scaling WeChat Microservices</a>的准入控制器实现.</p>
+ *
+ * <ul>vs Netflix(Gradient/Vegas) algorithm, AQM(CoDel)
+ * <ul>相同
+ *     <li>自适应性</li>
+ *     <li>目标导向</li>
+ *     <li>平滑处理</li>
+ * </ul>
+ * <ul>不同
+ *     <li>基于({@link WorkloadPriority} vs RTT)</li>
+ * </ul>
+ * </ul>
  *
  * <ul>About the naming:
  * <li>fair: based on {@link WorkloadPriority}, i,e. QoS</li>
