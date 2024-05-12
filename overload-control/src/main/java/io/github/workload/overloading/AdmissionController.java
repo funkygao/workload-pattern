@@ -17,6 +17,8 @@ public interface AdmissionController {
     /**
      * 决定工作负荷是否准入.
      *
+     * <p>用于入口流量控制.</p>
+     *
      * @param workload the computational workload
      * @return false表示当下如果执行该workload可能恶化系统负载，应用层根据场景做动作：可能直接解决请求，也可能降速，etc
      */
