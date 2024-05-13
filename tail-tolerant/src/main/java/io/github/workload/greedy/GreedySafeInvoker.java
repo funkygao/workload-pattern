@@ -127,4 +127,13 @@ public class GreedySafeInvoker {
         }
     }
 
+    @FunctionalInterface
+    interface ThrowingFunction<T, R, E extends Throwable> {
+        R apply(T t) throws E;
+    }
+
+    @FunctionalInterface
+    interface ThrowingConsumer<T, E extends Throwable> {
+        void accept(T t) throws E;
+    }
 }
