@@ -1,5 +1,6 @@
 package io.github.workload.greedy;
 
+import io.github.workload.CostAware;
 import lombok.Getter;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
@@ -56,6 +57,7 @@ public class GreedySafeInvoker {
 
         List<OUT> results = new ArrayList<>();
         int itemsProcessed = 0;
+        int costs = 0;
         for (int start = 0, partitionId = 0; start < items.size(); start += partitionSize, partitionId++) {
             final int end = Math.min(items.size(), start + partitionSize);
             List<IN> partitionData = items.subList(start, end);
@@ -64,9 +66,15 @@ public class GreedySafeInvoker {
             if (partitionResult != null) {
                 results.addAll(partitionResult);
             }
+
             itemsProcessed += partitionData.size();
             if (!partition.accessed) {
                 throw new IllegalStateException("BUG! Partition not accessed, accessing the whole dataset?");
+            }
+
+            costs += partition.costs();
+            if (costs > config.getCostsThreshold()) {
+                // TODO trigger fine-grained limiter
             }
         }
 
@@ -78,7 +86,7 @@ public class GreedySafeInvoker {
     }
 
     @RequiredArgsConstructor
-    public class Partition<T> {
+    public static class Partition<T> {
         private final List<T> items;
         @Getter
         private final int id;
@@ -87,6 +95,17 @@ public class GreedySafeInvoker {
         public List<T> getItems() {
             accessed = true;
             return items;
+        }
+
+        public int costs() {
+            int costs = 0;
+            if (items != null && !items.isEmpty() && items.get(0) instanceof CostAware) {
+                for (T item : items) {
+                    CostAware costAware = (CostAware) item;
+                    costs += costAware.cost();
+                }
+            }
+            return costs;
         }
     }
 

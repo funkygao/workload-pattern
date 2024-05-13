@@ -9,11 +9,13 @@ import java.util.function.Consumer;
 public class GreedyConfig {
     private final int partitionSize;
     private final int greedyThreshold;
+    private final int costsThreshold;
     private final Consumer<Integer> thresholdExceededAction;
 
     private GreedyConfig(Builder builder) {
         this.partitionSize = builder.partitionSize;
         this.greedyThreshold = builder.greedyThreshold;
+        this.costsThreshold = builder.costsThreshold;
         this.thresholdExceededAction = builder.thresholdExceededAction;
     }
 
@@ -23,8 +25,9 @@ public class GreedyConfig {
 
     @Slf4j
     public static class Builder {
-        private int partitionSize;
-        private int greedyThreshold;
+        private int partitionSize = 100;
+        private int greedyThreshold = Integer.MAX_VALUE;
+        private int costsThreshold = Integer.MAX_VALUE;
         private Consumer<Integer> thresholdExceededAction = itemsProcessed -> log.warn("Items processed exceed threshold: {} > {}", itemsProcessed, greedyThreshold);
 
         public Builder partitionSize(int partitionSize) {
@@ -34,6 +37,11 @@ public class GreedyConfig {
 
         public Builder greedyThreshold(int greedyThreshold) {
             this.greedyThreshold = greedyThreshold;
+            return this;
+        }
+
+        public Builder costsThreshold(int costsThreshold) {
+            this.costsThreshold = costsThreshold;
             return this;
         }
 
