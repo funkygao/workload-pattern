@@ -75,6 +75,14 @@ public class GreedyConfig {
             if (greedyThreshold <= partitionSize) {
                 throw new IllegalArgumentException("greedyThreshold must be greater than partitionSize");
             }
+            if (greedyLimiter != null) {
+                if (limiterKey == null || limiterKey.trim().isEmpty()) {
+                    throw new IllegalArgumentException("greedyLimiter not null, limiterKey cannot be empty");
+                }
+                if (costsThreshold == Integer.MAX_VALUE) {
+                    throw new IllegalArgumentException("greedyLimiter not null, costsThreshold must be set");
+                }
+            }
             return new GreedyConfig(this);
         }
     }

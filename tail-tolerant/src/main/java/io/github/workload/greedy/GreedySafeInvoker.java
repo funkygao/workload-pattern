@@ -83,14 +83,10 @@ public class GreedySafeInvoker {
 
             if (config.getGreedyLimiter() != null) {
                 final String key = config.getLimiterKey();
-                if (key == null || key.trim().isEmpty()) {
-                    log.error("BUG! greedyLimiter not null while limiterKey empty!");
-                } else {
-                    costs += partition.costs();
-                    if (costs > config.getCostsThreshold()) {
-                        if (!config.getGreedyLimiter().canAcquire(key, 1)) {
-                            throw new GreedyException();
-                        }
+                costs += partition.costs();
+                if (costs > config.getCostsThreshold()) {
+                    if (!config.getGreedyLimiter().canAcquire(key, 1)) {
+                        throw new GreedyException("costs:" + costs);
                     }
                 }
             }
