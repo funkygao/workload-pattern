@@ -1,15 +1,14 @@
 package io.github.workload.overloading;
 
-import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
 import io.github.workload.Workload;
 import io.github.workload.WorkloadPriority;
+import io.github.workload.helper.LogUtil;
 import io.github.workload.metrics.tumbling.TumblingWindow;
 import io.github.workload.simulate.WorkloadPrioritizer;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
-import org.slf4j.LoggerFactory;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -34,11 +33,11 @@ class IntegrationTest {
 
     @Test
     void test_logging() {
-        ListAppender<ILoggingEvent> l_acf = setupAppender(AdmissionControllerFactory.class);
-        ListAppender<ILoggingEvent> l_container = setupAppender(ContainerLoad.class);
-        ListAppender<ILoggingEvent> l_window = setupAppender(TumblingWindow.class);
-        ListAppender<ILoggingEvent> l_cpu_shed = setupAppender(WorkloadShedderOnCpu.class);
-        ListAppender<ILoggingEvent> l_queue = setupAppender(WorkloadShedderOnQueue.class);
+        ListAppender<ILoggingEvent> l_acf = LogUtil.setupAppender(AdmissionControllerFactory.class);
+        ListAppender<ILoggingEvent> l_container = LogUtil.setupAppender(ContainerLoad.class);
+        ListAppender<ILoggingEvent> l_window = LogUtil.setupAppender(TumblingWindow.class);
+        ListAppender<ILoggingEvent> l_cpu_shed = LogUtil.setupAppender(WorkloadShedderOnCpu.class);
+        ListAppender<ILoggingEvent> l_queue = LogUtil.setupAppender(WorkloadShedderOnQueue.class);
 
         AdmissionController http = AdmissionController.getInstance("HTTP");
         AdmissionController rpc = AdmissionController.getInstance("RPC");
@@ -67,14 +66,6 @@ class IntegrationTest {
     @Test
     void basic() {
 
-    }
-
-    private ListAppender<ILoggingEvent> setupAppender(Class<?> clazz) {
-        Logger logger = (Logger) LoggerFactory.getLogger(clazz);
-        ListAppender<ILoggingEvent> appender = new ListAppender<>();
-        appender.start();
-        logger.addAppender(appender);
-        return appender;
     }
 
 }
