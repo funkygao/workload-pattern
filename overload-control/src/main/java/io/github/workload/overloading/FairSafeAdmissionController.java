@@ -15,16 +15,20 @@ import java.util.concurrent.ConcurrentHashMap;
 /**
  * 面向QoS的自适应式工作负荷准入管制，可用于RPC/异步任务排队/MQ消费等场景.
  *
+ * <p>自适应地调节准入门槛，避免持续过载.</p>
  * <p>集成了(队列delay，优先级/QoS，CPU饱和)的基于<a href="https://arxiv.org/abs/1806.04075">Overload Control for Scaling WeChat Microservices</a>的准入控制器实现.</p>
  *
  * <ul>vs Netflix(Gradient/Vegas) algorithm, AQM(CoDel)
  * <ul>相同
+ *     <li>反馈控制</li>
  *     <li>自适应性</li>
  *     <li>目标导向</li>
  *     <li>平滑处理</li>
  * </ul>
  * <ul>不同
- *     <li>基于({@link WorkloadPriority} vs RTT)</li>
+ *     <li>可以应用于所有类型{@link Workload}：RPC/HTTP/MQ/Task/etc</li>
+ *     <li>基于({@link WorkloadPriority}, (cpu, queuingTime)) vs RTT</li>
+ *     <li>全局视角：{@link WorkloadPriority}在微服务上下游之间继承式传递，流量入口确定{@link WorkloadPriority}</li>
  * </ul>
  * </ul>
  *
