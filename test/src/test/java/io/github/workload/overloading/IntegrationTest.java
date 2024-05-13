@@ -1,11 +1,24 @@
 package io.github.workload.overloading;
 
+import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.read.ListAppender;
 import io.github.workload.Workload;
 import io.github.workload.WorkloadPriority;
+import io.github.workload.metrics.tumbling.TumblingWindow;
 import io.github.workload.simulate.WorkloadPrioritizer;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
+import org.slf4j.LoggerFactory;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class IntegrationTest {
+
+    @AfterEach
+    void tearDown() {
+        AdmissionControllerFactory.resetForTesting();
+    }
 
     void usageDemo() {
         AdmissionController ac = AdmissionController.getInstance("HTTP");
@@ -20,8 +33,48 @@ class IntegrationTest {
     }
 
     @Test
+    void test_logging() {
+        ListAppender<ILoggingEvent> l_acf = setupAppender(AdmissionControllerFactory.class);
+        ListAppender<ILoggingEvent> l_container = setupAppender(ContainerLoad.class);
+        ListAppender<ILoggingEvent> l_window = setupAppender(TumblingWindow.class);
+        ListAppender<ILoggingEvent> l_cpu_shed = setupAppender(WorkloadShedderOnCpu.class);
+        ListAppender<ILoggingEvent> l_queue = setupAppender(WorkloadShedderOnQueue.class);
+
+        AdmissionController http = AdmissionController.getInstance("HTTP");
+        AdmissionController rpc = AdmissionController.getInstance("RPC");
+        rpc.admit(Workload.ofPriority(WorkloadPriority.fromP(553)));
+        http.feedback(AdmissionController.Feedback.ofOverloaded());
+
+        assertEquals(2, l_acf.list.size());
+        assertEquals("register for:HTTP", l_acf.list.get(0).getFormattedMessage());
+        assertEquals("register for:RPC", l_acf.list.get(1).getFormattedMessage());
+
+        assertEquals(1, l_container.list.size());
+        assertEquals("created with coolOff:600 sec", l_container.list.get(0).getFormattedMessage());
+
+        assertEquals(3, l_window.list.size());
+        assertEquals("[CPU] created with WindowConfig(time=1s,count=2048)", l_window.list.get(0).getFormattedMessage());
+        assertEquals("[HTTP] created with WindowConfig(time=1s,count=2048)", l_window.list.get(1).getFormattedMessage());
+        assertEquals("[RPC] created with WindowConfig(time=1s,count=2048)", l_window.list.get(2).getFormattedMessage());
+
+        assertEquals(1, l_cpu_shed.list.size());
+        assertEquals("[CPU] created with sysload:ContainerLoad, upper bound:0.75, ema alpha:0.25", l_cpu_shed.list.get(0).getFormattedMessage());
+
+        assertEquals(1, l_queue.list.size());
+        assertEquals("[HTTP] got explicit overload feedback", l_queue.list.get(0).getFormattedMessage());
+    }
+
+    @Test
     void basic() {
 
+    }
+
+    private ListAppender<ILoggingEvent> setupAppender(Class<?> clazz) {
+        Logger logger = (Logger) LoggerFactory.getLogger(clazz);
+        ListAppender<ILoggingEvent> appender = new ListAppender<>();
+        appender.start();
+        logger.addAppender(appender);
+        return appender;
     }
 
 }
