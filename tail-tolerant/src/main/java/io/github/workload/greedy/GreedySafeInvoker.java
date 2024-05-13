@@ -18,7 +18,7 @@ import java.util.List;
  * <ul>Features:
  * <li>避免{@code Lists.partition()}后容易误把全集变量应用在子集处理代码的问题</li>
  * <li>对总遍历次数审计：超过{@link GreedyConfig#greedyThreshold}时执行{@link GreedyConfig#thresholdExceededAction}</li>
- * <li>基于成本的限流：成本超过{@link GreedyConfig#costsThreshold}会触发限流器{@link GreedyConfig#greedyLimiter}，被限流时抛出{@link GreedyException}</li>
+ * <li>基于大报文成本的限流：成本超过{@link GreedyConfig#costsThreshold}会触发限流器{@link GreedyConfig#greedyLimiter}，被限流时抛出{@link GreedyException}</li>
  * </ul>
  */
 @UtilityClass
