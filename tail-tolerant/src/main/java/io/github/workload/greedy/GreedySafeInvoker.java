@@ -12,6 +12,14 @@ import java.util.List;
 
 /**
  * 大报文(贪婪工作负荷)安全的分批处理大数据集的工具类.
+ *
+ * <p>支持有返回值和无返回值的数据集处理场景.</p>
+ *
+ * <ul>Features:
+ * <li>避免{@code Lists.partition()}后容易误把全集变量应用在子集处理代码的问题</li>
+ * <li>对总遍历次数审计：超过{@link GreedyConfig#greedyThreshold}时执行{@link GreedyConfig#thresholdExceededAction}</li>
+ * <li>基于成本的限流：成本超过{@link GreedyConfig#costsThreshold}会触发限流器{@link GreedyConfig#greedyLimiter}，被限流时抛出{@link GreedyException}</li>
+ * </ul>
  */
 @UtilityClass
 @Slf4j
