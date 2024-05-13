@@ -1,28 +1,29 @@
 package io.github.workload.metrics.noise;
 
+import io.github.workload.BaseConcurrentTest;
 import org.junit.jupiter.api.Test;
 
 import java.util.Random;
 
-class ZScoreDenoiserTest {
+class ZScoreDenoiserTest extends BaseConcurrentTest {
 
     @Test
     void basic() {
         double[] ds = new double[400];
-        ZScoreDenoiser deNoise = new ZScoreDenoiser(200);
+        ZScoreDenoiser denoiser = new ZScoreDenoiser(200);
         Random random = new Random();
         int c = 0;
         for (int i = 0; i < 400; ++i) {
             ds[i] = i % 10 == 0 ? 80.0 : (double) (40 + random.nextInt(20));
-            double res = deNoise.deNoiseRight(ds[i], 2.5);
+            double res = denoiser.denoiseRight(ds[i], 2.5);
             if (res == 80.0) {
                 ++c;
             }
 
-            System.out.println(res);
+            log.debug("{}", res);
         }
 
-        System.out.println("======" + c);
+        log.info("c: {}", c);
     }
 
 }

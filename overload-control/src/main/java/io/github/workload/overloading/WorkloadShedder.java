@@ -15,6 +15,7 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * How to shed excess workload based on {@link WorkloadPriority}.
@@ -33,9 +34,16 @@ abstract class WorkloadShedder {
     /**
      * 准入等级水位线/准入门槛，其优先级越高则准入控制越严格，即门槛越高.
      */
-    private volatile WorkloadPriority watermark = WorkloadPriority.ofLowest();
+    private final AtomicReference<WorkloadPriority> watermark = new AtomicReference<>(WorkloadPriority.ofLowest());
 
     protected abstract boolean isOverloaded(long nowNs, CountAndTimeWindowState windowState);
+
+    /**
+     * 负载变化梯度，[0.5, 1.0].
+     *
+     * <p>当gradient小于1时，说明过载，值越小表示过载越严重.</p>
+     */
+    protected abstract double gradient();
 
     protected WorkloadShedder(String name) {
         this.name = name;
@@ -43,7 +51,7 @@ abstract class WorkloadShedder {
                 new CountAndTimeRolloverStrategy() {
                     @Override
                     public void onRollover(long nowNs, CountAndTimeWindowState snapshot, TumblingWindow<CountAndTimeWindowState> window) {
-                        adaptWatermark(isOverloaded(nowNs, snapshot), snapshot);
+                        adaptWatermark(snapshot, isOverloaded(nowNs, snapshot));
                     }
                 }
         );
@@ -57,7 +65,7 @@ abstract class WorkloadShedder {
     }
 
     WorkloadPriority watermark() {
-        return watermark;
+        return watermark.get();
     }
 
     /**
@@ -68,9 +76,8 @@ abstract class WorkloadShedder {
      * </ul>
      */
     @VisibleForTesting
-    void adaptWatermark(boolean overloaded, CountAndTimeWindowState lastWindow) {
-        // TODO 基于上一个窗口来调整下一个窗口的watermark，那么如果这2个窗口的请求分布有很大差异怎么办？
-        // 不仅考虑上一个窗口的数据，而且将前几个窗口的数据也纳入考虑，并对近期的数据给予更高的权重。这样可以平滑过渡并减少单个窗口数据变化对watermark调整的影响
+    void adaptWatermark(CountAndTimeWindowState lastWindow, boolean overloaded) {
+        // TODO Enhanced logic to consider broader data history for watermark adaptation
         if (overloaded) {
             shedMore(lastWindow);
         } else {
@@ -90,7 +97,8 @@ abstract class WorkloadShedder {
             return;
         }
 
-        final int currentP = watermark.P();
+        final WorkloadPriority currentWatermark = watermark();
+        final int currentP = currentWatermark.P();
         final ConcurrentSkipListMap<Integer, AtomicInteger> histogram = lastWindow.histogram();
         int accumulatedToDrop = 0;
         // histogram: (6, 3) -> (9, 10) -> ... -> (112, 2) -> (195, 11) -> (1894, 3)
@@ -119,23 +127,24 @@ abstract class WorkloadShedder {
                 if (descendingEntries.hasNext() && errorRate < OVER_SHED_BOUND) {
                     // 误差率可接受，and candidate is not head, candidate will shed workload
                     targetP = descendingEntries.next().getKey();
-                    log.warn("[{}] shed more({}/{}), error:{}, window admitted:{}, {} -> {}", name, accumulatedToDrop, expectedToDrop, errorRate, admitted, watermark.simpleString(), targetP);
+                    log.warn("[{}] shed more({}/{}), error:{}, window admitted:{}, {} -> {}", name, accumulatedToDrop, expectedToDrop, errorRate, admitted, currentWatermark.simpleString(), targetP);
                 } else {
                     targetP = candidateP; // this candidate wil not shed workload
                     // 备选项并没有被shed，提前加上去的退回来
                     accumulatedToDrop -= candidateRequested;
                     // errRate might be negative: below expectation
                     errorRate = (double) (accumulatedToDrop - expectedToDrop) / expectedToDrop;
-                    log.warn("[{}] degraded shed more({}/{}), error:{}, window admitted:{}, {} -> {}", name, accumulatedToDrop, expectedToDrop, errorRate, admitted, watermark.simpleString(), targetP);
+                    log.warn("[{}] degraded shed more({}/{}), error:{}, window admitted:{}, {} -> {}", name, accumulatedToDrop, expectedToDrop, errorRate, admitted, currentWatermark.simpleString(), targetP);
                 }
-                watermark = watermark.deriveFrom(targetP);
+                watermark.updateAndGet(curr -> curr.deriveFrom(targetP));
+                log.info("[{}] Updating watermark for shedMore: {} -> {}", name, currentWatermark.simpleString(), watermark().simpleString());
                 return;
             }
 
             if (!descendingEntries.hasNext()) {
                 // 还不够扣呢，但已经没有可扣的了：we should never shed all
-                log.warn("[{}] histogram head reached, degraded shed more({}/{}), window admitted:{}, {} -> {}", name, accumulatedToDrop, expectedToDrop, admitted, watermark.simpleString(), candidateP);
-                watermark = watermark.deriveFrom(candidateP);
+                watermark.updateAndGet(curr -> curr.deriveFrom(candidateP));
+                log.info("[{}] Updating watermark for shedMore: {} -> {}", name, currentWatermark.simpleString(), watermark().simpleString());
                 return;
             }
         }
@@ -143,7 +152,8 @@ abstract class WorkloadShedder {
 
     // reward low priority workloads
     private void admitMore(CountAndTimeWindowState lastWindow) {
-        final int currentP = watermark.P();
+        final WorkloadPriority currentWatermark = watermark();
+        final int currentP = currentWatermark.P();
         if (WorkloadPriority.MAX_P == currentP) {
             return;
         }
@@ -152,16 +162,16 @@ abstract class WorkloadShedder {
         final int requested = lastWindow.requested();
         final int expectedToAdmit = (int) (RECOVER_RATE * admitted);
         if (expectedToAdmit == 0) {
+            watermark.set(WorkloadPriority.ofLowest());
             log.info("[{}] idle window admit all: {}/{}", name, admitted, requested);
-            watermark = WorkloadPriority.ofLowest();
             return;
         }
 
         int accumulatedToAdmit = 0;
         final Iterator<Map.Entry<Integer, AtomicInteger>> ascendingP = lastWindow.histogram().tailMap(currentP, false).entrySet().iterator();
         if (!ascendingP.hasNext()) {
-            log.warn("[{}] beyond tail of histogram, {} -> {}", name, watermark.simpleString(), WorkloadPriority.ofLowest().simpleString());
-            watermark = WorkloadPriority.ofLowest();
+            watermark.set(WorkloadPriority.ofLowest());
+            log.info("[{}] beyond tail of histogram, admit all: {}/{}", name, admitted, requested);
             return;
         }
 
@@ -175,14 +185,14 @@ abstract class WorkloadShedder {
             }
 
             if (accumulatedToAdmit >= expectedToAdmit) { // TODO error rate
-                log.warn("[{}] admit more({}/{}), window admitted:{}, {} -> {}", name, accumulatedToAdmit, expectedToAdmit, admitted, watermark.simpleString(), candidateP);
-                watermark = watermark.deriveFrom(candidateP);
+                watermark.updateAndGet(curr -> curr.deriveFrom(candidateP));
+                log.info("[{}] Updating watermark for admitMore: {} -> {}", name, currentWatermark.simpleString(), watermark().simpleString());
                 return;
             }
 
             if (!ascendingP.hasNext()) {
                 log.warn("[{}] histogram tail reached but still not enough for admit more: happy to admit all", name);
-                watermark = WorkloadPriority.ofLowest();
+                watermark.set(WorkloadPriority.ofLowest());
                 return;
             }
         }
@@ -198,13 +208,13 @@ abstract class WorkloadShedder {
 
     private boolean satisfyWatermark(WorkloadPriority priority) {
         // 在水位线以下的请求放行
-        return priority.P() <= watermark.P();
+        return priority.P() <= watermark().P();
     }
 
     @VisibleForTesting
     void resetForTesting() {
         this.window.resetForTesting();
-        this.watermark = WorkloadPriority.ofLowest();
+        this.watermark.set(WorkloadPriority.ofLowest());
+        log.debug("[{}] WorkloadShedder has been reset for testing purposes.", name);
     }
-
 }

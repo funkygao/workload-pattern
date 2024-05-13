@@ -33,6 +33,11 @@ class WorkloadShedderOnQueue extends WorkloadShedder {
         return overloaded;
     }
 
+    @Override
+    protected double gradient() {
+        return 1.0d;
+    }
+
     void addWaitingNs(long waitingNs) {
         currentWindow().waitNs(waitingNs);
     }

@@ -42,6 +42,17 @@ class WorkloadShedderOnCpu extends WorkloadShedder {
         return overloaded;
     }
 
+    @Override
+    protected double gradient() {
+        return gradient(smoothedCpuUsage(), cpuUsageUpperBound);
+    }
+
+    @VisibleForTesting
+    double gradient(double cpuUsage, double upperBound) {
+        double rawGradient = upperBound / cpuUsage;
+        return Math.min(1.0, Math.max(0.5, rawGradient));
+    }
+
     private double smoothedCpuUsage() {
         double cpuUsage = sysload.cpuUsage();
         return valueSmoother.update(cpuUsage).smoothedValue();

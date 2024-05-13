@@ -151,14 +151,14 @@ class WorkloadShedderTest extends BaseConcurrentTest {
 
         log.info("没有过载，调整admission level不变化");
         for (int i = 0; i < 10; i++) {
-            shedder.adaptWatermark(false, currentWindow);
+            shedder.adaptWatermark(currentWindow, false);
             assertEquals(initialP, shedder.watermark().P());
         }
 
         log.info("显式过载，看看调整到哪个优先级。当前窗口，histogram size:{}, {}", currentWindow.histogram().size(), currentWindow.histogram());
         WorkloadPriority lastLevel = shedder.watermark();
         for (int i = 0; i < (1 / WorkloadShedder.DROP_RATE); i++) {
-            shedder.adaptWatermark(true, currentWindow);
+            shedder.adaptWatermark(currentWindow, true);
             log.debug("adapted {}: {} -> {}", lastLevel.P() - shedder.watermark().P(), lastLevel, shedder.watermark());
             if (lastLevel.equals(shedder.watermark())) {
                 log.info("admission level cannot be adapted any more, STOPPED!");
@@ -179,14 +179,14 @@ class WorkloadShedderTest extends BaseConcurrentTest {
         }
         final CountAndTimeWindowState currentWindow1 = shedder.currentWindow();
         log.info("模拟当前窗口请求量低于100的场景 histogram:{}", currentWindow1.histogram());
-        shedder.adaptWatermark(true, currentWindow1);
-        shedder.adaptWatermark(true, currentWindow1);
+        shedder.adaptWatermark(currentWindow1, true);
+        shedder.adaptWatermark(currentWindow1, true);
 
         shedder.resetForTesting();
         final CountAndTimeWindowState currentWindow2 = shedder.currentWindow();
         log.info("模拟当前窗口1个请求都没有的场景 histogram:{}", currentWindow2.histogram());
-        shedder.adaptWatermark(true, currentWindow2);
-        shedder.adaptWatermark(true, currentWindow2);
+        shedder.adaptWatermark(currentWindow2, true);
+        shedder.adaptWatermark(currentWindow2, true);
     }
 
     @RepeatedTest(2)
@@ -217,7 +217,7 @@ class WorkloadShedderTest extends BaseConcurrentTest {
         int sheddingTimes = 0;
         for (int i = 0; i < (1 / WorkloadShedder.DROP_RATE); i++) {
             // 已过载
-            shedder.adaptWatermark(true, currentWindow);
+            shedder.adaptWatermark(currentWindow, true);
             log.debug("adapted {}: {} -> {}", lastLevel.P() - shedder.watermark().P(), lastLevel, shedder.watermark());
             if (lastLevel.equals(shedder.watermark())) {
                 sheddingTimes = i + 1;
@@ -244,7 +244,7 @@ class WorkloadShedderTest extends BaseConcurrentTest {
         boolean everAdmitted = false;
         for (int i = 0; i < Integer.MAX_VALUE; i++) {
             // 未过载
-            shedder.adaptWatermark(false, currentWindow);
+            shedder.adaptWatermark(currentWindow, false);
             if (lastLevel.equals(shedder.watermark())) {
                 admittingTimes = i + 1;
                 log.info("cannot admit any more:{}", admittingTimes);
@@ -318,7 +318,7 @@ class WorkloadShedderTest extends BaseConcurrentTest {
         log.info("{} {}", testInfo.getDisplayName(), shedder);
 
         injectWorkloads(shedder, P2Requests);
-        shedder.adaptWatermark(true, shedder.currentWindow());
+        shedder.adaptWatermark(shedder.currentWindow(), true);
     }
 
     private void injectWorkloads(WorkloadShedder shedder, Map<Integer, Integer> P2Requests) {
