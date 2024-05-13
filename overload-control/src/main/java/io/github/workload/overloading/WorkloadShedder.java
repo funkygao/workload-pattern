@@ -23,6 +23,9 @@ import java.util.concurrent.atomic.AtomicReference;
 @Slf4j
 @ThreadSafe
 abstract class WorkloadShedder {
+    static final double GRADIENT_IDLE = 1.0d;
+    static final double GRADIENT_BUSIEST = 0.5d;
+
     static final double OVER_SHED_BOUND = HyperParameter.getDouble(Heuristic.OVER_SHED_BOUND, 1.01d);
     static final double OVER_ADMIT_BOUND = HyperParameter.getDouble(Heuristic.OVER_ADMIT_BOUND, 0.5d); // TODO
     static final double DROP_RATE = HyperParameter.getDouble(Heuristic.SHED_DROP_RATE, 0.05d);
@@ -36,14 +39,14 @@ abstract class WorkloadShedder {
      */
     private final AtomicReference<WorkloadPriority> watermark = new AtomicReference<>(WorkloadPriority.ofLowest());
 
-    protected abstract boolean isOverloaded(long nowNs, CountAndTimeWindowState windowState);
-
     /**
-     * 负载变化梯度，[0.5, 1.0].
+     * 计算过载梯度值：[{@link #GRADIENT_BUSIEST}, {@link #GRADIENT_IDLE}].
      *
-     * <p>当gradient小于1时，说明过载，值越小表示过载越严重.</p>
+     * @param nowNs    当前系统时间，in nano second
+     * @param snapshot 上一个窗口的状态快照
+     * @return 为1时不过载；小于1说明过载，值越小表示过载越严重，最小0.5
      */
-    protected abstract double gradient();
+    protected abstract double overloadGradient(long nowNs, CountAndTimeWindowState snapshot);
 
     protected WorkloadShedder(String name) {
         this.name = name;
@@ -51,7 +54,7 @@ abstract class WorkloadShedder {
                 new CountAndTimeRolloverStrategy() {
                     @Override
                     public void onRollover(long nowNs, CountAndTimeWindowState snapshot, TumblingWindow<CountAndTimeWindowState> window) {
-                        adaptWatermark(snapshot, isOverloaded(nowNs, snapshot));
+                        adaptWatermark(snapshot, overloadGradient(nowNs, snapshot));
                     }
                 }
         );
@@ -76,17 +79,21 @@ abstract class WorkloadShedder {
      * </ul>
      */
     @VisibleForTesting
-    void adaptWatermark(CountAndTimeWindowState lastWindow, boolean overloaded) {
+    void adaptWatermark(CountAndTimeWindowState lastWindow, double gradient) {
         // TODO Enhanced logic to consider broader data history for watermark adaptation
-        if (overloaded) {
-            shedMore(lastWindow);
+        if (isOverloaded(gradient)) {
+            shedMore(lastWindow, gradient);
         } else {
-            admitMore(lastWindow);
+            admitMore(lastWindow, gradient);
         }
     }
 
+    protected final boolean isOverloaded(double gradient) {
+        return gradient < GRADIENT_IDLE;
+    }
+
     // penalize low priority workloads
-    private void shedMore(CountAndTimeWindowState lastWindow) {
+    private void shedMore(CountAndTimeWindowState lastWindow, double gradient) {
         // 确保在精确提高 watermark 时，不会因为过度抛弃低优先级请求而影响服务的整体可用性，尽可能保持高 goodput
         final int admitted = lastWindow.admitted();
         final int requested = lastWindow.requested();
@@ -151,7 +158,7 @@ abstract class WorkloadShedder {
     }
 
     // reward low priority workloads
-    private void admitMore(CountAndTimeWindowState lastWindow) {
+    private void admitMore(CountAndTimeWindowState lastWindow, double gradient) {
         final WorkloadPriority currentWatermark = watermark();
         final int currentP = currentWatermark.P();
         if (WorkloadPriority.MAX_P == currentP) {

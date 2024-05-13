@@ -1,13 +1,15 @@
 package io.github.workload.overloading;
 
+import io.github.workload.BaseConcurrentTest;
 import io.github.workload.helper.CpuStressLoader;
 import io.github.workload.metrics.smoother.ValueSmoother;
+import io.github.workload.overloading.mock.SysloadMock;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-class WorkloadShedderOnCpuTest {
+class WorkloadShedderOnCpuTest extends BaseConcurrentTest {
 
     @AfterEach
     void cleanup() {
@@ -17,7 +19,7 @@ class WorkloadShedderOnCpuTest {
     @Test
     void basic() {
         WorkloadShedderOnCpu shedder = new WorkloadShedderOnCpu(FairSafeAdmissionController.CPU_USAGE_UPPER_BOUND, 0);
-        assertFalse(shedder.isOverloaded(System.nanoTime(), null));
+        assertFalse(shedder.isOverloaded(shedder.overloadGradient(System.nanoTime(), null)));
     }
 
     @Test
@@ -25,7 +27,7 @@ class WorkloadShedderOnCpuTest {
         WorkloadShedderOnCpu shedder = new WorkloadShedderOnCpu(FairSafeAdmissionController.CPU_USAGE_UPPER_BOUND, 1);
         CpuStressLoader.burnCPUs();
         for (int i = 0; i < 10; i++) {
-            if (shedder.isOverloaded(0, null)) {
+            if (shedder.isOverloaded(shedder.overloadGradient(0, null))) {
                 // cool down CPU so that other test cases can work as expected
                 CpuStressLoader.stop();
                 Thread.sleep(2000);
@@ -56,6 +58,27 @@ class WorkloadShedderOnCpuTest {
             assertEquals(expected04[i], v04, 0.002);
             double v02 = smoother02.update(cpu[i]).smoothedValue();
             assertEquals(expected02[i], v02, 0.002);
+        }
+    }
+
+    @Test
+    void gradient() {
+        WorkloadShedderOnCpu shedder = new WorkloadShedderOnCpu(FairSafeAdmissionController.CPU_USAGE_UPPER_BOUND, new SysloadMock());
+        double[] cpuUsages = new double[]{0.3, 0.6, 0.89, 0.2, 0.7, 1.0, 0.33};
+        boolean[] overloads = new boolean[]{false, false, true, false, true, true, false};
+        final double upperBound = 0.67;
+        for (int i = 0; i < cpuUsages.length; i++) {
+            final double gradient = shedder.gradient(cpuUsages[i], upperBound);
+            log.debug("gradient:{}, {}/{}", gradient, cpuUsages[i], upperBound);
+            assertEquals(overloads[i], shedder.isOverloaded(gradient));
+        }
+    }
+
+    @Test
+    void gradient_simulation() {
+        WorkloadShedderOnCpu shedder = new WorkloadShedderOnCpu(FairSafeAdmissionController.CPU_USAGE_UPPER_BOUND, new SysloadMock());
+        for (int i = 0; i < 100; i++) {
+            shedder.overloadGradient(0, null);
         }
     }
 

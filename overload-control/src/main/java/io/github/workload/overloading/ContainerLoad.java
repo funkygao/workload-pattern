@@ -27,13 +27,19 @@ import java.util.concurrent.TimeUnit;
  */
 @Slf4j
 class ContainerLoad implements Sysload {
-    private volatile double currentLoadAverage = -1;
-    private volatile double currentCpuUsage = -1;
+    private volatile double currentLoadAverage = 0;
+    private volatile double currentCpuUsage = 0;
 
     private long processCpuTimeNs = 0; // 当前进程累计占用CPU时长
     private long processUpTimeMs = 0; // 当前进程累计运行时长
 
-    static ContainerLoad getInstance(long coolOffSec) {
+    /**
+     * 创建指定静默期的系统负载探测器，容器精度.
+     *
+     * @param coolOffSec 静默期: 过了静默期才开始采样CPU使用率，在此之前CPU使用率为0
+     */
+    static ContainerLoad create(long coolOffSec) {
+        log.info("created with coolOff:{} sec", coolOffSec);
         return new ContainerLoad(coolOffSec);
     }
 

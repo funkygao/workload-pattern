@@ -4,8 +4,9 @@ import io.github.workload.HyperParameter;
 import io.github.workload.annotations.VisibleForTesting;
 import io.github.workload.metrics.tumbling.CountAndTimeWindowState;
 import lombok.Generated;
-import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
+
+import java.util.concurrent.ThreadLocalRandom;
 
 @Slf4j
 class WorkloadShedderOnQueue extends WorkloadShedder {
@@ -21,21 +22,28 @@ class WorkloadShedderOnQueue extends WorkloadShedder {
     }
 
     @Override
-    protected boolean isOverloaded(long nowNs, @NonNull CountAndTimeWindowState windowState) {
-        // 距离上次显式过载仍在窗口期
+    protected double overloadGradient(long nowNs, CountAndTimeWindowState snapshot) {
         boolean stillExplicitOverloaded = nowNs > 0 && overloadedAtNs > 0
                 && (nowNs - overloadedAtNs) <= timeCycleNs;
-        boolean overloaded = stillExplicitOverloaded
-                || windowState.avgQueuedMs() > AVG_QUEUED_MS_UPPER_BOUND; // 排队时间长
-        if (overloaded) {
-            log.warn("[{}] overloaded: {}", name, stillExplicitOverloaded ? "within explicit overload interval" : "too large avg queued time");
+        if (stillExplicitOverloaded) {
+            log.debug("[{}] still in explicit overload interval, timeCycleNs:{}", name, timeCycleNs);
+            return explicitOverloadGradient();
         }
-        return overloaded;
+
+        // bufferbloat
+        return queuingGradient(snapshot.avgQueuedMs(), AVG_QUEUED_MS_UPPER_BOUND);
     }
 
-    @Override
-    protected double gradient() {
-        return 1.0d;
+    // 显式过载的梯度值
+    @VisibleForTesting
+    double explicitOverloadGradient() {
+        return GRADIENT_BUSIEST + ThreadLocalRandom.current().nextDouble(GRADIENT_BUSIEST);
+    }
+
+    @VisibleForTesting
+    double queuingGradient(double avgQueuedMs, double upperBound) {
+        double rawGradient = upperBound / avgQueuedMs;
+        return Math.min(GRADIENT_IDLE, Math.max(GRADIENT_BUSIEST, rawGradient));
     }
 
     void addWaitingNs(long waitingNs) {

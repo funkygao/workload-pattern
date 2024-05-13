@@ -11,7 +11,7 @@ import org.slf4j.LoggerFactory;
 class ContainerLoadTest {
     private static final Logger log = LoggerFactory.getLogger(ContainerLoadTest.class);
 
-    Sysload loadProvider = ContainerLoad.getInstance(0);
+    Sysload loadProvider = ContainerLoad.create(0);
 
     @RepeatedTest(10)
     @Execution(ExecutionMode.CONCURRENT)

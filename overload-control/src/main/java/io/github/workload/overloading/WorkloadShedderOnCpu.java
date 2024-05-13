@@ -25,37 +25,41 @@ class WorkloadShedderOnCpu extends WorkloadShedder {
     Sysload sysload;
 
     WorkloadShedderOnCpu(double cpuUsageUpperBound, long coolOffSec) {
+        this(cpuUsageUpperBound, ContainerLoad.create(coolOffSec));
+    }
+
+    WorkloadShedderOnCpu(double cpuUsageUpperBound, Sysload sysload) {
         super("CPU");
         this.cpuUsageUpperBound = cpuUsageUpperBound;
-        this.sysload = ContainerLoad.getInstance(coolOffSec); // 过了静默期才采样CPU
+        this.sysload = sysload;
         this.valueSmoother = ValueSmoother.ofEMA(CPU_EMA_ALPHA);
-        log.info("[{}] created with upper bound:{}, cool off:{}sec, ema alpha:{}", this.name, cpuUsageUpperBound, coolOffSec, CPU_EMA_ALPHA);
+        log.info("[{}] created with sysload:{}, upper bound:{}, ema alpha:{}", this.name, sysload.getClass().getSimpleName(), cpuUsageUpperBound, CPU_EMA_ALPHA);
     }
 
     @Override
-    protected boolean isOverloaded(long nowNs, CountAndTimeWindowState windowState) {
+    protected double overloadGradient(long nowNs, CountAndTimeWindowState snapshot) {
         final double cpuUsage = smoothedCpuUsage();
-        final boolean overloaded = cpuUsage > cpuUsageUpperBound;
-        if (overloaded) {
+        final double gradient = gradient(cpuUsage, cpuUsageUpperBound);
+        if (isOverloaded(gradient)) {
             log.warn("CPU BUSY with utilization:{} > {}", cpuUsage, cpuUsageUpperBound);
         }
-        return overloaded;
-    }
-
-    @Override
-    protected double gradient() {
-        return gradient(smoothedCpuUsage(), cpuUsageUpperBound);
+        return gradient;
     }
 
     @VisibleForTesting
     double gradient(double cpuUsage, double upperBound) {
         double rawGradient = upperBound / cpuUsage;
-        return Math.min(1.0, Math.max(0.5, rawGradient));
+        return Math.min(GRADIENT_IDLE, Math.max(GRADIENT_BUSIEST, rawGradient));
     }
 
     private double smoothedCpuUsage() {
         double cpuUsage = sysload.cpuUsage();
+        if (cpuUsage < 0) {
+            cpuUsage = 0.0d;
+        }
+        if (cpuUsage > 1) {
+            cpuUsage = 1.0d;
+        }
         return valueSmoother.update(cpuUsage).smoothedValue();
     }
-
 }
