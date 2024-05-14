@@ -25,7 +25,7 @@ class WorkloadShedderOnCpu extends WorkloadShedder {
     Sysload sysload;
 
     WorkloadShedderOnCpu(double cpuUsageUpperBound, long coolOffSec) {
-        this(cpuUsageUpperBound, ContainerLoad.create(coolOffSec));
+        this(cpuUsageUpperBound, new ContainerLoad(coolOffSec));
     }
 
     WorkloadShedderOnCpu(double cpuUsageUpperBound, Sysload sysload) {
@@ -60,6 +60,8 @@ class WorkloadShedderOnCpu extends WorkloadShedder {
         if (cpuUsage > 1) {
             cpuUsage = 1.0d;
         }
-        return valueSmoother.update(cpuUsage).smoothedValue();
+        double smoothed = valueSmoother.update(cpuUsage).smoothedValue();
+        log.debug("cpu usage:{}, smoothed:{}", cpuUsage, smoothed);
+        return smoothed;
     }
 }

@@ -37,20 +37,14 @@ class ContainerLoad implements Sysload {
     private static final ScheduledExecutorService timer = Executors.newSingleThreadScheduledExecutor(new NamedThreadFactory(ContainerLoad.class.getSimpleName()));;
 
     /**
-     * 创建指定静默期的系统负载探测器，容器精度.
      *
      * @param coolOffSec 静默期: 过了静默期才开始采样CPU使用率，在此之前CPU使用率为0
      */
-    static ContainerLoad create(long coolOffSec) {
-        log.info("created with coolOff:{} sec", coolOffSec);
-        return new ContainerLoad(coolOffSec);
-    }
-
-    private ContainerLoad(long coolOffSec) {
+    ContainerLoad(long coolOffSec) {
         // 冷静期后才开始刷新数据：JVM启动时CPU往往很高
         timer.scheduleAtFixedRate(this::safeRefresh, coolOffSec, 1, TimeUnit.SECONDS);
-        
         Runtime.getRuntime().addShutdownHook(new Thread(ContainerLoad::stop));
+        log.info("created with coolOff:{} sec", coolOffSec);
     }
 
     @VisibleForTesting
