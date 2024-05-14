@@ -54,7 +54,7 @@ abstract class WorkloadShedder {
                 new CountAndTimeRolloverStrategy() {
                     @Override
                     public void onRollover(long nowNs, CountAndTimeWindowState snapshot, TumblingWindow<CountAndTimeWindowState> window) {
-                        adaptWatermark(snapshot, overloadGradient(nowNs, snapshot));
+                        predictWatermark(snapshot, overloadGradient(nowNs, snapshot));
                     }
                 }
         );
@@ -71,16 +71,10 @@ abstract class WorkloadShedder {
         return watermark.get();
     }
 
-    /**
-     * <ul>处理 {@link #watermark} 调整时，需要：
-     * <li>更精确地根据当前的负载和请求优先级来调整</li>
-     * <li>能够正确处理极端情况，如请求量极少或极多时的情况</li>
-     * <li>调整是平滑的，避免因为过于激进的调整导致服务质量波动</li>
-     * </ul>
-     */
     @VisibleForTesting
-    void adaptWatermark(CountAndTimeWindowState lastWindow, double gradient) {
+    void predictWatermark(CountAndTimeWindowState lastWindow, double gradient) {
         // TODO Enhanced logic to consider broader data history for watermark adaptation
+        log.debug("[{}] total:{}, admit:{}, shed:{}", name, lastWindow.requested(), lastWindow.admitted(), lastWindow.shedded());
         if (isOverloaded(gradient)) {
             shedMore(lastWindow, gradient);
         } else {
