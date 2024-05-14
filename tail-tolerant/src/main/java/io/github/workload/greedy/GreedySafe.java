@@ -23,7 +23,7 @@ import java.util.List;
  */
 @UtilityClass
 @Slf4j
-public class GreedySafeInvoker {
+public class GreedySafe {
 
     /**
      * 处理大数据集分批任务的方法，无返回值场景.
@@ -100,7 +100,7 @@ public class GreedySafeInvoker {
     }
 
     @RequiredArgsConstructor
-    public static class Partition<T> {
+    public class Partition<T> {
         private final List<T> items;
         @Getter
         private final int id;
@@ -124,12 +124,12 @@ public class GreedySafeInvoker {
     }
 
     @FunctionalInterface
-    interface ThrowingFunction<T, R, E extends Throwable> {
+    public interface ThrowingFunction<T, R, E extends Throwable> {
         R apply(T t) throws E;
     }
 
     @FunctionalInterface
-    interface ThrowingConsumer<T, E extends Throwable> {
+    public interface ThrowingConsumer<T, E extends Throwable> {
         void accept(T t) throws E;
     }
 }
