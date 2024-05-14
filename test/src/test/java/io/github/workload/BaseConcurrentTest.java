@@ -17,7 +17,7 @@ public abstract class BaseConcurrentTest {
     protected final Logger log = LoggerFactory.getLogger(getClass());
     protected final double DELTA = 1e-15; // 用于比较double value的误差
 
-    protected static final int THREAD_COUNT = 26;
+    protected static final int THREAD_COUNT = Runtime.getRuntime().availableProcessors();
     protected static final ExecutorService threadPool = Executors.newFixedThreadPool(THREAD_COUNT);
 
     @AfterAll
@@ -49,6 +49,14 @@ public abstract class BaseConcurrentTest {
             results.add(future.join());
         }
         return results;
+    }
+
+    protected void sleep(long ms) {
+        try {
+            Thread.sleep(ms);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
     }
 
     protected void setLogLevel(Level level) {

@@ -29,6 +29,7 @@ import java.util.concurrent.TimeUnit;
 @ToString
 @Slf4j
 public class WorkloadPriority {
+    private static final String CLOCK_WHO = WorkloadPriority.class.getSimpleName();
     private static final long HALF_HOUR_MS = TimeUnit.MILLISECONDS.convert(30, TimeUnit.MINUTES);
 
     private static final int PRIORITY_BITS = 7;
@@ -140,7 +141,7 @@ public class WorkloadPriority {
     @VisibleForTesting
     static WorkloadPriority ofPeriodicRandomFromUID(int b, int uid, long timeWindowMs) {
         int normalizedStableU = (uid & Integer.MAX_VALUE) % MAX_7BIT_VALUE;
-        long nowMs = SystemClock.ofPrecisionMs(timeWindowMs).currentTimeMillis();
+        long nowMs = SystemClock.ofPrecisionMs(timeWindowMs, CLOCK_WHO).currentTimeMillis();
         UState us = uStates.compute(normalizedStableU, (key, presentValue) -> {
             if (presentValue == null || nowMs - presentValue.createdAtMs > timeWindowMs) {
                 int randomU = ThreadLocalRandom.current().nextInt(MAX_7BIT_VALUE);

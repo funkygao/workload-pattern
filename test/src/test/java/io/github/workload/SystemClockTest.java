@@ -21,8 +21,9 @@ class SystemClockTest extends BaseConcurrentTest {
 
     @Test
     void singletonIfSamePrecision() {
-        List<SystemClock> clocks = concurrentRun(() -> SystemClock.ofPrecisionMs(PRECISION_MS));
-        SystemClock expectedInstance = SystemClock.ofPrecisionMs(PRECISION_MS);
+        String who = "singletonIfSamePrecision";
+        List<SystemClock> clocks = concurrentRun(() -> SystemClock.ofPrecisionMs(PRECISION_MS, who));
+        SystemClock expectedInstance = SystemClock.ofPrecisionMs(PRECISION_MS, who);
         for (SystemClock clock : clocks) {
             assertSame(expectedInstance, clock);
         }
@@ -31,7 +32,7 @@ class SystemClockTest extends BaseConcurrentTest {
     @Test
     void illegalArgument() {
         Exception expected = assertThrows(IllegalArgumentException.class, () -> {
-            SystemClock.ofPrecisionMs(-1);
+            SystemClock.ofPrecisionMs(-1, "");
         });
         assertEquals("precisionMs cannot be negative", expected.getMessage());
     }
@@ -62,13 +63,14 @@ class SystemClockTest extends BaseConcurrentTest {
     @Execution(ExecutionMode.CONCURRENT)
     void basic(TestInfo testInfo) {
         log.info("precisions: 0, 0, 10, 5, 5");
-        SystemClock clock0 = SystemClock.ofPrecisionMs(0);
-        SystemClock realtime = SystemClock.ofRealtime();
+        final String who = "basic";
+        SystemClock clock0 = SystemClock.ofPrecisionMs(0, who);
+        SystemClock realtime = SystemClock.ofRealtime(who);
         assertSame(clock0, realtime);
         assertEquals(clock0, realtime);
-        SystemClock clock10 = SystemClock.ofPrecisionMs(10);
-        SystemClock clock5 = SystemClock.ofPrecisionMs(5);
-        SystemClock clock51 = SystemClock.ofPrecisionMs(5);
+        SystemClock clock10 = SystemClock.ofPrecisionMs(10, who);
+        SystemClock clock5 = SystemClock.ofPrecisionMs(5, who);
+        SystemClock clock51 = SystemClock.ofPrecisionMs(5, who);
         assertSame(clock5, clock51);
         assertNotEquals(clock5, clock10);
         long ta = clock5.currentTimeMillis();
@@ -81,11 +83,12 @@ class SystemClockTest extends BaseConcurrentTest {
     @RepeatedTest(20)
     @Execution(ExecutionMode.CONCURRENT)
     void advanced() throws InterruptedException {
-        SystemClock rtClock = SystemClock.ofPrecisionMs(0);
-        SystemClock clock10 = SystemClock.ofPrecisionMs(10);
-        SystemClock clock3 = SystemClock.ofPrecisionMs(3);
-        SystemClock clock15 = SystemClock.ofPrecisionMs(15);
-        SystemClock.ofPrecisionMs(10);
+        final String who = "advanced";
+        SystemClock rtClock = SystemClock.ofPrecisionMs(0, who);
+        SystemClock clock10 = SystemClock.ofPrecisionMs(10, who);
+        SystemClock clock3 = SystemClock.ofPrecisionMs(3, who);
+        SystemClock clock15 = SystemClock.ofPrecisionMs(15, who);
+        SystemClock.ofPrecisionMs(10, who);
         for (int i = 0; i < 10; i++) {
             Thread.sleep(2);
             long tRT = rtClock.currentTimeMillis();
@@ -98,9 +101,10 @@ class SystemClockTest extends BaseConcurrentTest {
     @RepeatedTest(20)
     @Execution(ExecutionMode.CONCURRENT)
     void precision() throws InterruptedException {
-        SystemClock rt = SystemClock.ofRealtime();
+        String who = "precision";
+        SystemClock rt = SystemClock.ofRealtime(who);
         long precisionMs = 20;
-        SystemClock p20 = SystemClock.ofPrecisionMs(precisionMs);
+        SystemClock p20 = SystemClock.ofPrecisionMs(precisionMs, who);
         for (int i = 0; i < 20; i++) {
             Thread.sleep(ThreadLocalRandom.current().nextInt(10));
             long err = rt.currentTimeMillis() - p20.currentTimeMillis();

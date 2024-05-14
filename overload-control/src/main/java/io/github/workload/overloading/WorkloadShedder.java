@@ -42,6 +42,8 @@ abstract class WorkloadShedder {
     /**
      * 计算过载梯度值：[{@link #GRADIENT_BUSIEST}, {@link #GRADIENT_IDLE}].
      *
+     * <p>负载反馈因子.</p>
+     *
      * @param nowNs    当前系统时间，in nano second
      * @param snapshot 上一个窗口的状态快照
      * @return 为1时不过载；小于1说明过载，值越小表示过载越严重，最小0.5
@@ -74,7 +76,7 @@ abstract class WorkloadShedder {
     @VisibleForTesting
     void predictWatermark(CountAndTimeWindowState lastWindow, double gradient) {
         // TODO Enhanced logic to consider broader data history for watermark adaptation
-        log.debug("[{}] total:{}, admit:{}, shed:{}", name, lastWindow.requested(), lastWindow.admitted(), lastWindow.shedded());
+        log.debug("[{}] lastWindow total:{}, admit:{}, shed:{}, gradient:{}", name, lastWindow.requested(), lastWindow.admitted(), lastWindow.shedded(), gradient);
         if (isOverloaded(gradient)) {
             shedMore(lastWindow, gradient);
         } else {

@@ -31,7 +31,7 @@ public class SystemClock {
 
     // key is precisionMs
     private static final Map<Long, SystemClock> clocks = new ConcurrentHashMap<>();
-    private static Lock clocksLock = new ReentrantLock();
+    private static final Lock clocksLock = new ReentrantLock();
 
     private static volatile ScheduledFuture<?> timerTask;
     private static volatile long minPrecisionMs = Long.MAX_VALUE;
@@ -46,8 +46,8 @@ public class SystemClock {
     /**
      * 获取实时的系统时钟.
      */
-    public static SystemClock ofRealtime() {
-        return ofPrecisionMs(0);
+    public static SystemClock ofRealtime(String who) {
+        return ofPrecisionMs(0, who);
     }
 
     /**
@@ -55,7 +55,7 @@ public class SystemClock {
      *
      * <p>实际的{@link #currentTimeMillis}精度还有考虑到OS调度的精度.</p>
      */
-    public static SystemClock ofPrecisionMs(long precisionMs) {
+    public static SystemClock ofPrecisionMs(long precisionMs, String who) {
         if (precisionMs < 0) {
             throw new IllegalArgumentException("precisionMs cannot be negative");
         }
@@ -70,8 +70,8 @@ public class SystemClock {
         clocksLock.lock();
         try {
             return clocks.computeIfAbsent(precisionMs, key -> {
-                log.info("register new clock, precision:{}ms, present clocks:{}", key, clocks.size());
-                rescheduleTimerIfNec(key);
+                log.info("[{}] register new clock, precision:{}ms, present clocks:{}", who, key, clocks.size());
+                rescheduleTimerIfNec(key, who);
                 return new SystemClock(key);
             });
         } finally {
@@ -99,9 +99,9 @@ public class SystemClock {
         return precisionMs == 0 ? System.currentTimeMillis() : currentTimeMillis.get();
     }
 
-    private static void rescheduleTimerIfNec(long precisionMs) {
+    private static void rescheduleTimerIfNec(long precisionMs, String who) {
         if (precisionMs == 0 || precisionMs >= minPrecisionMs) {
-            log.info("precision:{}ms need not reschedule timer", precisionMs);
+            log.info("[{}] precision:{}ms need not reschedule timer", who, precisionMs);
             return;
         }
 
@@ -115,16 +115,14 @@ public class SystemClock {
             }
 
             if (timerTask != null) {
-                log.info("reschedule timer: {} -> {}ms", minPrecisionMs, precisionMs);
+                log.info("[{}] reschedule timer: {} -> {}ms", who, minPrecisionMs, precisionMs);
                 timerTask.cancel(true);
             } else {
-                log.info("schedule first timer, interval:{}ms", precisionMs);
+                log.info("[{}] schedule first timer, interval:{}ms", who, precisionMs);
             }
             minPrecisionMs = precisionMs;
-            timerTask = precisestClockUpdater.scheduleAtFixedRate(() -> {
-                // scheduleAtFixedRate 会把任务放入queue，即使任务执行时长跨调度周期也不会并发执行
-                syncAllClocks();
-            }, minPrecisionMs, minPrecisionMs, TimeUnit.MILLISECONDS);
+            // scheduleAtFixedRate 会把任务放入queue，即使任务执行时长跨调度周期也不会并发执行
+            timerTask = precisestClockUpdater.scheduleAtFixedRate(SystemClock::syncAllClocks, minPrecisionMs, minPrecisionMs, TimeUnit.MILLISECONDS);
         } finally {
             clocksLock.unlock();
         }

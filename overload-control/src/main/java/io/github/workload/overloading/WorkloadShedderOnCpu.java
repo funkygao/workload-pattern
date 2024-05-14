@@ -41,7 +41,7 @@ class WorkloadShedderOnCpu extends WorkloadShedder {
         final double cpuUsage = smoothedCpuUsage();
         final double gradient = gradient(cpuUsage, cpuUsageUpperBound);
         if (isOverloaded(gradient)) {
-            log.warn("CPU BUSY with utilization:{} > {}", cpuUsage, cpuUsageUpperBound);
+            log.warn("CPU BUSY:{} > {}", cpuUsage, cpuUsageUpperBound);
         }
         return gradient;
     }

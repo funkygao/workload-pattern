@@ -3,6 +3,7 @@ package io.github.workload.overloading;
 import com.sun.management.OperatingSystemMXBean;
 import io.github.workload.NamedThreadFactory;
 import io.github.workload.Sysload;
+import io.github.workload.annotations.VisibleForTesting;
 import lombok.extern.slf4j.Slf4j;
 
 import java.lang.management.ManagementFactory;
@@ -33,6 +34,8 @@ class ContainerLoad implements Sysload {
     private long processCpuTimeNs = 0; // 当前进程累计占用CPU时长
     private long processUpTimeMs = 0; // 当前进程累计运行时长
 
+    private static final ScheduledExecutorService timer = Executors.newSingleThreadScheduledExecutor(new NamedThreadFactory(ContainerLoad.class.getSimpleName()));;
+
     /**
      * 创建指定静默期的系统负载探测器，容器精度.
      *
@@ -44,23 +47,26 @@ class ContainerLoad implements Sysload {
     }
 
     private ContainerLoad(long coolOffSec) {
-        ScheduledExecutorService timer = Executors.newSingleThreadScheduledExecutor(new NamedThreadFactory(ContainerLoad.class.getSimpleName()));
         // 冷静期后才开始刷新数据：JVM启动时CPU往往很高
         timer.scheduleAtFixedRate(this::safeRefresh, coolOffSec, 1, TimeUnit.SECONDS);
         
-        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-            try {
-                timer.shutdown();
-                if (!timer.awaitTermination(3, TimeUnit.SECONDS)) {
-                    timer.shutdownNow();
-                }
-            } catch (InterruptedException why) {
-                Thread.currentThread().interrupt();
-                log.error("Interrupted during shutdown", why);
-            } catch (Exception why) {
-                log.error("Error during executor shutdown", why);
+        Runtime.getRuntime().addShutdownHook(new Thread(ContainerLoad::stop));
+    }
+
+    @VisibleForTesting
+    static void stop() {
+        log.info("stopping...");
+        try {
+            timer.shutdown();
+            if (!timer.awaitTermination(3, TimeUnit.SECONDS)) {
+                timer.shutdownNow();
             }
-        }));
+        } catch (InterruptedException why) {
+            Thread.currentThread().interrupt();
+            log.error("Interrupted during shutdown", why);
+        } catch (Exception why) {
+            log.error("Error during executor shutdown", why);
+        }
     }
 
     @Override

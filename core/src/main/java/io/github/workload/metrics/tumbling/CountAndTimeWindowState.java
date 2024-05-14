@@ -98,7 +98,7 @@ public class CountAndTimeWindowState extends WindowState {
     @Override
     protected void logRollover(String prefix, long nowNs, WindowState nextWindow, WindowConfig config) {
         if (log.isDebugEnabled()) {
-            log.debug("[{}] after:{}ms, swapped window:{} -> {}, admitted:{}/{}, error:{}",
+            log.debug("[{}] after:{}ms, swap window:{} -> {}, admitted:{}/{}, error:{}",
                     prefix, (nowNs - startNs) / NS_PER_MS,
                     this.hashCode(), nextWindow.hashCode(),
                     this.admitted(), this.requested(),
