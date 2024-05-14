@@ -11,6 +11,7 @@ public class LogUtil {
         ListAppender<ILoggingEvent> appender = new ListAppender<>();
         appender.start();
         logger.addAppender(appender);
+        appender.list.clear();
         return appender;
     }
 }
