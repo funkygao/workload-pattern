@@ -35,11 +35,11 @@ public class GreedySafe {
      * @param <E>               异常类型
      * @throws E 如果在处理数据时发生异常
      */
-    public <IN, E extends Throwable> void invoke(List<IN> items, GreedyConfig config, @NonNull ThrowingConsumer<Partition<IN>, E> partitionConsumer) throws E {
+    public <IN, E extends Throwable> void scatter(List<IN> items, GreedyConfig config, @NonNull ThrowingConsumer<Partition<IN>, E> partitionConsumer) throws E {
         processItems(items, config.getPartitionSize(), partition -> {
             partitionConsumer.accept(partition);
-            return null; // 用于void方法
-        }, config);
+            return null;
+        }, config, false);
     }
 
     /**
@@ -54,16 +54,19 @@ public class GreedySafe {
      * @return 结果集
      * @throws E 如果在处理数据时发生异常
      */
-    public <OUT, IN, E extends Throwable> List<OUT> invoke(List<IN> items, GreedyConfig config, @NonNull ThrowingFunction<Partition<IN>, List<OUT>, E> partitionFunction) throws E {
-        return processItems(items, config.getPartitionSize(), partitionFunction, config);
+    public <OUT, IN, E extends Throwable> List<OUT> scatterGather(List<IN> items, GreedyConfig config, @NonNull ThrowingFunction<Partition<IN>, List<OUT>, E> partitionFunction) throws E {
+        return processItems(items, config.getPartitionSize(), partitionFunction, config, true);
     }
 
-    private <OUT, IN, E extends Throwable> List<OUT> processItems(List<IN> items, int partitionSize, ThrowingFunction<Partition<IN>, List<OUT>, E> processor, GreedyConfig config) throws E {
+    private <OUT, IN, E extends Throwable> List<OUT> processItems(List<IN> items, int partitionSize, ThrowingFunction<Partition<IN>, List<OUT>, E> processor, GreedyConfig config, boolean hasResult) throws E {
         if (items == null || items.isEmpty()) {
-            return new ArrayList<>();
+            return hasResult ? new ArrayList<>() : null;
         }
 
-        List<OUT> results = new ArrayList<>();
+        List<OUT> results = null;
+        if (hasResult) {
+            results = new ArrayList<>(items.size());
+        }
         int itemsProcessed = 0;
         int costs = 0;
         for (int start = 0, partitionId = 0; start < items.size(); start += partitionSize, partitionId++) {
@@ -71,7 +74,7 @@ public class GreedySafe {
             List<IN> partitionData = items.subList(start, end);
             Partition<IN> partition = new Partition<>(partitionData, partitionId);
             List<OUT> partitionResult = processor.apply(partition);
-            if (partitionResult != null) {
+            if (partitionResult != null && results != null) {
                 results.addAll(partitionResult);
             }
 

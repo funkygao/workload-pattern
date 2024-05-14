@@ -1,5 +1,12 @@
 # References
 
+## 过载保护常见策略
+
+- 提前进行压测以及合理的容量规划: capacity plan
+- 提供降级结果: degrade
+- 在过载情况下主动拒绝请求: server side shed
+- 调用方主动拒绝请求: client side shed/circuit break
+
 ## Key Takeaways
 
 ### Priority
