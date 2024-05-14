@@ -5,6 +5,7 @@ import io.github.workload.Sysload;
 import io.github.workload.annotations.VisibleForTesting;
 import io.github.workload.metrics.smoother.ValueSmoother;
 import io.github.workload.metrics.tumbling.CountAndTimeWindowState;
+import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 
 /**
@@ -17,18 +18,16 @@ class WorkloadShedderOnCpu extends WorkloadShedder {
     private static final double CPU_EMA_ALPHA = HyperParameter.getDouble(Heuristic.CPU_EMA_ALPHA, 0.25d);
 
     private final double cpuUsageUpperBound;
+    private Sysload sysload;
 
     @VisibleForTesting
     final ValueSmoother valueSmoother;
-
-    @VisibleForTesting("not final, so that test can mock")
-    Sysload sysload;
 
     WorkloadShedderOnCpu(double cpuUsageUpperBound, long coolOffSec) {
         this(cpuUsageUpperBound, new ContainerLoad(coolOffSec));
     }
 
-    WorkloadShedderOnCpu(double cpuUsageUpperBound, Sysload sysload) {
+    WorkloadShedderOnCpu(double cpuUsageUpperBound, @NonNull Sysload sysload) {
         super("CPU");
         this.cpuUsageUpperBound = cpuUsageUpperBound;
         this.sysload = sysload;
@@ -50,6 +49,12 @@ class WorkloadShedderOnCpu extends WorkloadShedder {
     double gradient(double cpuUsage, double upperBound) {
         double rawGradient = upperBound / cpuUsage;
         return Math.min(GRADIENT_IDLE, Math.max(GRADIENT_BUSIEST, rawGradient));
+    }
+
+    @VisibleForTesting
+    void setSysload(Sysload sysload) {
+        log.info("sysload: {} -> {}", this.sysload.getClass().getSimpleName(), sysload.getClass().getSimpleName());
+        this.sysload = sysload;
     }
 
     private double smoothedCpuUsage() {

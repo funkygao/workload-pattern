@@ -44,7 +44,7 @@ class FairSafeAdmissionControllerTest extends BaseConcurrentTest {
         FairSafeAdmissionController mqController = (FairSafeAdmissionController) AdmissionController.getInstance("MQ");
         FairSafeAdmissionController rpcController = (FairSafeAdmissionController) AdmissionController.getInstance("RPC");
         FairSafeAdmissionController webController = (FairSafeAdmissionController) AdmissionController.getInstance("Web");
-        FairSafeAdmissionController.shedderOnCpu().sysload = new AlwaysHealthySystemLoad();
+        FairSafeAdmissionController.shedderOnCpu().setSysload(new AlwaysHealthySystemLoad());
         for (int i = 0; i < WindowConfig.DEFAULT_REQUEST_CYCLE + 1; i++) {
             log.info("loop: {}", i + 1);
             // 默认情况下，都放行：除非此时CPU已经高了
@@ -71,7 +71,7 @@ class FairSafeAdmissionControllerTest extends BaseConcurrentTest {
         FairSafeAdmissionController mqController = (FairSafeAdmissionController) AdmissionController.getInstance("SQS");
         FairSafeAdmissionController rpcController = (FairSafeAdmissionController) AdmissionController.getInstance("RPC");
         FairSafeAdmissionController webController = (FairSafeAdmissionController) AdmissionController.getInstance("WEB");
-        FairSafeAdmissionController.shedderOnCpu().sysload = sysload;
+        FairSafeAdmissionController.shedderOnCpu().setSysload(sysload);
         int loops = WindowConfig.DEFAULT_REQUEST_CYCLE * 5;
         for (int i = 0; i < loops; i++) {
             WorkloadPriority mq = WorkloadPrioritizer.randomMQ();

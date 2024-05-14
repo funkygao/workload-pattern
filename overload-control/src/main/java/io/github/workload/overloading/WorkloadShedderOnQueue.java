@@ -3,6 +3,7 @@ package io.github.workload.overloading;
 import io.github.workload.HyperParameter;
 import io.github.workload.annotations.VisibleForTesting;
 import io.github.workload.metrics.tumbling.CountAndTimeWindowState;
+import io.github.workload.metrics.tumbling.WindowConfig;
 import lombok.Generated;
 import lombok.extern.slf4j.Slf4j;
 
@@ -26,7 +27,7 @@ class WorkloadShedderOnQueue extends WorkloadShedder {
         boolean stillExplicitOverloaded = nowNs > 0 && overloadedAtNs > 0
                 && (nowNs - overloadedAtNs) <= timeCycleNs;
         if (stillExplicitOverloaded) {
-            log.debug("[{}] still in explicit overload interval, timeCycleNs:{}", name, timeCycleNs);
+            log.debug("[{}] still in explicit overload interval, timeCycle:{}ms", name, timeCycleNs / WindowConfig.NS_PER_MS);
             return explicitOverloadGradient();
         }
 

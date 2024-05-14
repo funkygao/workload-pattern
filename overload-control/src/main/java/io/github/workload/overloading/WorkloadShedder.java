@@ -76,7 +76,7 @@ abstract class WorkloadShedder {
     @VisibleForTesting
     void predictWatermark(CountAndTimeWindowState lastWindow, double gradient) {
         // TODO Enhanced logic to consider broader data history for watermark adaptation
-        log.debug("[{}] lastWindow total:{}, admit:{}, shed:{}, gradient:{}", name, lastWindow.requested(), lastWindow.admitted(), lastWindow.shedded(), gradient);
+        log.debug("[{}] predict with lastWindow total:{}, admit:{}, shed:{}, gradient:{}", name, lastWindow.requested(), lastWindow.admitted(), lastWindow.shedded(), gradient);
         if (isOverloaded(gradient)) {
             shedMore(lastWindow, gradient);
         } else {
@@ -119,8 +119,8 @@ abstract class WorkloadShedder {
             final int candidateP = entry.getKey();
             final int candidateRequested = entry.getValue().get();
             accumulatedToDrop += candidateRequested;
-            if (log.isDebugEnabled()) {
-                log.debug("[{}] shed candidate(P:{} requested:{}), window admitted:{}, accumulated:{}/{}",
+            if (log.isTraceEnabled()) {
+                log.trace("[{}] shed candidate(P:{} requested:{}), window admitted:{}, accumulated:{}/{}",
                         name, candidateP, candidateRequested, admitted, accumulatedToDrop, expectedToDrop);
             }
 
@@ -130,17 +130,15 @@ abstract class WorkloadShedder {
                 if (descendingEntries.hasNext() && errorRate < OVER_SHED_BOUND) {
                     // 误差率可接受，and candidate is not head, candidate will shed workload
                     targetP = descendingEntries.next().getKey();
-                    log.warn("[{}] shed more({}/{}), error:{}, window admitted:{}, {} -> {}", name, accumulatedToDrop, expectedToDrop, errorRate, admitted, currentWatermark.simpleString(), targetP);
                 } else {
                     targetP = candidateP; // this candidate wil not shed workload
                     // 备选项并没有被shed，提前加上去的退回来
                     accumulatedToDrop -= candidateRequested;
                     // errRate might be negative: below expectation
                     errorRate = (double) (accumulatedToDrop - expectedToDrop) / expectedToDrop;
-                    log.warn("[{}] degraded shed more({}/{}), error:{}, window admitted:{}, {} -> {}", name, accumulatedToDrop, expectedToDrop, errorRate, admitted, currentWatermark.simpleString(), targetP);
                 }
                 watermark.updateAndGet(curr -> curr.deriveFrom(targetP));
-                log.info("[{}] Updating watermark for shedMore: {} -> {}", name, currentWatermark.simpleString(), watermark().simpleString());
+                log.info("[{}] Updating watermark for shedMore: {} -> {}, drop {}/{} err:{}", name, currentWatermark.simpleString(), watermark().simpleString(), accumulatedToDrop, expectedToDrop, errorRate);
                 return;
             }
 
@@ -183,18 +181,18 @@ abstract class WorkloadShedder {
             final int candidateP = entry.getKey();
             final int candidateRequested = entry.getValue().get();
             accumulatedToAdmit += candidateRequested;
-            if (log.isDebugEnabled()) {
-                log.debug("[{}] admit candidate(P:{} requested:{}), window admitted:{}, accumulated:{}/{}", name, candidateP, candidateRequested, admitted, accumulatedToAdmit, expectedToAdmit);
+            if (log.isTraceEnabled()) {
+                log.trace("[{}] admit candidate(P:{} requested:{}), window admitted:{}, accumulated:{}/{}", name, candidateP, candidateRequested, admitted, accumulatedToAdmit, expectedToAdmit);
             }
 
             if (accumulatedToAdmit >= expectedToAdmit) { // TODO error rate
                 watermark.updateAndGet(curr -> curr.deriveFrom(candidateP));
-                log.info("[{}] Updating watermark for admitMore: {} -> {}", name, currentWatermark.simpleString(), watermark().simpleString());
+                log.info("[{}] Updating watermark for admitMore: {} -> {}, admit {}/{}", name, currentWatermark.simpleString(), watermark().simpleString(), accumulatedToAdmit, expectedToAdmit);
                 return;
             }
 
             if (!ascendingP.hasNext()) {
-                log.warn("[{}] histogram tail reached but still not enough for admit more: happy to admit all", name);
+                log.info("[{}] histogram tail reached but still not enough for admit more: happy to admit all", name);
                 watermark.set(WorkloadPriority.ofLowest());
                 return;
             }
