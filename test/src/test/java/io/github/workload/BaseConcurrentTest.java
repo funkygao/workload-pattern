@@ -17,7 +17,7 @@ public abstract class BaseConcurrentTest {
     protected final Logger log = LoggerFactory.getLogger(getClass());
     protected final double DELTA = 1e-15; // 用于比较double value的误差
 
-    protected static final int THREAD_COUNT = Runtime.getRuntime().availableProcessors();
+    protected static final int THREAD_COUNT = Runtime.getRuntime().availableProcessors() * 2;
     protected static final ExecutorService threadPool = Executors.newFixedThreadPool(THREAD_COUNT);
 
     @AfterAll
