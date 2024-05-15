@@ -3,45 +3,50 @@ import matplotlib.pyplot as plt
 import sys
 from io import StringIO
 
-
 # 从标准输入读取日志数据
 log_data = sys.stdin.read()
 
-# 使用pandas读取数据
 df = pd.read_csv(StringIO(log_data), sep=",", names=["datetime", "thread", "cpu_and_rand", "qps", "req", "shed", "latency"])
 
 # 处理数据
 df["datetime"] = pd.to_datetime(df["datetime"])
+df["seconds"] = (df["datetime"] - df["datetime"].iloc[0]).dt.total_seconds()
 df["cpu"] = df["cpu_and_rand"].apply(lambda x: float(x.split(",")[0].split(":")[1]))
 df["shed"] = df["shed"].apply(lambda x: int(x.split(":")[1]))
 df["qps"] = df["qps"].apply(lambda x: float(x.split(":")[1]))
 
-# 绘制图表
-plt.figure(figsize=(14, 8))
+# 创建图表和轴，调整图表尺寸
+fig, ax1 = plt.subplots(figsize=(16, 6))  # 更宽且稍低的图表尺寸
 
-# CPU 使用率
-plt.subplot(3, 1, 1)
-plt.plot(df["datetime"], df["cpu"], label="CPU Usage", color="red")
-plt.ylabel("CPU Usage")
-plt.title("CPU Usage, QPS, and Shed Requests Over Time")
+color = 'tab:red'
+ax1.set_xlabel('Time (seconds)')
+ax1.set_ylabel('CPU Usage (%)', color=color)
+ax1.plot(df["seconds"], df["cpu"], label="CPU Usage", color=color)
+ax1.tick_params(axis='y', labelcolor=color)
+
+# 绘制CPU使用率超载阈值的辅助线
+threshold = 0.7  # 70% 的超载阈值
+ax1.axhline(y=threshold, color='red', linestyle='--', linewidth=2, label='Threshold (70%)')
+
+# 实例化第二个y轴，共享同一个x轴
+ax2 = ax1.twinx()
+color = 'tab:blue'
+ax2.set_ylabel('QPS)', color=color)
+ax2.plot(df["seconds"], df["qps"], label="QPS", color=color)
+ax2.tick_params(axis='y', labelcolor=color)
+
+# 添加第三个轴
+ax3 = ax1.twinx()
+color = 'tab:green'
+# 通过调整轴的位置来创建第三个y轴的效果
+ax3.spines['right'].set_position(('outward', 60))
+ax3.set_ylabel('Shed Requests', color=color)
+ax3.plot(df["seconds"], df["shed"], label="Shed Requests", color=color)
+ax3.tick_params(axis='y', labelcolor=color)
+
+# 其他设置
+fig.tight_layout()  # 调整布局以防止重叠
 plt.xticks(rotation=45)
-plt.legend()
+fig.legend(loc="upper left", bbox_to_anchor=(0.1, 0.9))
 
-# QPS
-plt.subplot(3, 1, 2)
-plt.plot(df["datetime"], df["qps"], label="QPS", color="blue")
-plt.ylabel("QPS")
-plt.xticks(rotation=45)
-plt.legend()
-
-# 被抛弃的请求数
-plt.subplot(3, 1, 3)
-plt.plot(df["datetime"], df["shed"], label="Shed Requests", color="green")
-plt.ylabel("Shed Requests")
-plt.xlabel("Time")
-plt.xticks(rotation=45)
-plt.legend()
-
-plt.tight_layout()
 plt.show()
-
