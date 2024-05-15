@@ -47,12 +47,14 @@ class OverloadSimulationTest extends BaseConcurrentTest {
                     final WorkloadPriority priority = entry.getKey();
                     long latencyMs = ThreadLocalRandom.current().nextInt(latencyHigh - latencyLow) + latencyLow;
                     log.debug("http request: {}, latencyMs: {}", priority.simpleString(), latencyMs);
-                    sysload.injectRequest(latencyMs);
+                    sysload.injectRequest();
 
                     // 准入
                     if (!http.admit(Workload.ofPriority(priority))) {
                         sysload.shed();
                         log.info("http shed: {}, total requests:{}, shedded:{}", priority.simpleString(), sysload.requests(), sysload.shedded());
+                    } else {
+                        sysload.accept(latencyMs);
                     }
 
                     // 反馈

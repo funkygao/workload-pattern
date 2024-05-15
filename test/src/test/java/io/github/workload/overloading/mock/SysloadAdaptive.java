@@ -1,6 +1,7 @@
 package io.github.workload.overloading.mock;
 
 import io.github.workload.Sysload;
+import io.github.workload.annotations.ThreadSafe;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -10,22 +11,20 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
 
+@ThreadSafe
 public class SysloadAdaptive implements Sysload {
     private static final Logger log = LoggerFactory.getLogger(SysloadAdaptive.class);
+    private static final long MS_IN_SEC = 1000;
 
-    /**
-     * 基础CPU使用率，即在没有任何请求处理时的系统CPU使用率。
-     * 这是CPU使用率计算的起始值，用于模拟系统在空闲状态下的基本负载。
-     */
     private final double baseCpuUsage;
-    private double exhaustedFactor;
     private final int maxConcurrency;
     private final AtomicInteger requests = new AtomicInteger(0);
     private final AtomicInteger shed = new AtomicInteger(0);
-    private final AtomicLong totalLatency = new AtomicLong(0);
+    private final AtomicLong windowLatency = new AtomicLong(0); // 1秒1个窗口
     private final AtomicInteger randomExhausted = new AtomicInteger(0);
-    private final ConcurrentLinkedQueue<Long> requestTimestamps = new ConcurrentLinkedQueue<>();
-    private final long trackingPeriodMs = 1000; // 定义跟踪周期为最近1秒
+    private final ConcurrentLinkedQueue<Long> acceptedRequestsTs = new ConcurrentLinkedQueue<>();
+    private transient double exhaustedFactor;
+
     private final ReentrantLock cleanupLock = new ReentrantLock();
 
     public SysloadAdaptive() {
@@ -40,30 +39,39 @@ public class SysloadAdaptive implements Sysload {
 
     @Override
     public double cpuUsage() {
-        cleanupExpiredRequests();
+        dropExpiredRequests();
 
-        double qps = requestTimestamps.size();
-        double avgLatency = requests() > 0 ? (double) totalLatency.get() / requests() : 0;
+        double qps = acceptedRequestsTs.size();
+        double avgLatency = qps > 0 ? (double) windowLatency.get() / qps : 0;
+        windowLatency.set(0);
 
-        double dynamicCpuUsage = Math.min(1.0, baseCpuUsage + (qps + shedded()) / maxConcurrency + avgLatency / 1000.0);
-        double usage;
-        if (dynamicCpuUsage >= 1.0) {
-            usage = 1.0; // CPU 使用率不应超过 100%
-        } else {
-            usage = dynamicCpuUsage + ThreadLocalRandom.current().nextDouble(0, 1.0 - dynamicCpuUsage);
+        // 考虑到被抛弃的请求在减轻系统负载，我们使用实际处理的请求数量来计算负载因素
+        double loadFactor = (qps / maxConcurrency) + (avgLatency / 1000.0);
+        double dynamicCpuUsage = baseCpuUsage + loadFactor;
+        double usage = Math.min(1.0, dynamicCpuUsage); // 确保不会超过100%
+        if (usage < 1.0) {
+            // // 添加随机性以模拟真实环境的波动
+            usage = dynamicCpuUsage + ThreadLocalRandom.current().nextDouble(0, 1.0 - usage);
         }
-        log.info("cpu usage:{}, +rand:{}, qps:{}, requests:{}, avg latency:{}", usage, usage - dynamicCpuUsage, qps, requests(), avgLatency);
+
+        log.info("cpu usage:{}, +rand:{}, qps:{}, req:{}, shed:{}, latency:{}",
+                String.format("%.2f", usage),
+                String.format("%.2f", usage - dynamicCpuUsage),
+                qps, requests(), shedded(), String.format("%.0f", avgLatency));
         return usage;
     }
 
-    public void injectRequest(long latencyMs) {
-        requestTimestamps.add(System.currentTimeMillis());
+    public void injectRequest() {
         requests.incrementAndGet();
-        totalLatency.addAndGet(latencyMs);
     }
 
     public void shed() {
         shed.incrementAndGet();
+    }
+
+    public void accept(long latencyMs) {
+        windowLatency.addAndGet(latencyMs);
+        acceptedRequestsTs.add(System.currentTimeMillis());
     }
 
     public int requests() {
@@ -76,10 +84,10 @@ public class SysloadAdaptive implements Sysload {
 
     public boolean threadPoolExhausted() {
         // 使用Little's Law和一定的随机性来判断线程池是否耗尽
-        cleanupExpiredRequests();
+        dropExpiredRequests();
 
-        double lambda = requestTimestamps.size();
-        double avgLatency = requests() > 0 ? (double) totalLatency.get() / requests() : 0;
+        double lambda = acceptedRequestsTs.size();
+        double avgLatency = requests() > 0 ? (double) windowLatency.get() / requests() : 0;
         double L = lambda * avgLatency / 1000; // L = λ * W
 
         boolean exhausted = L > maxConcurrency;
@@ -97,15 +105,16 @@ public class SysloadAdaptive implements Sysload {
         return exhausted;
     }
 
-    private void cleanupExpiredRequests() {
+    private void dropExpiredRequests() {
         cleanupLock.lock();
         try {
             long currentTime = System.currentTimeMillis();
-            while (!requestTimestamps.isEmpty() && currentTime - requestTimestamps.peek() > trackingPeriodMs) {
-                requestTimestamps.poll();
+            while (!acceptedRequestsTs.isEmpty() && currentTime - acceptedRequestsTs.peek() > MS_IN_SEC) {
+                acceptedRequestsTs.poll();
             }
         } finally {
             cleanupLock.unlock();
         }
     }
+
 }
