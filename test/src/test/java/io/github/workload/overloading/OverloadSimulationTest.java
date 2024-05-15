@@ -1,27 +1,19 @@
 package io.github.workload.overloading;
 
-import ch.qos.logback.classic.spi.ILoggingEvent;
-import ch.qos.logback.core.read.ListAppender;
 import io.github.workload.BaseConcurrentTest;
 import io.github.workload.Workload;
 import io.github.workload.WorkloadPriority;
-import io.github.workload.helper.LogUtil;
-import io.github.workload.metrics.tumbling.TumblingWindow;
 import io.github.workload.metrics.tumbling.WindowConfig;
-import io.github.workload.overloading.mock.SysloadAdaptiveMock;
+import io.github.workload.overloading.mock.SysloadAdaptive;
 import io.github.workload.simulate.WorkloadPrioritySimulator;
 import org.apache.logging.log4j.Level;
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
 
 import java.util.Map;
-import java.util.Random;
 import java.util.concurrent.ThreadLocalRandom;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class OverloadSimulationTest extends BaseConcurrentTest {
 
@@ -39,23 +31,21 @@ class OverloadSimulationTest extends BaseConcurrentTest {
         setLogLevel(Level.INFO);
 
         FairSafeAdmissionController http = (FairSafeAdmissionController) AdmissionController.getInstance("HTTP");
-        SysloadAdaptiveMock sysload = new SysloadAdaptiveMock(0.05, 0.008, 200);
+        SysloadAdaptive sysload = new SysloadAdaptive(0.05, 0.008, 200);
         FairSafeAdmissionController.fairCpu().setSysload(sysload);
 
         final int latencyLow = 10;
         final int latencyHigh = 300;
         final int N = 1 << 10;
-        final int N_multiplier = 3;
-        final Random random = new Random();
 
+        // 构造业务线程，处理请求
         Runnable businessThread = () -> {
-            final int requests = ThreadLocalRandom.current().nextInt(N, N * N_multiplier);
-            WorkloadPrioritySimulator generator = generateRequests(requests);
+            WorkloadPrioritySimulator generator = generateRequests(N, 3);
             for (Map.Entry<WorkloadPriority, Integer> entry : generator) {
                 for (int i = 0; i < entry.getValue(); i++) {
                     // 请求
                     final WorkloadPriority priority = entry.getKey();
-                    long latencyMs = random.nextInt(latencyHigh - latencyLow) + latencyLow;
+                    long latencyMs = ThreadLocalRandom.current().nextInt(latencyHigh - latencyLow) + latencyLow;
                     log.debug("http request: {}, latencyMs: {}", priority.simpleString(), latencyMs);
                     sysload.injectRequest(latencyMs);
 
@@ -83,46 +73,11 @@ class OverloadSimulationTest extends BaseConcurrentTest {
         log.info("elapsed: {}s", (System.nanoTime() - t0) / (WindowConfig.NS_PER_MS * 1000));
     }
 
-    private WorkloadPrioritySimulator generateRequests(int N) {
+    private WorkloadPrioritySimulator generateRequests(int N, int multiplier) {
         WorkloadPrioritySimulator simulator = new WorkloadPrioritySimulator();
-        simulator.simulateHttpWorkloadPriority(N);
+        final int requests = ThreadLocalRandom.current().nextInt(N, N * multiplier);
+        simulator.simulateHttpWorkloadPriority(requests);
         log.info("generate:{} -> priorities:{}, requests:{}", N, simulator.size(), simulator.totalRequests());
         return simulator;
     }
-
-    @Test
-    @Disabled
-    void test_logging() {
-        AdmissionControllerFactory.resetForTesting();
-
-        ListAppender<ILoggingEvent> l_acf = LogUtil.setupAppender(AdmissionControllerFactory.class);
-        ListAppender<ILoggingEvent> l_container = LogUtil.setupAppender(ContainerLoad.class);
-        ListAppender<ILoggingEvent> l_window = LogUtil.setupAppender(TumblingWindow.class);
-        ListAppender<ILoggingEvent> l_cpu_shed = LogUtil.setupAppender(FairShedderCpu.class);
-        ListAppender<ILoggingEvent> l_queue = LogUtil.setupAppender(FairShedderQueue.class);
-
-        AdmissionController http = AdmissionController.getInstance("HTTP");
-        AdmissionController rpc = AdmissionController.getInstance("RPC");
-        rpc.admit(Workload.ofPriority(WorkloadPriority.fromP(553)));
-        http.feedback(AdmissionController.Feedback.ofOverloaded());
-
-        assertEquals(2, l_acf.list.size());
-        assertEquals("register for:HTTP", l_acf.list.get(0).getFormattedMessage());
-        assertEquals("register for:RPC", l_acf.list.get(1).getFormattedMessage());
-
-        assertEquals(1, l_container.list.size());
-        assertEquals("created with coolOff:600 sec", l_container.list.get(0).getFormattedMessage());
-
-        assertEquals(3, l_window.list.size());
-        assertEquals("[CPU] created with WindowConfig(time=1s,count=2048)", l_window.list.get(0).getFormattedMessage());
-        assertEquals("[HTTP] created with WindowConfig(time=1s,count=2048)", l_window.list.get(1).getFormattedMessage());
-        assertEquals("[RPC] created with WindowConfig(time=1s,count=2048)", l_window.list.get(2).getFormattedMessage());
-
-        assertEquals(1, l_cpu_shed.list.size());
-        assertEquals("[CPU] created with sysload:ContainerLoad, upper bound:0.75, ema alpha:0.25", l_cpu_shed.list.get(0).getFormattedMessage());
-
-        assertEquals(1, l_queue.list.size());
-        assertEquals("[HTTP] got explicit overload feedback", l_queue.list.get(0).getFormattedMessage());
-    }
-
 }

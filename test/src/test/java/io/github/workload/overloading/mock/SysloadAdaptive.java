@@ -10,8 +10,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
 
-public class SysloadAdaptiveMock implements Sysload {
-    private static final Logger log = LoggerFactory.getLogger(SysloadAdaptiveMock.class);
+public class SysloadAdaptive implements Sysload {
+    private static final Logger log = LoggerFactory.getLogger(SysloadAdaptive.class);
 
     /**
      * 基础CPU使用率，即在没有任何请求处理时的系统CPU使用率。
@@ -28,11 +28,11 @@ public class SysloadAdaptiveMock implements Sysload {
     private final long trackingPeriodMs = 1000; // 定义跟踪周期为最近1秒
     private final ReentrantLock cleanupLock = new ReentrantLock();
 
-    public SysloadAdaptiveMock() {
+    public SysloadAdaptive() {
         this(0.2, 0, 200);
     }
 
-    public SysloadAdaptiveMock(double baseCpuUsage, double exhaustedFactor, int maxConcurrency) {
+    public SysloadAdaptive(double baseCpuUsage, double exhaustedFactor, int maxConcurrency) {
         this.baseCpuUsage = baseCpuUsage;
         this.exhaustedFactor = exhaustedFactor;
         this.maxConcurrency = maxConcurrency;
