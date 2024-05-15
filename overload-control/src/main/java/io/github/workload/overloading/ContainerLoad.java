@@ -3,7 +3,6 @@ package io.github.workload.overloading;
 import com.sun.management.OperatingSystemMXBean;
 import io.github.workload.NamedThreadFactory;
 import io.github.workload.Sysload;
-import io.github.workload.annotations.VisibleForTesting;
 import lombok.extern.slf4j.Slf4j;
 
 import java.lang.management.ManagementFactory;
@@ -47,7 +46,6 @@ class ContainerLoad implements Sysload {
         log.info("created with coolOff:{} sec", coolOffSec);
     }
 
-    @VisibleForTesting
     static void stop() {
         log.info("stopping...");
         try {

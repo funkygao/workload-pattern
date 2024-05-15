@@ -2,14 +2,12 @@ package io.github.workload.overloading;
 
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
-import com.sun.glass.ui.Window;
 import io.github.workload.BaseConcurrentTest;
 import io.github.workload.Workload;
 import io.github.workload.WorkloadPriority;
 import io.github.workload.helper.LogUtil;
 import io.github.workload.metrics.tumbling.TumblingWindow;
 import io.github.workload.overloading.mock.SysloadMock;
-import org.apache.logging.log4j.Level;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
@@ -27,14 +25,13 @@ class IntegrationTest extends BaseConcurrentTest {
     }
 
     @Test
-    void simulate() {
+    void simulate_normal_case() {
         System.setProperty(Heuristic.CPU_USAGE_UPPER_BOUND, "0.69");
-        setLogLevel(Level.TRACE);
+        //setLogLevel(Level.TRACE);
 
         FairSafeAdmissionController http = (FairSafeAdmissionController) AdmissionController.getInstance("HTTP");
         FairSafeAdmissionController rpc = (FairSafeAdmissionController) AdmissionController.getInstance("RPC");
         FairSafeAdmissionController.shedderOnCpu().setSysload(new SysloadMock(0.3));
-        ContainerLoad.stop();
         final int[] B = new int[]{2, 5, 10, 20, 40};
         final int latencyMsBaseline = 10;
         final int maxUid = (1 << 7) - 1;

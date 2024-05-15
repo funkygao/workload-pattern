@@ -53,6 +53,10 @@ class WorkloadShedderOnCpu extends WorkloadShedder {
 
     @VisibleForTesting
     void setSysload(Sysload sysload) {
+        if (this.sysload instanceof ContainerLoad) {
+            ContainerLoad.stop();
+        }
+
         log.info("sysload: {} -> {}", this.sysload.getClass().getSimpleName(), sysload.getClass().getSimpleName());
         this.sysload = sysload;
     }
