@@ -19,6 +19,7 @@ import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
 
 import java.util.Map;
 import java.util.Random;
+import java.util.concurrent.ThreadLocalRandom;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -43,11 +44,13 @@ class OverloadSimulationTest extends BaseConcurrentTest {
 
         final int latencyLow = 10;
         final int latencyHigh = 300;
-        final int baseN = 1 << 10;
+        final int N = 1 << 10;
+        final int N_multiplier = 3;
         final Random random = new Random();
 
         Runnable businessThread = () -> {
-            WorkloadPrioritySimulator generator = generateWorkloadPriorities((int) (1 + random.nextDouble()) * baseN);
+            final int requests = ThreadLocalRandom.current().nextInt(N, N * N_multiplier);
+            WorkloadPrioritySimulator generator = generateRequests(requests);
             for (Map.Entry<WorkloadPriority, Integer> entry : generator) {
                 for (int i = 0; i < entry.getValue(); i++) {
                     // 请求
@@ -80,12 +83,10 @@ class OverloadSimulationTest extends BaseConcurrentTest {
         log.info("elapsed: {}s", (System.nanoTime() - t0) / (WindowConfig.NS_PER_MS * 1000));
     }
 
-    private WorkloadPrioritySimulator generateWorkloadPriorities(int N) {
+    private WorkloadPrioritySimulator generateRequests(int N) {
         WorkloadPrioritySimulator simulator = new WorkloadPrioritySimulator();
         simulator.simulateHttpWorkloadPriority(N);
-        long sleepMs = 300;
-        log.info("generate:{} -> priorities:{}, requests:{}, will sleep:{}s", N, simulator.size(), simulator.totalRequests(), sleepMs);
-        sleep(sleepMs);
+        log.info("generate:{} -> priorities:{}, requests:{}", N, simulator.size(), simulator.totalRequests());
         return simulator;
     }
 
