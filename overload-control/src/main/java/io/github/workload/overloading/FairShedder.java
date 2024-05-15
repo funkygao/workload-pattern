@@ -110,7 +110,7 @@ abstract class FairShedder {
         // TODO should we respect currentP?
         final Iterator<Map.Entry<Integer, AtomicInteger>> descendingEntries = histogram.headMap(currentP, true).descendingMap().entrySet().iterator();
         if (!descendingEntries.hasNext()) {
-            log.warn("[{}] P:{} beyond histogram, nothing to shed", name, currentP);
+            log.info("[{}] P:{} beyond histogram, nothing to shed", name, currentP);
             return;
         }
 
@@ -138,14 +138,14 @@ abstract class FairShedder {
                     errorRate = (double) (accumulatedToDrop - expectedToDrop) / expectedToDrop;
                 }
                 watermark.updateAndGet(curr -> curr.deriveFrom(targetP));
-                log.info("[{}] Updating watermark for shedMore: {} -> {}, drop {}/{} err:{}", name, currentWatermark.simpleString(), watermark().simpleString(), accumulatedToDrop, expectedToDrop, errorRate);
+                log.info("[{}] grad:{} Updating watermark for shedMore: {} -> {}, drop {}/{} err:{}", name, gradient, currentWatermark.simpleString(), watermark().simpleString(), accumulatedToDrop, expectedToDrop, errorRate);
                 return;
             }
 
             if (!descendingEntries.hasNext()) {
                 // 还不够扣呢，但已经没有可扣的了：we should never shed all
                 watermark.updateAndGet(curr -> curr.deriveFrom(candidateP));
-                log.info("[{}] Updating watermark for shedMore: {} -> {}", name, currentWatermark.simpleString(), watermark().simpleString());
+                log.info("[{}] grad:{} Updating watermark for shedMore: {} -> {}", name, gradient, currentWatermark.simpleString(), watermark().simpleString());
                 return;
             }
         }
@@ -164,7 +164,7 @@ abstract class FairShedder {
         final int expectedToAdmit = (int) (RECOVER_RATE * admitted);
         if (expectedToAdmit == 0) {
             watermark.set(WorkloadPriority.ofLowest());
-            log.info("[{}] idle window admit all: {}/{}", name, admitted, requested);
+            log.info("[{}] grad:{} idle window admit all: {}/{}", name, gradient, admitted, requested);
             return;
         }
 
@@ -172,7 +172,7 @@ abstract class FairShedder {
         final Iterator<Map.Entry<Integer, AtomicInteger>> ascendingP = lastWindow.histogram().tailMap(currentP, false).entrySet().iterator();
         if (!ascendingP.hasNext()) {
             watermark.set(WorkloadPriority.ofLowest());
-            log.info("[{}] beyond tail of histogram, admit all: {}/{}", name, admitted, requested);
+            log.info("[{}] grad:{} beyond tail of histogram, admit all: {}/{}", name, gradient, admitted, requested);
             return;
         }
 
@@ -187,12 +187,12 @@ abstract class FairShedder {
 
             if (accumulatedToAdmit >= expectedToAdmit) { // TODO error rate
                 watermark.updateAndGet(curr -> curr.deriveFrom(candidateP));
-                log.info("[{}] Updating watermark for admitMore: {} -> {}, admit {}/{}", name, currentWatermark.simpleString(), watermark().simpleString(), accumulatedToAdmit, expectedToAdmit);
+                log.info("[{}] grad:{} Updating watermark for admitMore: {} -> {}, admit {}/{}", name, gradient, currentWatermark.simpleString(), watermark().simpleString(), accumulatedToAdmit, expectedToAdmit);
                 return;
             }
 
             if (!ascendingP.hasNext()) {
-                log.info("[{}] histogram tail reached but still not enough for admit more: happy to admit all", name);
+                log.info("[{}] grad:{} histogram tail reached but still not enough for admit more: happy to admit all", name, gradient);
                 watermark.set(WorkloadPriority.ofLowest());
                 return;
             }

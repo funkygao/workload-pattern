@@ -34,3 +34,9 @@ encapsulation:
 flamegraph:
 	@java -cp $(ASYNC_PROFILER_HOME)/lib/converter.jar jfr2flame test/pf.jfr test/flamegraph.html
 	@open test/flamegraph.html
+
+simulation-overload-case-normal:
+	@rm -f test/log
+	@mvn -Dtest=io.github.workload.overloading.OverloadSimulationTest#normal_case_http_only -Dsimulate=true -Dsurefire.failIfNoSpecifiedTests=false test
+	#@less test/log
+

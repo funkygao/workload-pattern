@@ -9,17 +9,24 @@ import io.github.workload.helper.LogUtil;
 import io.github.workload.metrics.tumbling.TumblingWindow;
 import io.github.workload.metrics.tumbling.WindowConfig;
 import io.github.workload.overloading.mock.SysloadMock;
+import io.github.workload.simulate.TenantWeight;
+import io.github.workload.simulate.TenantWorkloadSimulator;
 import org.apache.logging.log4j.Level;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
 
+import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-class IntegrationTest extends BaseConcurrentTest {
+class OverloadSimulationTest extends BaseConcurrentTest {
 
     @AfterEach
     void tearDown() {
@@ -27,28 +34,33 @@ class IntegrationTest extends BaseConcurrentTest {
     }
 
     @Test
-    @Disabled
+    @EnabledIfSystemProperty(named = "simulate", matches = "true")
     @DisplayName("HTTP准入，请求分布没有大起大落，CPU负荷维持在30%以上随机")
-    void simulate_normal_case_http_only() {
+    void normal_case_http_only() {
         System.setProperty(Heuristic.CPU_USAGE_UPPER_BOUND, "0.69");
+        setLogLevel(Level.INFO);
 
         FairSafeAdmissionController http = (FairSafeAdmissionController) AdmissionController.getInstance("HTTP");
         FairSafeAdmissionController.fairCpu().setSysload(new SysloadMock(0.3));
+
         final int[] B = new int[]{2, 5, 10, 20, 40};
         final int latencyLow = 10;
         final int latencyHigh = 300;
         final int threadPoolExhaustedPercentage = 1; // 1%
-        final int N = 1 << 10;
-        setLogLevel(Level.INFO);
+        final AtomicInteger requests = new AtomicInteger(0);
+        final AtomicInteger shed = new AtomicInteger(0);
+        final int N = 1 << 10; // total request is cpuCores * 2 * N
         Runnable task = () -> {
             for (int i = 0; i < N; i++) {
+                requests.incrementAndGet();
                 WorkloadPriority priority = WorkloadPriority.ofPeriodicRandomFromUID(B[ThreadLocalRandom.current().nextInt(B.length)], ThreadLocalRandom.current().nextInt(127));
                 long latencyMs = ThreadLocalRandom.current().nextInt(latencyHigh - latencyLow) + latencyLow;
                 log.debug("http request: {}, latencyMs: {}", priority.simpleString(), latencyMs);
                 if (!http.admit(Workload.ofPriority(priority))) {
-                    log.info("http shed: {}", priority.simpleString());
+                    log.info("http shed: {}, total requests:{}, shedded:{}", priority.simpleString(), requests.get(), shed.incrementAndGet());
                 }
                 if (ThreadLocalRandom.current().nextInt(100) < threadPoolExhaustedPercentage) {
+                    log.info("queue overload, total requests:{}", requests.get());
                     http.feedback(AdmissionController.Feedback.ofOverloaded());
                 } else {
                     http.feedback(AdmissionController.Feedback.ofQueuedNs(latencyMs * WindowConfig.NS_PER_MS));
@@ -59,6 +71,20 @@ class IntegrationTest extends BaseConcurrentTest {
             }
         };
         concurrentRun(task);
+    }
+
+    private TenantWorkloadSimulator mockWorkload() {
+        List<TenantWeight> plans = Stream.of(
+                new TenantWeight("a", 20),
+                new TenantWeight("b", 6000),
+                new TenantWeight("c", 30),
+                new TenantWeight("d", 590),
+                new TenantWeight("e", 5),
+                new TenantWeight("f", 120)
+        ).collect(Collectors.toList());
+        TenantWorkloadSimulator simulator = new TenantWorkloadSimulator();
+        simulator.simulateByWeights(plans);
+        return simulator;
     }
 
     @Test

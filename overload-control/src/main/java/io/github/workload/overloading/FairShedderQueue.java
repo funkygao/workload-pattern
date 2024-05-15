@@ -27,8 +27,9 @@ class FairShedderQueue extends FairShedder {
         boolean stillExplicitOverloaded = nowNs > 0 && overloadedAtNs > 0
                 && (nowNs - overloadedAtNs) <= timeCycleNs;
         if (stillExplicitOverloaded) {
-            log.debug("[{}] still in explicit overload interval, timeCycle:{}ms", name, timeCycleNs / WindowConfig.NS_PER_MS);
-            return explicitOverloadGradient();
+            double grad = explicitOverloadGradient();
+            log.info("[{}] still in explicit overload interval, timeCycle:{}ms, grad:{}", name, timeCycleNs / WindowConfig.NS_PER_MS, grad);
+            return grad;
         }
 
         // bufferbloat
@@ -44,7 +45,11 @@ class FairShedderQueue extends FairShedder {
     @VisibleForTesting
     double queuingGradient(double avgQueuedMs, double upperBound) {
         double rawGradient = upperBound / avgQueuedMs;
-        return Math.min(GRADIENT_IDLE, Math.max(GRADIENT_BUSIEST, rawGradient));
+        double grad = Math.min(GRADIENT_IDLE, Math.max(GRADIENT_BUSIEST, rawGradient));
+        if (grad < GRADIENT_IDLE) {
+            log.info("[{}] avg:{} > {}, grad:{}", name, avgQueuedMs, upperBound, grad);
+        }
+        return grad;
     }
 
     void addWaitingNs(long waitingNs) {
