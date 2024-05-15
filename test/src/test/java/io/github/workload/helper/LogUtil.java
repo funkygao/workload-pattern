@@ -7,11 +7,15 @@ import org.slf4j.LoggerFactory;
 
 public class LogUtil {
     public static ListAppender<ILoggingEvent> setupAppender(Class<?> clazz) {
-        Logger logger = (Logger) LoggerFactory.getLogger(clazz);
-        ListAppender<ILoggingEvent> appender = new ListAppender<>();
-        appender.start();
-        logger.addAppender(appender);
-        appender.list.clear();
-        return appender;
+        try {
+            Logger logger = (Logger) LoggerFactory.getLogger(clazz);
+            ListAppender<ILoggingEvent> appender = new ListAppender<>();
+            appender.start();
+            logger.addAppender(appender);
+            appender.list.clear();
+            return appender;
+        } catch (ClassCastException e) {
+            throw new RuntimeException("log4j-core cannot coexist with logback, pom exclude it before logging test");
+        }
     }
 }

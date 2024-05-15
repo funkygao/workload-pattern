@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <!-- 这里故意留空，以防止Logback初始化默认配置 -->
+</configuration>

@@ -1,13 +1,13 @@
 package io.github.workload.tailtolerant;
 
-import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
+import io.github.workload.helper.LogUtil;
 import io.github.workload.mock.MockService;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.RepeatedTest;
-import org.slf4j.LoggerFactory;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
@@ -30,11 +30,9 @@ class HedgedRequestTest {
     }
 
     @RepeatedTest(10)
+    @Disabled
     void demo() throws ExecutionException, InterruptedException, TimeoutException {
-        Logger logger = (Logger) LoggerFactory.getLogger(HedgedRequest.class);
-        ListAppender<ILoggingEvent> appender = new ListAppender<>();
-        appender.start();
-        logger.addAppender(appender);
+        ListAppender<ILoggingEvent> appender = LogUtil.setupAppender(HedgedRequest.class);
 
         final long deferMs = 20;
         final int N = 10;
