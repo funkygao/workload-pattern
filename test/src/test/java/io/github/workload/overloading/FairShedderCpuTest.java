@@ -3,7 +3,7 @@ package io.github.workload.overloading;
 import io.github.workload.BaseConcurrentTest;
 import io.github.workload.helper.CpuStressLoader;
 import io.github.workload.metrics.smoother.ValueSmoother;
-import io.github.workload.overloading.mock.SysloadMock;
+import io.github.workload.overloading.mock.SysloadAdaptive;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
@@ -63,7 +63,7 @@ class FairShedderCpuTest extends BaseConcurrentTest {
 
     @Test
     void gradient() {
-        FairShedderCpu shedder = new FairShedderCpu(FairSafeAdmissionController.CPU_USAGE_UPPER_BOUND, new SysloadMock());
+        FairShedderCpu shedder = new FairShedderCpu(FairSafeAdmissionController.CPU_USAGE_UPPER_BOUND, new SysloadAdaptive());
         double[] cpuUsages = new double[]{0.3, 0.6, 0.89, 0.2, 0.7, 1.0, 0.33};
         boolean[] overloads = new boolean[]{false, false, true, false, true, true, false};
         final double upperBound = 0.67;
@@ -76,7 +76,7 @@ class FairShedderCpuTest extends BaseConcurrentTest {
 
     @Test
     void gradient_simulation() {
-        FairShedderCpu shedder = new FairShedderCpu(FairSafeAdmissionController.CPU_USAGE_UPPER_BOUND, new SysloadMock());
+        FairShedderCpu shedder = new FairShedderCpu(FairSafeAdmissionController.CPU_USAGE_UPPER_BOUND, new SysloadAdaptive());
         for (int i = 0; i < 100; i++) {
             shedder.overloadGradient(0, null);
         }

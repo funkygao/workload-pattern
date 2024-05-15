@@ -26,6 +26,7 @@ public abstract class BaseConcurrentTest {
     }
 
     protected void concurrentRun(Runnable runnable) {
+        log.info("thread count: {}", THREAD_COUNT);
         CompletableFuture<?>[] futures = new CompletableFuture[THREAD_COUNT];
         for (int i = 0; i < THREAD_COUNT; i++) {
             futures[i] = CompletableFuture.runAsync(runnable, threadPool);

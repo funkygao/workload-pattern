@@ -86,16 +86,22 @@ class FairSafeAdmissionController implements AdmissionController {
         final WorkloadPriority priority = workload.getPriority();
         metricsTracker.enter(workload.getPriority());
         if (!fairCpu.admit(priority)) {
+            if (log.isDebugEnabled()) {
+                log.debug("{}:shared CPU saturated, shed {}, watermark {}", fairQueue.name, priority.simpleString(), fairCpu.watermark().simpleString());
+            }
+
             metricsTracker.shedByCpu(priority);
-            log.warn("{}:shared CPU saturated, shed {}, watermark {}", fairQueue.name, priority.simpleString(), fairCpu.watermark().simpleString());
             return false;
         }
 
         // 具体类型的业务准入，局部采样
         boolean ok = fairQueue.admit(priority);
         if (!ok) {
+            if (log.isDebugEnabled()) {
+                log.debug("{}:queuing busy, shed {}, watermark {}", fairQueue.name, priority.simpleString(), fairQueue.watermark().simpleString());
+            }
+
             metricsTracker.shedByQueue(priority);
-            log.warn("{}:queuing busy, shed {}, watermark {}", fairQueue.name, priority.simpleString(), fairQueue.watermark().simpleString());
         }
         return ok;
     }
