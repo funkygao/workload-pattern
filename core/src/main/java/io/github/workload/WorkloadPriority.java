@@ -196,6 +196,11 @@ public class WorkloadPriority {
         return P() == that.P();
     }
 
+    @Override
+    public int hashCode() {
+        return P();
+    }
+
     @AllArgsConstructor
     @ToString
     private static class UState {
