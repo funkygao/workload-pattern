@@ -43,14 +43,14 @@ public class SysloadAdaptive implements Sysload {
 
         double qps = acceptedRequestsTs.size();
         double avgLatency = qps > 0 ? (double) windowLatency.get() / qps : 0;
-        windowLatency.set(0);
+        windowLatency.set(0); // reset
 
         // 考虑到被抛弃的请求在减轻系统负载，我们使用实际处理的请求数量来计算负载因素
         double loadFactor = (qps / maxConcurrency) + (avgLatency / 1000.0);
         double dynamicCpuUsage = baseCpuUsage + loadFactor;
         double usage = Math.min(1.0, dynamicCpuUsage); // 确保不会超过100%
         if (usage < 1.0) {
-            // // 添加随机性以模拟真实环境的波动
+            // 添加随机性以模拟真实环境的波动
             usage = dynamicCpuUsage + ThreadLocalRandom.current().nextDouble(0, 1.0 - usage);
         }
 
