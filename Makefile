@@ -38,4 +38,5 @@ flamegraph:
 simulation-overload-case-normal:
 	@rm -f test/log
 	@mvn -Dtest=io.github.workload.overloading.OverloadSimulationTest#normal_case_http_only -Dsimulate=true -Dsurefire.failIfNoSpecifiedTests=false test
+	@cat test/log | grep -w cpu | python doc/overload_visualize.py
 
