@@ -7,13 +7,15 @@ import io.github.workload.Workload;
 import io.github.workload.WorkloadPriority;
 import io.github.workload.helper.LogUtil;
 import io.github.workload.metrics.tumbling.TumblingWindow;
+import io.github.workload.metrics.tumbling.WindowConfig;
 import io.github.workload.overloading.mock.SysloadMock;
+import org.apache.logging.log4j.Level;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import java.util.concurrent.ThreadLocalRandom;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -25,48 +27,35 @@ class IntegrationTest extends BaseConcurrentTest {
     }
 
     @Test
-    void simulate_normal_case() {
+    @DisplayName("HTTP准入，请求分布没有大起大落，CPU负荷维持在30%以上随机")
+    void simulate_normal_case_http_only() {
         System.setProperty(Heuristic.CPU_USAGE_UPPER_BOUND, "0.69");
-        //setLogLevel(Level.TRACE);
 
         FairSafeAdmissionController http = (FairSafeAdmissionController) AdmissionController.getInstance("HTTP");
-        FairSafeAdmissionController rpc = (FairSafeAdmissionController) AdmissionController.getInstance("RPC");
         FairSafeAdmissionController.shedderOnCpu().setSysload(new SysloadMock(0.3));
         final int[] B = new int[]{2, 5, 10, 20, 40};
-        final int latencyMsBaseline = 10;
-        final int maxUid = (1 << 7) - 1;
-        final int threadPoolExhaustedPercentage = 2; // 2%
+        final int latencyLow = 10;
+        final int latencyHigh = 300;
+        final int threadPoolExhaustedPercentage = 1; // 1%
         final int N = 1 << 10;
-        final AtomicInteger requestedHttp = new AtomicInteger(0);
-        final AtomicInteger shedHttp = new AtomicInteger(0);
+        setLogLevel(Level.INFO);
         Runnable task = () -> {
             for (int i = 0; i < N; i++) {
-                requestedHttp.incrementAndGet();
-                long t0 = System.nanoTime();
-                int Bi = ThreadLocalRandom.current().nextInt(B.length);
-                int Uid = ThreadLocalRandom.current().nextInt(maxUid);
-                WorkloadPriority priority = WorkloadPriority.ofPeriodicRandomFromUID(B[Bi], Uid);
-                long latencyMs = ThreadLocalRandom.current().nextInt(latencyMsBaseline);
-                final Workload workload = Workload.ofPriority(priority);
-                if (!http.admit(workload)) {
-                    log.info("http shed: {}, {}/{}", workload.getPriority(), shedHttp.incrementAndGet(), requestedHttp.get());
+                WorkloadPriority priority = WorkloadPriority.ofPeriodicRandomFromUID(B[ThreadLocalRandom.current().nextInt(B.length)], ThreadLocalRandom.current().nextInt(127));
+                long latencyMs = ThreadLocalRandom.current().nextInt(latencyHigh - latencyLow) + latencyLow;
+                log.debug("http request: {}, latencyMs: {}", priority.simpleString(), latencyMs);
+                if (!http.admit(Workload.ofPriority(priority))) {
+                    log.info("http shed: {}", priority.simpleString());
                 }
-                sleep(latencyMs);
                 if (ThreadLocalRandom.current().nextInt(100) < threadPoolExhaustedPercentage) {
                     http.feedback(AdmissionController.Feedback.ofOverloaded());
                 } else {
-                    http.feedback(AdmissionController.Feedback.ofQueuedNs(System.nanoTime() - t0));
+                    http.feedback(AdmissionController.Feedback.ofQueuedNs(latencyMs * WindowConfig.NS_PER_MS));
                 }
 
-                if (ThreadLocalRandom.current().nextBoolean()) {
-                    // 1 rpc every 2 http
-                    if (!rpc.admit(workload)) {
-                        log.info(" rpc shed: {}", workload.getPriority());
-                    }
-                    rpc.feedback(AdmissionController.Feedback.ofQueuedNs(System.nanoTime() - t0));
-                }
+                // 模拟请求处理时长
+                sleep(latencyMs);
             }
-            log.info("{} workload emit", N);
         };
         concurrentRun(task);
     }

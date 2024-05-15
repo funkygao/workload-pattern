@@ -17,7 +17,7 @@ public class SysloadMock implements Sysload {
 
     @Override
     public double cpuUsage() {
-        return base + ThreadLocalRandom.current().nextDouble(0.8d);
+        return base + ThreadLocalRandom.current().nextDouble(1.0d - base);
     }
 
 }
