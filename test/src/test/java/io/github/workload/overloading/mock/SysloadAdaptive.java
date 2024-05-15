@@ -52,7 +52,7 @@ public class SysloadAdaptive implements Sysload {
         } else {
             usage = dynamicCpuUsage + ThreadLocalRandom.current().nextDouble(0, 1.0 - dynamicCpuUsage);
         }
-        log.info("cpu usage:{}/{}, qps:{}/{}, avg latency:{}", usage, dynamicCpuUsage, qps, requests(), avgLatency);
+        log.info("cpu usage:{}, +rand:{}, qps:{}, requests:{}, avg latency:{}", usage, usage - dynamicCpuUsage, qps, requests(), avgLatency);
         return usage;
     }
 
@@ -90,7 +90,7 @@ public class SysloadAdaptive implements Sysload {
             exhausted = ThreadLocalRandom.current().nextDouble() < exhaustedFactor;
             if (exhausted) {
                 exhaustedFactor *= (1 - ThreadLocalRandom.current().nextDouble(0.01));
-                log.info("bizPool exhausted, random {}/{}, factor:{}", randomExhausted.incrementAndGet(), requests(), exhaustedFactor);
+                log.info("bizPool exhausted, random times:{}, requests:{}, factor:{}", randomExhausted.incrementAndGet(), requests(), exhaustedFactor);
             }
         }
 

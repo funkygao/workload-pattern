@@ -31,7 +31,7 @@ class OverloadSimulationTest extends BaseConcurrentTest {
         setLogLevel(Level.INFO);
 
         FairSafeAdmissionController http = (FairSafeAdmissionController) AdmissionController.getInstance("HTTP");
-        SysloadAdaptive sysload = new SysloadAdaptive(0.05, 0.008, 200);
+        SysloadAdaptive sysload = new SysloadAdaptive(0.05, 0.002, 200);
         FairSafeAdmissionController.fairCpu().setSysload(sysload);
 
         final int latencyLow = 10;
