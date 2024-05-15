@@ -63,15 +63,20 @@ public class WorkloadPrioritySimulator implements Iterable<Map.Entry<WorkloadPri
         return this;
     }
 
+    public void simulateHttpWorkloadPriority(int N) {
+        for (int i = 0; i < N; i++) {
+            increment(WorkloadPrioritizer.randomWeb());
+        }
+    }
+
     /**
      * 生成少量的{@link WorkloadPriority}.
      */
-    public WorkloadPrioritySimulator simulateFewWorkloadPriority() {
+    public void simulateFewWorkloadPriority() {
         for (int i = 0; i < 5; i++) {
             int P = ThreadLocalRandom.current().nextInt(WorkloadPriority.MAX_P);
             requests.put(WorkloadPriority.fromP(P), i + 2);
         }
-        return this;
     }
 
     /**

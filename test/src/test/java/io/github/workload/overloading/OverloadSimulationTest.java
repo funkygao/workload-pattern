@@ -8,9 +8,8 @@ import io.github.workload.WorkloadPriority;
 import io.github.workload.helper.LogUtil;
 import io.github.workload.metrics.tumbling.TumblingWindow;
 import io.github.workload.metrics.tumbling.WindowConfig;
-import io.github.workload.overloading.mock.SysloadMock;
-import io.github.workload.simulate.TenantWeight;
-import io.github.workload.simulate.TenantWorkloadSimulator;
+import io.github.workload.overloading.mock.SysloadAdaptiveMock;
+import io.github.workload.simulate.WorkloadPrioritySimulator;
 import org.apache.logging.log4j.Level;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Disabled;
@@ -18,11 +17,8 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
 
-import java.util.List;
-import java.util.concurrent.ThreadLocalRandom;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
+import java.util.Map;
+import java.util.Random;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -35,55 +31,61 @@ class OverloadSimulationTest extends BaseConcurrentTest {
 
     @Test
     @EnabledIfSystemProperty(named = "simulate", matches = "true")
-    @DisplayName("HTTP准入，请求分布没有大起大落，CPU负荷维持在30%以上随机")
+    @DisplayName("HTTP准入，请求数量没有大起大落")
     void normal_case_http_only() {
+        long t0 = System.nanoTime();
         System.setProperty(Heuristic.CPU_USAGE_UPPER_BOUND, "0.69");
         setLogLevel(Level.INFO);
 
         FairSafeAdmissionController http = (FairSafeAdmissionController) AdmissionController.getInstance("HTTP");
-        FairSafeAdmissionController.fairCpu().setSysload(new SysloadMock(0.3));
+        SysloadAdaptiveMock sysload = new SysloadAdaptiveMock(0.05, 0.008, 200);
+        FairSafeAdmissionController.fairCpu().setSysload(sysload);
 
-        final int[] B = new int[]{2, 5, 10, 20, 40};
         final int latencyLow = 10;
         final int latencyHigh = 300;
-        final int threadPoolExhaustedPercentage = 1; // 1%
-        final AtomicInteger requests = new AtomicInteger(0);
-        final AtomicInteger shed = new AtomicInteger(0);
-        final int N = 1 << 10; // total request is cpuCores * 2 * N
-        Runnable task = () -> {
-            for (int i = 0; i < N; i++) {
-                requests.incrementAndGet();
-                WorkloadPriority priority = WorkloadPriority.ofPeriodicRandomFromUID(B[ThreadLocalRandom.current().nextInt(B.length)], ThreadLocalRandom.current().nextInt(127));
-                long latencyMs = ThreadLocalRandom.current().nextInt(latencyHigh - latencyLow) + latencyLow;
-                log.debug("http request: {}, latencyMs: {}", priority.simpleString(), latencyMs);
-                if (!http.admit(Workload.ofPriority(priority))) {
-                    log.info("http shed: {}, total requests:{}, shedded:{}", priority.simpleString(), requests.get(), shed.incrementAndGet());
-                }
-                if (ThreadLocalRandom.current().nextInt(100) < threadPoolExhaustedPercentage) {
-                    log.info("queue overload, total requests:{}", requests.get());
-                    http.feedback(AdmissionController.Feedback.ofOverloaded());
-                } else {
-                    http.feedback(AdmissionController.Feedback.ofQueuedNs(latencyMs * WindowConfig.NS_PER_MS));
-                }
+        final int baseN = 1 << 10;
+        final Random random = new Random();
 
-                // 模拟请求处理时长
-                sleep(latencyMs);
+        Runnable businessThread = () -> {
+            WorkloadPrioritySimulator generator = generateWorkloadPriorities((int) (1 + random.nextDouble()) * baseN);
+            for (Map.Entry<WorkloadPriority, Integer> entry : generator) {
+                for (int i = 0; i < entry.getValue(); i++) {
+                    // 请求
+                    final WorkloadPriority priority = entry.getKey();
+                    long latencyMs = random.nextInt(latencyHigh - latencyLow) + latencyLow;
+                    log.debug("http request: {}, latencyMs: {}", priority.simpleString(), latencyMs);
+                    sysload.injectRequest(latencyMs);
+
+                    // 准入
+                    if (!http.admit(Workload.ofPriority(priority))) {
+                        sysload.shed();
+                        log.info("http shed: {}, total requests:{}, shedded:{}", priority.simpleString(), sysload.requests(), sysload.shedded());
+                    }
+
+                    // 反馈
+                    if (sysload.threadPoolExhausted()) {
+                        http.feedback(AdmissionController.Feedback.ofOverloaded());
+                    } else {
+                        http.feedback(AdmissionController.Feedback.ofQueuedNs(latencyMs * WindowConfig.NS_PER_MS));
+                    }
+
+                    // 模拟请求处理时长
+                    sleep(latencyMs);
+                }
             }
         };
-        concurrentRun(task);
+
+        // 执行并发测试并等待所有线程执行完毕：并发度为 cpu core的2倍
+        concurrentRun(businessThread);
+        log.info("elapsed: {}s", (System.nanoTime() - t0) / (WindowConfig.NS_PER_MS * 1000));
     }
 
-    private TenantWorkloadSimulator mockWorkload() {
-        List<TenantWeight> plans = Stream.of(
-                new TenantWeight("a", 20),
-                new TenantWeight("b", 6000),
-                new TenantWeight("c", 30),
-                new TenantWeight("d", 590),
-                new TenantWeight("e", 5),
-                new TenantWeight("f", 120)
-        ).collect(Collectors.toList());
-        TenantWorkloadSimulator simulator = new TenantWorkloadSimulator();
-        simulator.simulateByWeights(plans);
+    private WorkloadPrioritySimulator generateWorkloadPriorities(int N) {
+        WorkloadPrioritySimulator simulator = new WorkloadPrioritySimulator();
+        simulator.simulateHttpWorkloadPriority(N);
+        long sleepMs = 300;
+        log.info("generate:{} -> priorities:{}, requests:{}, will sleep:{}s", N, simulator.size(), simulator.totalRequests(), sleepMs);
+        sleep(sleepMs);
         return simulator;
     }
 
