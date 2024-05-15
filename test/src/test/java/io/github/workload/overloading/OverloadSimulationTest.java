@@ -5,6 +5,7 @@ import io.github.workload.Workload;
 import io.github.workload.WorkloadPriority;
 import io.github.workload.metrics.tumbling.WindowConfig;
 import io.github.workload.overloading.mock.SysloadAdaptive;
+import io.github.workload.simulate.LatencySimulator;
 import io.github.workload.simulate.WorkloadPrioritySimulator;
 import org.apache.logging.log4j.Level;
 import org.junit.jupiter.api.AfterEach;
@@ -12,6 +13,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
 
+import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
 
@@ -33,22 +35,17 @@ class OverloadSimulationTest extends BaseConcurrentTest {
         final SysloadAdaptive sysload = new SysloadAdaptive(0.05, 0.002, 200);
         FairSafeAdmissionController.fairCpu().setSysload(sysload);
 
-        final int latencyLow = 10;
-        final int latencyHigh = 300;
         final int N = 1 << 10;
-
-        // 构造业务线程，处理请求
         Runnable businessThread = () -> {
-            WorkloadPrioritySimulator generator = generateRequests(N, 3);
-            for (Map.Entry<WorkloadPriority, Integer> entry : generator) {
-                for (int i = 0; i < entry.getValue(); i++) {
-                    final WorkloadPriority priority = entry.getKey();
-                    long latencyMs = ThreadLocalRandom.current().nextInt(latencyHigh - latencyLow) + latencyLow;
+            WorkloadPrioritySimulator workloadGenerator = generateRequests(N, 3);
+            Iterator<Integer> steepLatency = new LatencySimulator(20, 600).simulate(workloadGenerator.totalRequests(), 0.5).iterator();
+            for (Map.Entry<WorkloadPriority, Integer> workload : workloadGenerator) {
+                for (int i = 0; i < workload.getValue(); i++) {
                     sysload.injectRequest();
 
-                    if (!http.admit(Workload.ofPriority(priority))) {
+                    long latencyMs = steepLatency.next();
+                    if (!http.admit(Workload.ofPriority(workload.getKey()))) {
                         sysload.shed();
-                        log.info("http shed: {}, total requests:{}, shedded:{}", priority.simpleString(), sysload.requests(), sysload.shedded());
                     } else {
                         sysload.accept(latencyMs);
                     }
@@ -66,6 +63,7 @@ class OverloadSimulationTest extends BaseConcurrentTest {
 
         // 执行并发测试并等待所有线程执行完毕：并发度为 cpu core的2倍
         concurrentRun(businessThread);
+        log.info("requested:{}, shed:{}, percent:{}", sysload.requests(), sysload.shedded(), (double) sysload.shedded() * 100d / sysload.requests());
     }
 
     private WorkloadPrioritySimulator generateRequests(int N, int multiplier) {
