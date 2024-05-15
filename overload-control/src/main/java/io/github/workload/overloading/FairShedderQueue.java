@@ -10,14 +10,14 @@ import lombok.extern.slf4j.Slf4j;
 import java.util.concurrent.ThreadLocalRandom;
 
 @Slf4j
-class WorkloadShedderOnQueue extends WorkloadShedder {
+class FairShedderQueue extends FairShedder {
     @VisibleForTesting
     static final long AVG_QUEUED_MS_UPPER_BOUND = HyperParameter.getLong(Heuristic.AVG_QUEUED_MS_UPPER_BOUND, 200);
 
     private volatile long overloadedAtNs = 0; // 最近一次显式过载的时间
     private final long timeCycleNs;
 
-    WorkloadShedderOnQueue(String name) {
+    FairShedderQueue(String name) {
         super(name);
         this.timeCycleNs = windowConfig().getTimeCycleNs();
     }

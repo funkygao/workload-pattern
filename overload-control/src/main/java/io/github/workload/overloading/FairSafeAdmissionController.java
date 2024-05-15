@@ -63,12 +63,12 @@ class FairSafeAdmissionController implements AdmissionController {
      * <p>The downside of optimistic throttling is that you'll spike over your global maximum while you start shedding load.</p>
      * <p>Most users will only experience this momentary overload in the form of slightly higher latency.</p>
      */
-    private static final WorkloadShedderOnCpu shedderOnCpu = new WorkloadShedderOnCpu(CPU_USAGE_UPPER_BOUND, CPU_OVERLOAD_COOL_OFF_SEC);
+    private static final FairShedderCpu fairCpu = new FairShedderCpu(CPU_USAGE_UPPER_BOUND, CPU_OVERLOAD_COOL_OFF_SEC);
 
     /**
      * The pessimistic throttling.
      */
-    private final WorkloadShedderOnQueue shedderOnQueue;
+    private final FairShedderQueue fairQueue;
 
     private final IMetricsTracker metricsTracker;
 
@@ -77,7 +77,7 @@ class FairSafeAdmissionController implements AdmissionController {
     }
 
     FairSafeAdmissionController(String name, IMetricsTrackerFactory metricsTrackerFactory) {
-        this.shedderOnQueue = new WorkloadShedderOnQueue(name);
+        this.fairQueue = new FairShedderQueue(name);
         this.metricsTracker = metricsTrackerFactory != null ? metricsTrackerFactory.create(name) : new NopMetricsTracker();
     }
 
@@ -85,17 +85,17 @@ class FairSafeAdmissionController implements AdmissionController {
     public boolean admit(@NonNull Workload workload) {
         final WorkloadPriority priority = workload.getPriority();
         metricsTracker.enter(workload.getPriority());
-        if (!shedderOnCpu.admit(priority)) {
+        if (!fairCpu.admit(priority)) {
             metricsTracker.shedByCpu(priority);
-            log.warn("{}:shared CPU saturated, shed {}, watermark {}", shedderOnQueue.name, priority.simpleString(), shedderOnCpu.watermark().simpleString());
+            log.warn("{}:shared CPU saturated, shed {}, watermark {}", fairQueue.name, priority.simpleString(), fairCpu.watermark().simpleString());
             return false;
         }
 
         // 具体类型的业务准入，局部采样
-        boolean ok = shedderOnQueue.admit(priority);
+        boolean ok = fairQueue.admit(priority);
         if (!ok) {
             metricsTracker.shedByQueue(priority);
-            log.warn("{}:queuing busy, shed {}, watermark {}", shedderOnQueue.name, priority.simpleString(), shedderOnQueue.watermark().simpleString());
+            log.warn("{}:queuing busy, shed {}, watermark {}", fairQueue.name, priority.simpleString(), fairQueue.watermark().simpleString());
         }
         return ok;
     }
@@ -103,23 +103,23 @@ class FairSafeAdmissionController implements AdmissionController {
     @Override
     public void feedback(@NonNull AdmissionController.Feedback feedback) {
         if (feedback instanceof Feedback.Overload) {
-            shedderOnQueue.overload(((Feedback.Overload) feedback).getOverloadAtNs());
+            fairQueue.overload(((Feedback.Overload) feedback).getOverloadAtNs());
             return;
         }
 
         if (feedback instanceof Feedback.Queued) {
-            shedderOnQueue.addWaitingNs(((Feedback.Queued) feedback).getQueuedNs());
+            fairQueue.addWaitingNs(((Feedback.Queued) feedback).getQueuedNs());
         }
     }
 
     @VisibleForTesting
-    WorkloadShedderOnQueue shedderOnQueue() {
-        return shedderOnQueue;
+    FairShedderQueue fairQueue() {
+        return fairQueue;
     }
 
     @VisibleForTesting
-    static WorkloadShedderOnCpu shedderOnCpu() {
-        return shedderOnCpu;
+    static FairShedderCpu fairCpu() {
+        return fairCpu;
     }
 
     private static class NopMetricsTracker implements IMetricsTracker {

@@ -14,7 +14,7 @@ import lombok.extern.slf4j.Slf4j;
  * <p>高吞吐系统下的CPU波动可能剧烈而产生毛刺(phenomenon burr)，为此通过EMA使得其平滑.</p>
  */
 @Slf4j
-class WorkloadShedderOnCpu extends WorkloadShedder {
+class FairShedderCpu extends FairShedder {
     private static final double CPU_EMA_ALPHA = HyperParameter.getDouble(Heuristic.CPU_EMA_ALPHA, 0.25d);
 
     private final double cpuUsageUpperBound;
@@ -23,11 +23,11 @@ class WorkloadShedderOnCpu extends WorkloadShedder {
     @VisibleForTesting
     final ValueSmoother valueSmoother;
 
-    WorkloadShedderOnCpu(double cpuUsageUpperBound, long coolOffSec) {
+    FairShedderCpu(double cpuUsageUpperBound, long coolOffSec) {
         this(cpuUsageUpperBound, new ContainerLoad(coolOffSec));
     }
 
-    WorkloadShedderOnCpu(double cpuUsageUpperBound, @NonNull Sysload sysload) {
+    FairShedderCpu(double cpuUsageUpperBound, @NonNull Sysload sysload) {
         super("CPU");
         this.cpuUsageUpperBound = cpuUsageUpperBound;
         this.sysload = sysload;

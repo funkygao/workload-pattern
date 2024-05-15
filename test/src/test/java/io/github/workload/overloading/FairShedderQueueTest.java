@@ -12,11 +12,11 @@ import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-class WorkloadShedderOnQueueTest extends BaseConcurrentTest {
+class FairShedderQueueTest extends BaseConcurrentTest {
 
     @Test
     void isOverloaded() throws InterruptedException {
-        WorkloadShedderOnQueue shedder = new WorkloadShedderOnQueue("test");
+        FairShedderQueue shedder = new FairShedderQueue("test");
         // window cannot be null
         assertThrows(NullPointerException.class, () -> {
             shedder.overloadGradient(System.nanoTime(), null);
@@ -51,10 +51,10 @@ class WorkloadShedderOnQueueTest extends BaseConcurrentTest {
                     if (RandomUtil.randomTrue(1)) {
                         shedder.addWaitingNs(10 * WindowConfig.NS_PER_MS);
                     } else {
-                        shedder.addWaitingNs((WorkloadShedderOnQueue.AVG_QUEUED_MS_UPPER_BOUND + 1) * WindowConfig.NS_PER_MS);
+                        shedder.addWaitingNs((FairShedderQueue.AVG_QUEUED_MS_UPPER_BOUND + 1) * WindowConfig.NS_PER_MS);
                     }
                 } else {
-                    shedder.addWaitingNs((WorkloadShedderOnQueue.AVG_QUEUED_MS_UPPER_BOUND + 1) * WindowConfig.NS_PER_MS);
+                    shedder.addWaitingNs((FairShedderQueue.AVG_QUEUED_MS_UPPER_BOUND + 1) * WindowConfig.NS_PER_MS);
                 }
             }
         }
@@ -64,11 +64,11 @@ class WorkloadShedderOnQueueTest extends BaseConcurrentTest {
 
     @Test
     void explicitOverloadGradient() {
-        WorkloadShedderOnQueue shedder = new WorkloadShedderOnQueue("cpu");
+        FairShedderQueue shedder = new FairShedderQueue("cpu");
         for (int i = 0; i < 20; i++) {
             final double gradient = shedder.explicitOverloadGradient();
-            assertTrue(gradient < WorkloadShedder.GRADIENT_IDLE);
-            assertTrue(gradient >= WorkloadShedder.GRADIENT_BUSIEST);
+            assertTrue(gradient < FairShedder.GRADIENT_IDLE);
+            assertTrue(gradient >= FairShedder.GRADIENT_BUSIEST);
             assertTrue(shedder.isOverloaded(gradient));
             log.info("explicitOverloadGradient: {}", shedder.explicitOverloadGradient());
         }
@@ -76,7 +76,7 @@ class WorkloadShedderOnQueueTest extends BaseConcurrentTest {
 
     @Test
     void queuingGradient() {
-        WorkloadShedderOnQueue shedder = new WorkloadShedderOnQueue("queue");
+        FairShedderQueue shedder = new FairShedderQueue("queue");
         final int upperBound = 100;
         final int startPoint = 1;
         for (int i = 0; i < 100; i++) {
@@ -90,7 +90,7 @@ class WorkloadShedderOnQueueTest extends BaseConcurrentTest {
             final double gradient = shedder.queuingGradient(i + startPoint, upperBound);
             log.debug("{}/{} gradient:{}", queuedTime, upperBound, gradient);
             assertTrue(shedder.isOverloaded(gradient));
-            assertTrue(gradient >= WorkloadShedder.GRADIENT_BUSIEST);
+            assertTrue(gradient >= FairShedder.GRADIENT_BUSIEST);
         }
     }
 

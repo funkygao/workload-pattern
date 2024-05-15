@@ -44,7 +44,7 @@ class FairSafeAdmissionControllerTest extends BaseConcurrentTest {
         FairSafeAdmissionController mqController = (FairSafeAdmissionController) AdmissionController.getInstance("MQ");
         FairSafeAdmissionController rpcController = (FairSafeAdmissionController) AdmissionController.getInstance("RPC");
         FairSafeAdmissionController webController = (FairSafeAdmissionController) AdmissionController.getInstance("Web");
-        FairSafeAdmissionController.shedderOnCpu().setSysload(new AlwaysHealthySystemLoad());
+        FairSafeAdmissionController.fairCpu().setSysload(new AlwaysHealthySystemLoad());
         for (int i = 0; i < WindowConfig.DEFAULT_REQUEST_CYCLE + 1; i++) {
             log.info("loop: {}", i + 1);
             // 默认情况下，都放行：除非此时CPU已经高了
@@ -59,10 +59,10 @@ class FairSafeAdmissionControllerTest extends BaseConcurrentTest {
 
         // 没有过overload，level不会变
         WorkloadPriority admitAll = WorkloadPriority.ofLowest();
-        assertEquals(admitAll, FairSafeAdmissionController.shedderOnCpu().watermark());
-        assertEquals(admitAll, mqController.shedderOnQueue().watermark());
-        assertEquals(admitAll, rpcController.shedderOnQueue().watermark());
-        assertEquals(admitAll, webController.shedderOnQueue().watermark());
+        assertEquals(admitAll, FairSafeAdmissionController.fairCpu().watermark());
+        assertEquals(admitAll, mqController.fairQueue().watermark());
+        assertEquals(admitAll, rpcController.fairQueue().watermark());
+        assertEquals(admitAll, webController.fairQueue().watermark());
     }
 
     private void simulateServiceRandomlyOverload(int sleepBound, Sysload sysload) throws InterruptedException {
@@ -71,7 +71,7 @@ class FairSafeAdmissionControllerTest extends BaseConcurrentTest {
         FairSafeAdmissionController mqController = (FairSafeAdmissionController) AdmissionController.getInstance("SQS");
         FairSafeAdmissionController rpcController = (FairSafeAdmissionController) AdmissionController.getInstance("RPC");
         FairSafeAdmissionController webController = (FairSafeAdmissionController) AdmissionController.getInstance("WEB");
-        FairSafeAdmissionController.shedderOnCpu().setSysload(sysload);
+        FairSafeAdmissionController.fairCpu().setSysload(sysload);
         int loops = WindowConfig.DEFAULT_REQUEST_CYCLE * 5;
         for (int i = 0; i < loops; i++) {
             WorkloadPriority mq = WorkloadPrioritizer.randomMQ();

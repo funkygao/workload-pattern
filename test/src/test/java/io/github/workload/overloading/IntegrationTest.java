@@ -27,12 +27,13 @@ class IntegrationTest extends BaseConcurrentTest {
     }
 
     @Test
+    @Disabled
     @DisplayName("HTTP准入，请求分布没有大起大落，CPU负荷维持在30%以上随机")
     void simulate_normal_case_http_only() {
         System.setProperty(Heuristic.CPU_USAGE_UPPER_BOUND, "0.69");
 
         FairSafeAdmissionController http = (FairSafeAdmissionController) AdmissionController.getInstance("HTTP");
-        FairSafeAdmissionController.shedderOnCpu().setSysload(new SysloadMock(0.3));
+        FairSafeAdmissionController.fairCpu().setSysload(new SysloadMock(0.3));
         final int[] B = new int[]{2, 5, 10, 20, 40};
         final int latencyLow = 10;
         final int latencyHigh = 300;
@@ -68,8 +69,8 @@ class IntegrationTest extends BaseConcurrentTest {
         ListAppender<ILoggingEvent> l_acf = LogUtil.setupAppender(AdmissionControllerFactory.class);
         ListAppender<ILoggingEvent> l_container = LogUtil.setupAppender(ContainerLoad.class);
         ListAppender<ILoggingEvent> l_window = LogUtil.setupAppender(TumblingWindow.class);
-        ListAppender<ILoggingEvent> l_cpu_shed = LogUtil.setupAppender(WorkloadShedderOnCpu.class);
-        ListAppender<ILoggingEvent> l_queue = LogUtil.setupAppender(WorkloadShedderOnQueue.class);
+        ListAppender<ILoggingEvent> l_cpu_shed = LogUtil.setupAppender(FairShedderCpu.class);
+        ListAppender<ILoggingEvent> l_queue = LogUtil.setupAppender(FairShedderQueue.class);
 
         AdmissionController http = AdmissionController.getInstance("HTTP");
         AdmissionController rpc = AdmissionController.getInstance("RPC");

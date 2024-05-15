@@ -22,7 +22,7 @@ import java.util.concurrent.atomic.AtomicReference;
  */
 @Slf4j
 @ThreadSafe
-abstract class WorkloadShedder {
+abstract class FairShedder {
     static final double GRADIENT_IDLE = 1.0d;
     static final double GRADIENT_BUSIEST = 0.5d;
 
@@ -50,7 +50,7 @@ abstract class WorkloadShedder {
      */
     protected abstract double overloadGradient(long nowNs, CountAndTimeWindowState snapshot);
 
-    protected WorkloadShedder(String name) {
+    protected FairShedder(String name) {
         this.name = name;
         WindowConfig<CountAndTimeWindowState> config = WindowConfig.create(
                 new CountAndTimeRolloverStrategy() {

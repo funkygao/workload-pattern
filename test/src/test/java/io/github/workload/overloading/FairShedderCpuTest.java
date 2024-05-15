@@ -9,7 +9,7 @@ import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-class WorkloadShedderOnCpuTest extends BaseConcurrentTest {
+class FairShedderCpuTest extends BaseConcurrentTest {
 
     @AfterEach
     void cleanup() {
@@ -18,13 +18,13 @@ class WorkloadShedderOnCpuTest extends BaseConcurrentTest {
 
     @Test
     void basic() {
-        WorkloadShedderOnCpu shedder = new WorkloadShedderOnCpu(FairSafeAdmissionController.CPU_USAGE_UPPER_BOUND, 0);
+        FairShedderCpu shedder = new FairShedderCpu(FairSafeAdmissionController.CPU_USAGE_UPPER_BOUND, 0);
         assertFalse(shedder.isOverloaded(shedder.overloadGradient(System.nanoTime(), null)));
     }
 
     @Test
     void forceOverloaded() throws InterruptedException {
-        WorkloadShedderOnCpu shedder = new WorkloadShedderOnCpu(FairSafeAdmissionController.CPU_USAGE_UPPER_BOUND, 1);
+        FairShedderCpu shedder = new FairShedderCpu(FairSafeAdmissionController.CPU_USAGE_UPPER_BOUND, 1);
         CpuStressLoader.burnCPUs();
         for (int i = 0; i < 10; i++) {
             if (shedder.isOverloaded(shedder.overloadGradient(0, null))) {
@@ -63,7 +63,7 @@ class WorkloadShedderOnCpuTest extends BaseConcurrentTest {
 
     @Test
     void gradient() {
-        WorkloadShedderOnCpu shedder = new WorkloadShedderOnCpu(FairSafeAdmissionController.CPU_USAGE_UPPER_BOUND, new SysloadMock());
+        FairShedderCpu shedder = new FairShedderCpu(FairSafeAdmissionController.CPU_USAGE_UPPER_BOUND, new SysloadMock());
         double[] cpuUsages = new double[]{0.3, 0.6, 0.89, 0.2, 0.7, 1.0, 0.33};
         boolean[] overloads = new boolean[]{false, false, true, false, true, true, false};
         final double upperBound = 0.67;
@@ -76,7 +76,7 @@ class WorkloadShedderOnCpuTest extends BaseConcurrentTest {
 
     @Test
     void gradient_simulation() {
-        WorkloadShedderOnCpu shedder = new WorkloadShedderOnCpu(FairSafeAdmissionController.CPU_USAGE_UPPER_BOUND, new SysloadMock());
+        FairShedderCpu shedder = new FairShedderCpu(FairSafeAdmissionController.CPU_USAGE_UPPER_BOUND, new SysloadMock());
         for (int i = 0; i < 100; i++) {
             shedder.overloadGradient(0, null);
         }

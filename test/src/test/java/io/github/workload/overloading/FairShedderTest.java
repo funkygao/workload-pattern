@@ -18,7 +18,7 @@ import java.util.concurrent.ConcurrentSkipListMap;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-class WorkloadShedderTest extends BaseConcurrentTest {
+class FairShedderTest extends BaseConcurrentTest {
 
     @Test
     void ConcurrentSkipListMap_headMap() {
@@ -129,7 +129,7 @@ class WorkloadShedderTest extends BaseConcurrentTest {
 
         AdmissionControllerFactory.resetForTesting();
         FairSafeAdmissionController admissionController = (FairSafeAdmissionController) AdmissionController.getInstance("RPC");
-        final WorkloadShedder shedder = admissionController.shedderOnQueue();
+        final FairShedder shedder = admissionController.fairQueue();
         // 刚启动时，P为最大值(最低优先级)
         final int initialP = shedder.watermark().P();
         assertEquals(initialP, shedder.watermark().P());
@@ -151,13 +151,13 @@ class WorkloadShedderTest extends BaseConcurrentTest {
 
         log.info("没有过载，调整admission level不变化");
         for (int i = 0; i < 10; i++) {
-            shedder.predictWatermark(currentWindow, WorkloadShedder.GRADIENT_IDLE);
+            shedder.predictWatermark(currentWindow, FairShedder.GRADIENT_IDLE);
             assertEquals(initialP, shedder.watermark().P());
         }
 
         log.info("显式过载，看看调整到哪个优先级。当前窗口，histogram size:{}, {}", currentWindow.histogram().size(), currentWindow.histogram());
         WorkloadPriority lastLevel = shedder.watermark();
-        for (int i = 0; i < (1 / WorkloadShedder.DROP_RATE); i++) {
+        for (int i = 0; i < (1 / FairShedder.DROP_RATE); i++) {
             shedder.predictWatermark(currentWindow, 0.5);
             log.debug("adapted {}: {} -> {}", lastLevel.P() - shedder.watermark().P(), lastLevel, shedder.watermark());
             if (lastLevel.equals(shedder.watermark())) {
@@ -199,7 +199,7 @@ class WorkloadShedderTest extends BaseConcurrentTest {
         setLogLevel(Level.INFO);
         AdmissionControllerFactory.resetForTesting();
         FairSafeAdmissionController admissionController = (FairSafeAdmissionController) AdmissionController.getInstance("RPC");
-        final WorkloadShedder shedder = admissionController.shedderOnQueue();
+        final FairShedder shedder = admissionController.fairQueue();
 
         WorkloadPrioritySimulator generator = new WorkloadPrioritySimulator().simulateFullyRandomWorkloadPriority(10);
         for (Map.Entry<WorkloadPriority, Integer> entry : generator) {
@@ -215,7 +215,7 @@ class WorkloadShedderTest extends BaseConcurrentTest {
         shedHistory.add(lastLevel.P());
         log.info("overloaded, shed more...");
         int sheddingTimes = 0;
-        for (int i = 0; i < (1 / WorkloadShedder.DROP_RATE); i++) {
+        for (int i = 0; i < (1 / FairShedder.DROP_RATE); i++) {
             // 已过载
             shedder.predictWatermark(currentWindow, 0.6);
             log.debug("adapted {}: {} -> {}", lastLevel.P() - shedder.watermark().P(), lastLevel, shedder.watermark());
@@ -225,7 +225,7 @@ class WorkloadShedderTest extends BaseConcurrentTest {
                 break;
             }
 
-            if (i == (1 / WorkloadShedder.DROP_RATE) - 1) {
+            if (i == (1 / FairShedder.DROP_RATE) - 1) {
                 sheddingTimes = i + 1;
                 log.info("drained, stop shed any more:{}", sheddingTimes);
             }
@@ -244,7 +244,7 @@ class WorkloadShedderTest extends BaseConcurrentTest {
         boolean everAdmitted = false;
         for (int i = 0; i < Integer.MAX_VALUE; i++) {
             // 未过载
-            shedder.predictWatermark(currentWindow, WorkloadShedder.GRADIENT_IDLE);
+            shedder.predictWatermark(currentWindow, FairShedder.GRADIENT_IDLE);
             if (lastLevel.equals(shedder.watermark())) {
                 admittingTimes = i + 1;
                 log.info("cannot admit any more:{}", admittingTimes);
@@ -279,7 +279,7 @@ class WorkloadShedderTest extends BaseConcurrentTest {
     @RepeatedTest(1)
     void simulateRpc() {
         FairSafeAdmissionController admissionController = (FairSafeAdmissionController) AdmissionController.getInstance("RPC");
-        WorkloadShedder shedder = admissionController.shedderOnQueue();
+        FairShedder shedder = admissionController.fairQueue();
         WorkloadPrioritySimulator generator = new WorkloadPrioritySimulator().simulateRpcWorkloadPriority(1 << 20);
         for (Map.Entry<WorkloadPriority, Integer> entry : generator) {
             for (int i = 0; i < entry.getValue(); i++) {
@@ -291,7 +291,7 @@ class WorkloadShedderTest extends BaseConcurrentTest {
     @RepeatedTest(1)
     void simulateMixedScenario() {
         FairSafeAdmissionController admissionController = (FairSafeAdmissionController) AdmissionController.getInstance("RPC");
-        WorkloadShedder shedder = admissionController.shedderOnQueue();
+        FairShedder shedder = admissionController.fairQueue();
         WorkloadPrioritySimulator generator = new WorkloadPrioritySimulator().simulateMixedWorkloadPriority(1 << 20);
         for (Map.Entry<WorkloadPriority, Integer> entry : generator) {
             for (int i = 0; i < entry.getValue(); i++) {
@@ -305,7 +305,7 @@ class WorkloadShedderTest extends BaseConcurrentTest {
     void adaptWatermark_dropMore_unbalanced(TestInfo testInfo) throws InterruptedException {
         //System.setProperty("workload.window.DEFAULT_TIME_CYCLE_MS", "50000000");
         FairSafeAdmissionController admissionController = (FairSafeAdmissionController) AdmissionController.getInstance("RPC");
-        WorkloadShedder shedder = admissionController.shedderOnQueue();
+        FairShedder shedder = admissionController.fairQueue();
         Map<Integer, Integer> P2Requests = ImmutableMap.of(
                 5, 2,
                 10, 20,
@@ -321,7 +321,7 @@ class WorkloadShedderTest extends BaseConcurrentTest {
         shedder.predictWatermark(shedder.currentWindow(), 0.6);
     }
 
-    private void injectWorkloads(WorkloadShedder shedder, Map<Integer, Integer> P2Requests) {
+    private void injectWorkloads(FairShedder shedder, Map<Integer, Integer> P2Requests) {
         Runnable task = () -> {
             List<Integer> priorities = new ArrayList<>(P2Requests.keySet());
             Collections.shuffle(priorities);
