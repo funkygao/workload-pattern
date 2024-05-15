@@ -20,6 +20,7 @@ public class SysloadAdaptive implements Sysload {
     private final int maxConcurrency;
     private final AtomicInteger requests = new AtomicInteger(0);
     private final AtomicInteger shed = new AtomicInteger(0);
+    private final AtomicInteger windowShed = new AtomicInteger(0); // 窗口内抛弃请求数
     private final AtomicLong windowLatency = new AtomicLong(0); // 1秒1个窗口
     private final AtomicInteger randomExhausted = new AtomicInteger(0);
     private final ConcurrentLinkedQueue<Long> acceptedRequestsTs = new ConcurrentLinkedQueue<>();
@@ -43,7 +44,7 @@ public class SysloadAdaptive implements Sysload {
 
         double qps = acceptedRequestsTs.size();
         double avgLatency = qps > 0 ? (double) windowLatency.get() / qps : 0;
-        windowLatency.set(0); // reset
+
 
         // 考虑到被抛弃的请求在减轻系统负载，我们使用实际处理的请求数量来计算负载因素
         double loadFactor = (qps / maxConcurrency) + (avgLatency / 1000.0);
@@ -57,7 +58,10 @@ public class SysloadAdaptive implements Sysload {
         log.info("cpu:{}, +rand:{}, qps:{}, req:{}, shed:{}, latency:{}",
                 String.format("%.2f", usage),
                 String.format("%.2f", usage - dynamicCpuUsage),
-                qps, requests(), shedded(), String.format("%.0f", avgLatency));
+                qps, requests(), windowShed.get(), String.format("%.0f", avgLatency));
+
+        windowLatency.set(0);
+        windowShed.set(0);
         return usage;
     }
 
@@ -66,7 +70,6 @@ public class SysloadAdaptive implements Sysload {
 
         double qps = acceptedRequestsTs.size();
         double avgLatency = qps > 0 ? (double) windowLatency.get() / qps : 0;
-        windowLatency.set(0); // reset
 
         // 引入权重因子
         double qpsWeight = 0.7; // QPS权重
@@ -92,7 +95,10 @@ public class SysloadAdaptive implements Sysload {
         log.info("cpu:{}, +rand:{}, qps:{}, req:{}, shed:{}, latency:{}",
                 String.format("%.2f", usage),
                 String.format("%.2f", usage - dynamicCpuUsage),
-                qps, requests(), shedded(), String.format("%.0f", avgLatency));
+                qps, requests(), windowShed.get(), String.format("%.0f", avgLatency));
+
+        windowLatency.set(0); // reset
+        windowShed.set(0);
         return usage;
     }
 
@@ -102,6 +108,7 @@ public class SysloadAdaptive implements Sysload {
 
     public void shed() {
         shed.incrementAndGet();
+        windowShed.incrementAndGet();
     }
 
     public void accept(long latencyMs) {

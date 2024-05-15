@@ -3,9 +3,12 @@ import matplotlib.pyplot as plt
 import sys
 from io import StringIO
 
-# 从标准输入读取日志数据
-log_data = sys.stdin.read()
+#=======
+# config
+#=======
+cpu_overload_threshold = 0.7
 
+log_data = sys.stdin.read()
 df = pd.read_csv(StringIO(log_data), sep=",", names=["datetime", "thread", "cpu_and_rand", "qps", "req", "shed", "latency"])
 
 # 处理数据
@@ -16,7 +19,7 @@ df["shed"] = df["shed"].apply(lambda x: int(x.split(":")[1]))
 df["qps"] = df["qps"].apply(lambda x: float(x.split(":")[1]))
 
 # 创建图表和轴，调整图表尺寸
-fig, ax1 = plt.subplots(figsize=(16, 6))  # 更宽且稍低的图表尺寸
+fig, ax1 = plt.subplots(figsize=(16, 6))
 
 color = 'tab:red'
 ax1.set_xlabel('Time (seconds)')
@@ -25,8 +28,7 @@ ax1.plot(df["seconds"], df["cpu"], label="CPU Usage", color=color)
 ax1.tick_params(axis='y', labelcolor=color)
 
 # 绘制CPU使用率超载阈值的辅助线
-threshold = 0.7  # 70% 的超载阈值
-ax1.axhline(y=threshold, color='red', linestyle='--', linewidth=2, label='Threshold (70%)')
+ax1.axhline(y=cpu_overload_threshold, color='red', linestyle='--', linewidth=2, label='Threshold')
 
 # 实例化第二个y轴，共享同一个x轴
 ax2 = ax1.twinx()
