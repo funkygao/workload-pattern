@@ -45,7 +45,6 @@ public class SysloadAdaptive implements Sysload {
         double qps = acceptedRequestsTs.size();
         double avgLatency = qps > 0 ? (double) windowLatency.get() / qps : 0;
 
-
         // 考虑到被抛弃的请求在减轻系统负载，我们使用实际处理的请求数量来计算负载因素
         double loadFactor = (qps / maxConcurrency) + (avgLatency / 1000.0);
         double dynamicCpuUsage = baseCpuUsage + loadFactor;
@@ -61,43 +60,6 @@ public class SysloadAdaptive implements Sysload {
                 qps, requests(), windowShed.get(), String.format("%.0f", avgLatency));
 
         windowLatency.set(0);
-        windowShed.set(0);
-        return usage;
-    }
-
-    private double cpuUsageV2() {
-        dropExpiredRequests();
-
-        double qps = acceptedRequestsTs.size();
-        double avgLatency = qps > 0 ? (double) windowLatency.get() / qps : 0;
-
-        // 引入权重因子
-        double qpsWeight = 0.7; // QPS权重
-        double latencyWeight = 0.3; // 延迟权重
-        double maxLatencyThreshold = 500; // 定义一个延迟阈值
-
-        // 计算负载因子
-        double normalizedQps = qps / maxConcurrency;
-        double normalizedLatency = Math.min(avgLatency / maxLatencyThreshold, 1);
-
-        // 使用非线性函数调整权重
-        double loadFactor = (Math.pow(normalizedQps, qpsWeight) + Math.pow(normalizedLatency, latencyWeight)) / (qpsWeight + latencyWeight);
-
-        // 计算动态CPU使用率
-        double dynamicCpuUsage = baseCpuUsage + loadFactor;
-        double usage = Math.min(1.0, dynamicCpuUsage);
-
-        // 添加随机性以模拟真实环境的波动，但是确保它不会太极端
-        if (usage < 1.0) {
-            usage += ThreadLocalRandom.current().nextDouble(0, (1.0 - usage) * 0.1); // 限制随机性的最大影响
-        }
-
-        log.info("cpu:{}, +rand:{}, qps:{}, req:{}, shed:{}, latency:{}",
-                String.format("%.2f", usage),
-                String.format("%.2f", usage - dynamicCpuUsage),
-                qps, requests(), windowShed.get(), String.format("%.0f", avgLatency));
-
-        windowLatency.set(0); // reset
         windowShed.set(0);
         return usage;
     }
