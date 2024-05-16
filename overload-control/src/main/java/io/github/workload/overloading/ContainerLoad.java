@@ -47,7 +47,7 @@ class ContainerLoad implements Sysload {
     }
 
     static void stop() {
-        log.info("stopping...");
+        log.info("stopping timer executor...");
         try {
             timer.shutdown();
             if (!timer.awaitTermination(3, TimeUnit.SECONDS)) {

@@ -14,8 +14,8 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
 
 @ThreadSafe
-public class SysloadAdaptive implements Sysload {
-    private static final Logger log = LoggerFactory.getLogger(SysloadAdaptive.class);
+public class SysloadAdaptiveSimulator implements Sysload {
+    private static final Logger log = LoggerFactory.getLogger(SysloadAdaptiveSimulator.class);
     private static final long MS_IN_SEC = 1000;
 
     private final double baseCpuUsage;
@@ -41,11 +41,11 @@ public class SysloadAdaptive implements Sysload {
      */
     private final ValueSmoother smoother = ValueSmoother.ofEMA(0.25);
 
-    public SysloadAdaptive() {
+    public SysloadAdaptiveSimulator() {
         this(0.2, 0, 200, 0.75);
     }
 
-    public SysloadAdaptive(double baseCpuUsage, double exhaustedFactor, int maxConcurrency, double cpuOverloadThreshold) {
+    public SysloadAdaptiveSimulator(double baseCpuUsage, double exhaustedFactor, int maxConcurrency, double cpuOverloadThreshold) {
         this.baseCpuUsage = baseCpuUsage;
         this.exhaustedFactor = exhaustedFactor;
         this.maxConcurrency = maxConcurrency;
@@ -152,7 +152,7 @@ public class SysloadAdaptive implements Sysload {
         windowShed.incrementAndGet();
     }
 
-    public void accept(long latencyMs) {
+    public void admit(long latencyMs) {
         windowLatency.addAndGet(latencyMs);
         inflight.decrementAndGet();
         acceptedRequestsTs.add(System.currentTimeMillis());
