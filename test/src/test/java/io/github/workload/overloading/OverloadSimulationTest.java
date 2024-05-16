@@ -33,9 +33,8 @@ class OverloadSimulationTest extends BaseConcurrentTest {
         setLogLevel(Level.INFO);
 
         Runnable businessThread = () -> {
-            WorkloadPrioritySimulator workloadGenerator = generateRequests(1 << 13, 3); // 请求数量3倍范围内不同
-            Iterator<Integer> steepLatency = new LatencySimulator(20, 600).simulate(workloadGenerator.totalRequests(), 0.5).iterator();
-            List<WorkloadPriority> priorities = shuffle(workloadGenerator);
+            List<WorkloadPriority> priorities = generateWorkloads(1 << 13, 3);
+            Iterator<Integer> steepLatency = new LatencySimulator(20, 600).simulate(priorities.size(), 0.5).iterator();
             for (int i = 0; i < priorities.size(); i++) {
                 final WorkloadPriority priority = priorities.get(i);
                 sysload.injectRequest();
@@ -51,7 +50,7 @@ class OverloadSimulationTest extends BaseConcurrentTest {
                 if (sysload.threadPoolExhausted()) {
                     http.feedback(AdmissionController.Feedback.ofOverloaded());
                 } else {
-                    http.feedback(AdmissionController.Feedback.ofQueuedNs(latencyMs * WindowConfig.NS_PER_MS));
+                    http.feedback(AdmissionController.Feedback.ofQueuedNs(latencyMs * WindowConfig.NS_PER_MS / 10));
                 }
 
                 executeWorkload(admit, latencyMs);
@@ -62,28 +61,25 @@ class OverloadSimulationTest extends BaseConcurrentTest {
         log.info("requested:{}, shed:{}, percent:{}", sysload.requests(), sysload.shedded(), (double) sysload.shedded() * 100d / sysload.requests());
     }
 
-    private List<WorkloadPriority> shuffle(WorkloadPrioritySimulator workloadGenerator) {
-        List<WorkloadPriority> priorities = new ArrayList<>(workloadGenerator.totalRequests());
-        for (Map.Entry<WorkloadPriority, Integer> workload : workloadGenerator) {
-            for (int i = 0; i < workload.getValue(); i++) {
-                priorities.add(workload.getKey());
-            }
-        }
-        Collections.shuffle(priorities); // 模拟请求的正态分布
-        return priorities;
-    }
-
     private void executeWorkload(boolean admit, long ms) {
         if (admit) {
             sleep(ms);
         }
     }
 
-    private WorkloadPrioritySimulator generateRequests(int N, int multiplier) {
-        WorkloadPrioritySimulator simulator = new WorkloadPrioritySimulator();
-        final int requests = ThreadLocalRandom.current().nextInt(N, N * multiplier);
-        simulator.simulateHttpWorkloadPriority(requests);
-        log.info("generate:{} -> {}, priorities:{}", N, simulator.totalRequests(), simulator.size());
-        return simulator;
+    private List<WorkloadPriority> generateWorkloads(int N, int multiplier) {
+        N = ThreadLocalRandom.current().nextInt(N, N * multiplier);
+        // FIXME 生成订单优先级都一样的数量
+        WorkloadPrioritySimulator simulator = new WorkloadPrioritySimulator().simulateHttpWorkloadPriority(N);
+        log.info("generate:{}, priorities:{}", N, simulator.size());
+
+        List<WorkloadPriority> priorities = new ArrayList<>(simulator.totalRequests());
+        for (Map.Entry<WorkloadPriority, Integer> workload : simulator) {
+            for (int i = 0; i < workload.getValue(); i++) {
+                priorities.add(workload.getKey());
+            }
+        }
+        Collections.shuffle(priorities); // 模拟请求结构均匀分布
+        return priorities;
     }
 }

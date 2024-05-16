@@ -63,10 +63,11 @@ public class WorkloadPrioritySimulator implements Iterable<Map.Entry<WorkloadPri
         return this;
     }
 
-    public void simulateHttpWorkloadPriority(int N) {
+    public WorkloadPrioritySimulator simulateHttpWorkloadPriority(int N) {
         for (int i = 0; i < N; i++) {
             increment(WorkloadPrioritizer.randomWeb());
         }
+        return this;
     }
 
     /**
