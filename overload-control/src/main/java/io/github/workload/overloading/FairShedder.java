@@ -115,16 +115,13 @@ abstract class FairShedder {
             return;
         }
 
+        int round = 0;
         while (descendingEntries.hasNext()) {
             final Map.Entry<Integer, AtomicInteger> entry = descendingEntries.next();
             final int candidateP = entry.getKey();
             final int candidateRequested = entry.getValue().get();
             accumulatedToDrop += candidateRequested;
-            if (log.isTraceEnabled()) {
-                log.trace("[{}] shed candidate(P:{} requested:{}), window admitted:{}, accumulated:{}/{}",
-                        name, candidateP, candidateRequested, admitted, accumulatedToDrop, expectedToDrop);
-            }
-
+            round++;
             if (accumulatedToDrop >= expectedToDrop) {
                 double errorRate = (double) (accumulatedToDrop - expectedToDrop) / expectedToDrop;
                 int targetP;
@@ -139,14 +136,14 @@ abstract class FairShedder {
                     errorRate = (double) (accumulatedToDrop - expectedToDrop) / expectedToDrop;
                 }
                 watermark.updateAndGet(curr -> curr.deriveFrom(targetP));
-                log.info("[{}] grad:{} Updating watermark for shedMore: {} -> {}, drop {}/{} err:{}", name, gradient, currentWatermark.simpleString(), watermark().simpleString(), accumulatedToDrop, expectedToDrop, errorRate);
+                log.info("[{}] grad:{}, round:{} Updating watermark for shedMore: {} -> {}, drop {}/{} err:{}", name, gradient, round, currentWatermark.simpleString(), watermark().simpleString(), accumulatedToDrop, expectedToDrop, errorRate);
                 return;
             }
 
             if (!descendingEntries.hasNext()) {
                 // 还不够扣呢，但已经没有可扣的了：we should never shed all
                 watermark.updateAndGet(curr -> curr.deriveFrom(candidateP));
-                log.info("[{}] grad:{} Updating watermark for shedMore: {} -> {}", name, gradient, currentWatermark.simpleString(), watermark().simpleString());
+                log.info("[{}] grad:{}, round:{} Updating watermark for shedMore: {} -> {}", name, gradient, round, currentWatermark.simpleString(), watermark().simpleString());
                 return;
             }
         }
@@ -165,7 +162,7 @@ abstract class FairShedder {
         final int expectedToAdmit = (int) (RECOVER_RATE * admitted);
         if (expectedToAdmit == 0) {
             watermark.set(WorkloadPriority.ofLowest());
-            log.info("[{}] grad:{} idle window admit all: {}/{}", name, gradient, admitted, requested);
+            log.info("[{}] grad:{} Updating watermark for admitMore, idle window admit all: {}/{}", name, gradient, admitted, requested);
             return;
         }
 
@@ -173,27 +170,25 @@ abstract class FairShedder {
         final Iterator<Map.Entry<Integer, AtomicInteger>> ascendingP = lastWindow.histogram().tailMap(currentP, false).entrySet().iterator();
         if (!ascendingP.hasNext()) {
             watermark.set(WorkloadPriority.ofLowest());
-            log.info("[{}] grad:{} beyond tail of histogram, admit all: {}/{}", name, gradient, admitted, requested);
+            log.info("[{}] grad:{} Updating watermark for admitMore, beyond tail of histogram, admit all: {}/{}", name, gradient, admitted, requested);
             return;
         }
 
+        int round = 0;
         while (ascendingP.hasNext()) {
             final Map.Entry<Integer, AtomicInteger> entry = ascendingP.next();
             final int candidateP = entry.getKey();
             final int candidateRequested = entry.getValue().get();
             accumulatedToAdmit += candidateRequested;
-            if (log.isTraceEnabled()) {
-                log.trace("[{}] admit candidate(P:{} requested:{}), window admitted:{}, accumulated:{}/{}", name, candidateP, candidateRequested, admitted, accumulatedToAdmit, expectedToAdmit);
-            }
-
+            round++;
             if (accumulatedToAdmit >= expectedToAdmit) { // TODO error rate
                 watermark.updateAndGet(curr -> curr.deriveFrom(candidateP));
-                log.info("[{}] grad:{} Updating watermark for admitMore: {} -> {}, admit {}/{}", name, gradient, currentWatermark.simpleString(), watermark().simpleString(), accumulatedToAdmit, expectedToAdmit);
+                log.info("[{}] grad:{}, round:{} Updating watermark for admitMore: {} -> {}, admit {}/{}", name, gradient, round, currentWatermark.simpleString(), watermark().simpleString(), accumulatedToAdmit, expectedToAdmit);
                 return;
             }
 
             if (!ascendingP.hasNext()) {
-                log.info("[{}] grad:{} histogram tail reached but still not enough for admit more: happy to admit all", name, gradient);
+                log.info("[{}] grad:{}, round:{} histogram tail reached but still not enough for admit more: happy to admit all", name, gradient, round);
                 watermark.set(WorkloadPriority.ofLowest());
                 return;
             }
