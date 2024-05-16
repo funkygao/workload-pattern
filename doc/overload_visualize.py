@@ -6,7 +6,7 @@ from io import StringIO
 #=======
 # config
 #=======
-cpu_overload_threshold = 80  # 以百分比表示
+cpu_overload_threshold = 75  # 以百分比表示
 
 log_data = sys.stdin.read()
 
