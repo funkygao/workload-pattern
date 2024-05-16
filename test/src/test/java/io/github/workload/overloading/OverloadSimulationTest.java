@@ -28,11 +28,12 @@ class OverloadSimulationTest extends BaseConcurrentTest {
     @EnabledIfSystemProperty(named = "simulate", matches = "true")
     @DisplayName("HTTP准入，请求数量没有大起大落")
     void normal_case_http_only() {
-        System.setProperty(Heuristic.CPU_USAGE_UPPER_BOUND, "0.7");
+        final double cpuOverloadThreshold = 0.8;
+        System.setProperty(Heuristic.CPU_USAGE_UPPER_BOUND, String.valueOf(cpuOverloadThreshold));
         setLogLevel(Level.INFO);
 
         final FairSafeAdmissionController http = (FairSafeAdmissionController) AdmissionController.getInstance("HTTP");
-        final SysloadAdaptive sysload = new SysloadAdaptive(0.05, 0.002, 200);
+        final SysloadAdaptive sysload = new SysloadAdaptive(0.05, 0.002, 400, cpuOverloadThreshold);
         FairSafeAdmissionController.fairCpu().setSysload(sysload);
 
         final int N = 1 << 10;

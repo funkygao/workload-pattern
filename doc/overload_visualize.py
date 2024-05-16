@@ -6,7 +6,7 @@ from io import StringIO
 #=======
 # config
 #=======
-cpu_overload_threshold = 0.7 * 100  # 以百分比表示
+cpu_overload_threshold = 80  # 以百分比表示
 
 log_data = sys.stdin.read()
 
@@ -41,7 +41,7 @@ ax1.set_xlabel('Time (seconds)')
 ax1.set_ylabel('CPU Usage (%)')
 ax1.plot(df["seconds"], df["cpu"], label="CPU Usage", color='red', marker='o', markevery=50, linestyle='--', alpha=0.2)  # CPU Usage为红色，添加标记，增加标记间隔
 ax1.plot(df["seconds"], df["smooth"], label="Smoothed (Used for Overload)", color='blue')
-ax1.axhline(y=cpu_overload_threshold, color='gray', linestyle='--', linewidth=2, label='CPU Threshold (70%)')  # Threshold为灰色
+ax1.axhline(y=cpu_overload_threshold, color='gray', linestyle='--', linewidth=2, label='CPU Threshold')  # Threshold为灰色
 
 # 创建第二个y轴
 ax1_shed = ax1.twinx()

@@ -3,6 +3,7 @@ package io.github.workload.overloading.mock;
 import io.github.workload.Sysload;
 import io.github.workload.annotations.ThreadSafe;
 import io.github.workload.metrics.smoother.ValueSmoother;
+import lombok.Setter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -19,6 +20,10 @@ public class SysloadAdaptive implements Sysload {
 
     private final double baseCpuUsage;
     private final int maxConcurrency;
+    private final double cpuOverloadThreshold;
+
+    @Setter
+    private String algo = "v2";
 
     private final AtomicInteger requests = new AtomicInteger(0); // 总请求数
     private final AtomicInteger shed = new AtomicInteger(0); // 累计抛弃请求数
@@ -37,17 +42,17 @@ public class SysloadAdaptive implements Sysload {
     private final ValueSmoother smoother = ValueSmoother.ofEMA(0.25);
 
     public SysloadAdaptive() {
-        this(0.2, 0, 200);
+        this(0.2, 0, 200, 0.75);
     }
 
-    public SysloadAdaptive(double baseCpuUsage, double exhaustedFactor, int maxConcurrency) {
+    public SysloadAdaptive(double baseCpuUsage, double exhaustedFactor, int maxConcurrency, double cpuOverloadThreshold) {
         this.baseCpuUsage = baseCpuUsage;
         this.exhaustedFactor = exhaustedFactor;
         this.maxConcurrency = maxConcurrency;
+        this.cpuOverloadThreshold = cpuOverloadThreshold;
     }
 
-    @Override
-    public double cpuUsage() {
+    private double cpuUsage_v1() {
         final boolean threadExhausted = threadPoolExhausted();
         final double qps = acceptedRequestsTs.size(); // shed 不会计算在内
         final double avgLatency = qps > 0 ? (double) windowLatency.get() / qps : 0;
@@ -71,6 +76,69 @@ public class SysloadAdaptive implements Sysload {
         windowLatency.set(0);
         windowShed.set(0);
         return smoothed;
+    }
+
+    private double cpuUsage_v2() {
+        // 检查线程池是否耗尽，这可能影响服务能力和CPU使用率的计算
+        final boolean threadExhausted = threadPoolExhausted();
+
+        // 计算QPS（每秒请求数），不包括被shed（丢弃）的请求
+        final double qps = acceptedRequestsTs.size();
+
+        // 计算平均延迟，如果QPS为0，则延迟为0
+        final double avgLatency = qps > 0 ? (double) windowLatency.get() / qps : 0;
+
+        // 计算负载因子，这是一个介于0和1之间的数值，反映了系统负载的程度
+        // 负载因子是基于QPS和平均延迟相对于最大并发数的比例
+        // 定义权重常量，用于平衡QPS和平均延迟在负载因子计算中的影响
+        final double QPS_WEIGHT = 0.5;
+        final double LATENCY_WEIGHT = 1 - QPS_WEIGHT;
+        final double loadFactor = ((qps / maxConcurrency) * QPS_WEIGHT) + ((avgLatency / 1000.0) * LATENCY_WEIGHT);
+
+        // 计算动态CPU使用率，它基于基础CPU使用率和负载因子
+        final double dynamicCpuUsage = baseCpuUsage + loadFactor;
+
+        // 确保CPU使用率不会超过100%
+        double usage = Math.min(1.0, dynamicCpuUsage);
+
+        // 根据当前的CPU使用率调整随机增量的大小
+        // 当CPU使用率较高时，我们减少随机增量以避免过度波动
+        double maxRandomIncrement = 1.0 - usage;
+        if (usage > cpuOverloadThreshold) { // 当CPU使用率超过阈值时，减少随机增量的上限
+            maxRandomIncrement *= 0.5;
+        }
+
+        // 在当前的动态CPU使用率基础上添加随机增量，模拟真实环境中的波动
+        usage = dynamicCpuUsage + ThreadLocalRandom.current().nextDouble(0, maxRandomIncrement);
+
+        // 使用平滑器对CPU使用率进行平滑处理，以避免短期内的剧烈波动
+        final double smoothed = smoother.update(usage).smoothedValue();
+
+        // 记录日志，包括CPU使用率、增量、平滑值、QPS等关键指标
+        // 这有助于调试和监控系统的表现
+        log.info("cpu:{}, +rand:{}, smooth:{}, qps:{}, req:{}, shed:{}, latency:{}, inflight:{}, exhausted:{}",
+                String.format("%.2f", usage),
+                String.format("%.2f", usage - dynamicCpuUsage),
+                String.format("%.2f", smoothed),
+                qps, requests(), windowShed.get(), String.format("%.0f", avgLatency),
+                inflight.get(), threadExhausted);
+
+        // 重置延迟和丢弃请求的计数器，为下一次计算准备
+        windowLatency.set(0);
+        windowShed.set(0);
+
+        // 返回平滑后的CPU使用率
+        return smoothed;
+    }
+
+    @Override
+    public double cpuUsage() {
+        switch (algo) {
+            case "v2":
+                return cpuUsage_v2();
+            default:
+                return cpuUsage_v1();
+        }
     }
 
     public void injectRequest() {
