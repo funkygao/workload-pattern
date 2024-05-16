@@ -24,17 +24,16 @@ df["qps"] = df["log"].str.extract(r"qps:(\d+\.\d+)")[0].astype(float)
 df["req"] = df["log"].str.extract(r"req:(\d+)")[0].astype(int)
 df["shed"] = df["log"].str.extract(r"shed:(\d+)")[0].astype(int)
 df["latency"] = df["log"].str.extract(r"latency:(\d+)")[0].astype(int)
-df["inflight"] = df["log"].str.extract(r"inflight:(\d+)")[0].astype(int)
 df["exhausted"] = df["log"].str.extract(r"exhausted:(\w+)")[0] == 'true'
 
-# 创建三个图表
-fig, (ax1, ax2, ax3) = plt.subplots(3, 1, figsize=(16, 10))  # 增加第三个图表
+# 创建两个图表
+fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(16, 10))
 
 # 第一个图表：CPU Usage, Smooth, Shed
 ax1.set_xlabel('Time (seconds)')
 ax1.set_ylabel('CPU Usage (%)')
 ax1.plot(df["seconds"], df["cpu"], label="CPU Usage", color='red', marker='o', markevery=50, linestyle='--', alpha=0.2)  # CPU Usage为红色，添加标记，增加标记间隔
-ax1.plot(df["seconds"], df["smooth"], label="Smooth (Used for Overload)", color='blue')
+ax1.plot(df["seconds"], df["smooth"], label="Smoothed (Used for Overload)", color='blue')
 ax1.axhline(y=cpu_overload_threshold, color='gray', linestyle='--', linewidth=2, label='CPU Threshold (70%)')  # Threshold为灰色
 
 # 创建第二个y轴
@@ -47,30 +46,21 @@ ax1_shed.tick_params(axis='y', labelcolor='tab:green')
 ax1.legend(loc="upper left")
 ax1_shed.legend(loc="upper right")
 
-# 第二个图表：QPS, Inflight
+# 第二个图表：QPS and Latency with dual y-axis
 ax2.set_xlabel('Time (seconds)')
 ax2.set_ylabel('QPS', color='tab:blue')
 ax2.plot(df["seconds"], df["qps"], label="QPS", color='tab:blue')
 ax2.tick_params(axis='y', labelcolor='tab:blue')
 
 # 创建第二个y轴
-ax2_inflight = ax2.twinx()
-ax2_inflight.set_ylabel('Inflight Requests', color='tab:purple')
-ax2_inflight.plot(df["seconds"], df["inflight"], label="Inflight Requests", color='tab:purple', linestyle='--')
-ax2_inflight.tick_params(axis='y', labelcolor='tab:purple')
+ax2_latency = ax2.twinx()
+ax2_latency.set_ylabel('Latency (ms)', color='tab:red')
+ax2_latency.plot(df["seconds"], df["latency"], label="Latency", color='tab:red')
+ax2_latency.tick_params(axis='y', labelcolor='tab:red')
 
 # 第二个图表的图例
 ax2.legend(loc="upper left")
-ax2_inflight.legend(loc="upper right")
-
-# 第三个图表：Latency
-ax3.set_xlabel('Time (seconds)')
-ax3.set_ylabel('Latency (ms)', color='tab:red')
-ax3.plot(df["seconds"], df["latency"], label="Latency", color='tab:red')
-ax3.tick_params(axis='y', labelcolor='tab:red')
-
-# 第三个图表的图例
-ax3.legend(loc="upper left")
+ax2_latency.legend(loc="upper right")
 
 # 图表设置
 fig.tight_layout()
