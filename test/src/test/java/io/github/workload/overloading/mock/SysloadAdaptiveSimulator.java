@@ -4,6 +4,7 @@ import io.github.workload.Sysload;
 import io.github.workload.annotations.ThreadSafe;
 import io.github.workload.metrics.smoother.ValueSmoother;
 import lombok.Setter;
+import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -14,6 +15,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
 
 @ThreadSafe
+@Slf4j
 public class SysloadAdaptiveSimulator implements Sysload {
     private static final Logger log = LoggerFactory.getLogger(SysloadAdaptiveSimulator.class);
     private static final long MS_IN_SEC = 1000;
@@ -50,6 +52,7 @@ public class SysloadAdaptiveSimulator implements Sysload {
         this.exhaustedFactor = exhaustedFactor;
         this.maxConcurrency = maxConcurrency;
         this.cpuOverloadThreshold = cpuOverloadThreshold;
+        log.info("baseCpuUsage:{}, exhaustedFactor:{}, maxConcurrency:{}, cpuOverload:{}", baseCpuUsage, exhaustedFactor, maxConcurrency, cpuOverloadThreshold);
     }
 
     private double cpuUsage_v1() {

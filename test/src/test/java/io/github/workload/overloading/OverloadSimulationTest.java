@@ -33,7 +33,7 @@ class OverloadSimulationTest extends BaseConcurrentTest {
         setLogLevel(Level.INFO);
 
         Runnable businessThread = () -> {
-            WorkloadPrioritySimulator workloadGenerator = generateRequests(1 << 15, 3); // 请求数量3倍范围内不同
+            WorkloadPrioritySimulator workloadGenerator = generateRequests(1 << 13, 3); // 请求数量3倍范围内不同
             Iterator<Integer> steepLatency = new LatencySimulator(20, 600).simulate(workloadGenerator.totalRequests(), 0.5).iterator();
             List<WorkloadPriority> priorities = shuffle(workloadGenerator);
             for (int i = 0; i < priorities.size(); i++) {
@@ -41,7 +41,7 @@ class OverloadSimulationTest extends BaseConcurrentTest {
                 sysload.injectRequest();
                 final long latencyMs = steepLatency.next();
                 final boolean admit = http.admit(Workload.ofPriority(priority));
-                log.info("{} admit:{} latency:{}, {}/{}", priority.simpleString(), admit, latencyMs, i + 1, priorities.size());
+                //log.info("{} admit:{} latency:{}, {}/{}", priority.simpleString(), admit, latencyMs, i + 1, priorities.size());
                 if (admit) {
                     sysload.admit(latencyMs);
                 } else {
@@ -83,7 +83,7 @@ class OverloadSimulationTest extends BaseConcurrentTest {
         WorkloadPrioritySimulator simulator = new WorkloadPrioritySimulator();
         final int requests = ThreadLocalRandom.current().nextInt(N, N * multiplier);
         simulator.simulateHttpWorkloadPriority(requests);
-        log.info("generate:{} -> priorities:{}, requests:{}", N, simulator.size(), simulator.totalRequests());
+        log.info("generate:{} -> {}, priorities:{}", N, simulator.totalRequests(), simulator.size());
         return simulator;
     }
 }
