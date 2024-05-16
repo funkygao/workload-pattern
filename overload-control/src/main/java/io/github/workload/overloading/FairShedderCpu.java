@@ -37,10 +37,17 @@ class FairShedderCpu extends FairShedder {
 
     @Override
     protected double overloadGradient(long nowNs, CountAndTimeWindowState snapshot) {
-        final double cpuUsage = smoothedCpuUsage();
-        final double gradient = gradient(cpuUsage, cpuUsageUpperBound);
+        double raw = sysload.cpuUsage();
+        if (raw < 0) {
+            raw = 0.0d;
+        }
+        if (raw > 1) {
+            raw = 1.0d;
+        }
+        final double smoothed = valueSmoother.update(raw).smoothedValue();
+        final double gradient = gradient(smoothed, cpuUsageUpperBound);
         if (isOverloaded(gradient)) {
-            log.warn("smoothed CPU BUSY:{} > {}, grad:{}", cpuUsage, cpuUsageUpperBound, gradient);
+            log.warn("smoothed CPU BUSY:{} > {}, grad:{}, raw:{}", smoothed, cpuUsageUpperBound, gradient, raw);
         }
         return gradient;
     }
@@ -59,18 +66,5 @@ class FairShedderCpu extends FairShedder {
 
         log.info("sysload: {} -> {}", this.sysload.getClass().getSimpleName(), sysload.getClass().getSimpleName());
         this.sysload = sysload;
-    }
-
-    private double smoothedCpuUsage() {
-        double cpuUsage = sysload.cpuUsage();
-        if (cpuUsage < 0) {
-            cpuUsage = 0.0d;
-        }
-        if (cpuUsage > 1) {
-            cpuUsage = 1.0d;
-        }
-        double smoothed = valueSmoother.update(cpuUsage).smoothedValue();
-        log.debug("cpu usage:{}, smoothed:{}", cpuUsage, smoothed);
-        return smoothed;
     }
 }

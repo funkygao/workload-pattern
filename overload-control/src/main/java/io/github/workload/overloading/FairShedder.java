@@ -19,6 +19,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * How to shed excess workload based on {@link WorkloadPriority}.
+ * TODO 所有更改 watermark 的日志，容易识别
  */
 @Slf4j
 @ThreadSafe
