@@ -29,6 +29,13 @@ df["exhausted"] = df["log"].str.extract(r"exhausted:(\w+)")[0] == 'true'
 # 创建两个图表
 fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(16, 10))
 
+# 绘图函数，返回线条对象
+def plot_with_legend(ax, x, y, label, color, marker=None, linestyle='-', linewidth=2, alpha=1.0):
+    line, = ax.plot(x, y, label=label, color=color, marker=marker, linestyle=linestyle, linewidth=linewidth, alpha=alpha)
+    line.set_picker(5)  # 5 points tolerance for clicking
+    return line
+
+
 # 第一个图表：CPU Usage, Smooth, Shed
 ax1.set_xlabel('Time (seconds)')
 ax1.set_ylabel('CPU Usage (%)')
@@ -64,6 +71,25 @@ ax2_latency.legend(loc="upper right")
 
 # 图表设置
 fig.tight_layout()
+
+# 图例点击事件处理函数
+def on_pick(event):
+    legline = event.artist
+    origline = legline_to_origline[legline]
+    vis = not origline.get_visible()
+    origline.set_visible(vis)
+    legline.set_alpha(1.0 if vis else 0.2)
+    fig.canvas.draw()
+
+# 创建图例到原始线条的映射
+legline_to_origline = {}
+for ax in [ax1, ax2, ax1_shed, ax2_latency]:
+    for legline, origline in zip(ax.get_legend().get_lines(), ax.get_lines()):
+        legline.set_picker(5)  # 5 pts tolerance for clicks
+        legline_to_origline[legline] = origline
+
+# 连接事件处理函数
+fig.canvas.mpl_connect('pick_event', on_pick)
 
 plt.show()
 
