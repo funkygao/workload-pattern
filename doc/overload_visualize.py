@@ -33,14 +33,14 @@ fig, (ax1, ax2, ax3) = plt.subplots(3, 1, figsize=(16, 10))  # 增加第三个�
 # 第一个图表：CPU Usage, Smooth, Shed
 ax1.set_xlabel('Time (seconds)')
 ax1.set_ylabel('CPU Usage (%)')
-ax1.plot(df["seconds"], df["cpu"], label="CPU Usage")
-ax1.plot(df["seconds"], df["smooth"], label="Smooth (Used for Overload)", linestyle='--')
-ax1.axhline(y=cpu_overload_threshold, color='gray', linestyle='--', linewidth=1, label='Threshold (70%)')
+ax1.plot(df["seconds"], df["cpu"], label="CPU Usage", color='red', marker='o', markevery=50, linestyle='--', alpha=0.2)  # CPU Usage为红色，添加标记，增加标记间隔
+ax1.plot(df["seconds"], df["smooth"], label="Smooth (Used for Overload)", color='blue')
+ax1.axhline(y=cpu_overload_threshold, color='gray', linestyle='--', linewidth=2, label='CPU Threshold (70%)')  # Threshold为灰色
 
 # 创建第二个y轴
 ax1_shed = ax1.twinx()
 ax1_shed.set_ylabel('Shed Requests', color='tab:green')
-ax1_shed.plot(df["seconds"], df["shed"], label="Shed Requests", color='tab:green', linestyle=':')
+ax1_shed.plot(df["seconds"], df["shed"], label="Shed Requests", color='tab:green')
 ax1_shed.tick_params(axis='y', labelcolor='tab:green')
 
 # 第一个图表的图例
