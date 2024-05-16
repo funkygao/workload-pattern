@@ -1,6 +1,6 @@
 package io.github.workload.metrics.smoother;
 
-import io.github.workload.BaseConcurrentTest;
+import io.github.workload.BaseTest;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -8,7 +8,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-class SimpleMovingAverageTest extends BaseConcurrentTest {
+class SimpleMovingAverageTest extends BaseTest {
 
     @Test
     void badCase() {

@@ -13,8 +13,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.function.Supplier;
 
-public abstract class BaseConcurrentTest {
-    protected final Logger log = LoggerFactory.getLogger(getClass());
+public abstract class BaseTest {
+    protected final Logger log = LoggerFactory.getLogger(BaseTest.class);
     protected final double DELTA = 1e-15; // 用于比较double value的误差
 
     protected static final int THREAD_COUNT = Runtime.getRuntime().availableProcessors() * 2;

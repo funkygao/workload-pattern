@@ -1,6 +1,6 @@
 package io.github.workload.metrics.sliding;
 
-import io.github.workload.BaseConcurrentTest;
+import io.github.workload.BaseTest;
 import org.apache.logging.log4j.Level;
 import org.junit.jupiter.api.RepeatedTest;
 import org.junit.jupiter.api.Test;
@@ -9,7 +9,7 @@ import java.util.concurrent.ThreadLocalRandom;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-class SlidingTimeWindowTest extends BaseConcurrentTest {
+class SlidingTimeWindowTest extends BaseTest {
 
     @Test
     void demo() {

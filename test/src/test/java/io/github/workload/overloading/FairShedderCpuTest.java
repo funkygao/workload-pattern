@@ -1,6 +1,6 @@
 package io.github.workload.overloading;
 
-import io.github.workload.BaseConcurrentTest;
+import io.github.workload.BaseTest;
 import io.github.workload.helper.CpuStressLoader;
 import io.github.workload.metrics.smoother.ValueSmoother;
 import io.github.workload.overloading.mock.SysloadAdaptiveSimulator;
@@ -9,7 +9,7 @@ import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-class FairShedderCpuTest extends BaseConcurrentTest {
+class FairShedderCpuTest extends BaseTest {
 
     @AfterEach
     void cleanup() {

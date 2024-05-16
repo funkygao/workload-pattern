@@ -1,9 +1,9 @@
 package io.github.workload.simulate;
 
-import io.github.workload.BaseConcurrentTest;
+import io.github.workload.BaseTest;
 import org.junit.jupiter.api.Test;
 
-class LatencySimulatorTest extends BaseConcurrentTest {
+class LatencySimulatorTest extends BaseTest {
     
     @Test
     void basic() {

@@ -1,7 +1,7 @@
 package io.github.workload.overloading;
 
 import com.google.common.collect.ImmutableMap;
-import io.github.workload.BaseConcurrentTest;
+import io.github.workload.BaseTest;
 import io.github.workload.WorkloadPriority;
 import io.github.workload.metrics.tumbling.CountAndTimeWindowState;
 import io.github.workload.metrics.tumbling.WindowConfig;
@@ -18,7 +18,7 @@ import java.util.concurrent.ConcurrentSkipListMap;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-class FairShedderTest extends BaseConcurrentTest {
+class FairShedderTest extends BaseTest {
 
     @Test
     void ConcurrentSkipListMap_headMap() {

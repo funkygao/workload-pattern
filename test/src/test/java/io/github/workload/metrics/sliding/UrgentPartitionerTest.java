@@ -1,13 +1,13 @@
 package io.github.workload.metrics.sliding;
 
-import io.github.workload.BaseConcurrentTest;
+import io.github.workload.BaseTest;
 import org.junit.jupiter.api.RepeatedTest;
 import org.junit.jupiter.api.parallel.Execution;
 import org.junit.jupiter.api.parallel.ExecutionMode;
 
 import java.util.concurrent.ThreadLocalRandom;
 
-class UrgentPartitionerTest extends BaseConcurrentTest {
+class UrgentPartitionerTest extends BaseTest {
 
     private final AdaptiveWindow window = new AdaptiveWindow(5, 60 * 1000);
 

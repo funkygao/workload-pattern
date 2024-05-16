@@ -1,11 +1,11 @@
 package io.github.workload.aqm;
 
-import io.github.workload.BaseConcurrentTest;
+import io.github.workload.BaseTest;
 import org.junit.jupiter.api.Test;
 
 import java.util.concurrent.ThreadLocalRandom;
 
-class AIMDTest extends BaseConcurrentTest {
+class AIMDTest extends BaseTest {
 
     @Test
     void demo() {

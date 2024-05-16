@@ -149,7 +149,7 @@ public class SysloadAdaptiveSimulator implements Sysload {
         inflight.incrementAndGet();
     }
 
-    public void shed() {
+    public void shed(long latencyMs) {
         shed.incrementAndGet();
         inflight.decrementAndGet();
         windowShed.incrementAndGet();

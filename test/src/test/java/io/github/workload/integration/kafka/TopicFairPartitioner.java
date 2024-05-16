@@ -1,6 +1,6 @@
 package io.github.workload.integration.kafka;
 
-import io.github.workload.BaseConcurrentTest;
+import io.github.workload.BaseTest;
 import io.github.workload.helper.RandomUtil;
 import io.github.workload.WorkloadPriority;
 import io.github.workload.metrics.tumbling.CountRolloverStrategy;
@@ -9,7 +9,7 @@ import io.github.workload.metrics.tumbling.TumblingWindow;
 import io.github.workload.metrics.tumbling.WindowConfig;
 import org.junit.jupiter.api.Test;
 
-class TopicFairPartitioner extends BaseConcurrentTest {
+class TopicFairPartitioner extends BaseTest {
 
     @Test
     void demo() {

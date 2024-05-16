@@ -1,11 +1,11 @@
 package io.github.workload.metrics.noise;
 
-import io.github.workload.BaseConcurrentTest;
+import io.github.workload.BaseTest;
 import org.junit.jupiter.api.Test;
 
 import java.util.Random;
 
-class ZScoreDenoiserTest extends BaseConcurrentTest {
+class ZScoreDenoiserTest extends BaseTest {
 
     @Test
     void basic() {

@@ -11,7 +11,7 @@ import java.util.concurrent.TimeUnit;
 import static org.junit.jupiter.api.Assertions.*;
 
 @Disabled // TODO
-class SystemClockTest extends BaseConcurrentTest {
+class SystemClockTest extends BaseTest {
     private static final int PRECISION_MS = 15;
 
     @AfterEach

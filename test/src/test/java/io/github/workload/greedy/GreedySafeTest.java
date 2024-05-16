@@ -1,6 +1,6 @@
 package io.github.workload.greedy;
 
-import io.github.workload.BaseConcurrentTest;
+import io.github.workload.BaseTest;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -9,7 +9,7 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-class GreedySafeTest extends BaseConcurrentTest {
+class GreedySafeTest extends BaseTest {
 
     private final MockDao dao = new MockDao();
     private final MockKafkaProducer producer = new MockKafkaProducer();

@@ -1,12 +1,12 @@
 package io.github.workload.doorman;
 
-import io.github.workload.BaseConcurrentTest;
+import io.github.workload.BaseTest;
 import io.github.workload.helper.RandomUtil;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-class ThrottlingClientTest extends BaseConcurrentTest {
+class ThrottlingClientTest extends BaseTest {
 
     @Test
     void badCase() {

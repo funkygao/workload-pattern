@@ -1,6 +1,6 @@
 package io.github.workload.overloading;
 
-import io.github.workload.BaseConcurrentTest;
+import io.github.workload.BaseTest;
 import io.github.workload.SystemClock;
 import io.github.workload.WorkloadPriority;
 import io.github.workload.simulate.WorkloadPrioritySimulator;
@@ -12,7 +12,7 @@ import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-class FairShedderQueueTest extends BaseConcurrentTest {
+class FairShedderQueueTest extends BaseTest {
 
     @Test
     void isOverloaded() throws InterruptedException {

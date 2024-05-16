@@ -13,7 +13,7 @@ import java.util.concurrent.ThreadLocalRandom;
 import static org.junit.jupiter.api.Assertions.*;
 
 @Disabled
-class FairSafeAdmissionControllerTest extends BaseConcurrentTest {
+class FairSafeAdmissionControllerTest extends BaseTest {
 
     @BeforeAll
     static void setUp() {

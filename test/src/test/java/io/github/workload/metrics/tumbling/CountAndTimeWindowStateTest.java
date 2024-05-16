@@ -1,13 +1,13 @@
 package io.github.workload.metrics.tumbling;
 
-import io.github.workload.BaseConcurrentTest;
+import io.github.workload.BaseTest;
 import io.github.workload.helper.RandomUtil;
 import io.github.workload.WorkloadPriority;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-class CountAndTimeWindowStateTest extends BaseConcurrentTest {
+class CountAndTimeWindowStateTest extends BaseTest {
 
     @Test
     void basic() {

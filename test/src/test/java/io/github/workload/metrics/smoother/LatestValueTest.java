@@ -1,12 +1,12 @@
 package io.github.workload.metrics.smoother;
 
-import io.github.workload.BaseConcurrentTest;
+import io.github.workload.BaseTest;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-class LatestValueTest extends BaseConcurrentTest {
+class LatestValueTest extends BaseTest {
 
     @Test
     void basic() {
