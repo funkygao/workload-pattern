@@ -33,7 +33,7 @@ class OverloadSimulationTest extends BaseTest {
     @Test
     void normal_case_http_only() {
         final FairSafeAdmissionController http = (FairSafeAdmissionController) AdmissionController.getInstance("HTTP");
-        final SysloadAdaptiveSimulator sysload = new SysloadAdaptiveSimulator(0.05, exhaustedFactor, maxConcurrency, FairSafeAdmissionController.CPU_USAGE_UPPER_BOUND);
+        final SysloadAdaptiveSimulator sysload = new SysloadAdaptiveSimulator(0.05, exhaustedFactor, maxConcurrency, FairSafeAdmissionController.CPU_USAGE_UPPER_BOUND).withAlgo("v2");
         FairSafeAdmissionController.fairCpu().setSysload(sysload);
         setLogLevel(Level.INFO);
 

@@ -24,9 +24,6 @@ public class SysloadAdaptiveSimulator implements Sysload {
     private final int maxConcurrency;
     private final double cpuOverloadThreshold;
 
-    @Setter
-    private String algo = "v2";
-
     private final AtomicInteger requests = new AtomicInteger(0); // 总请求数
     private final AtomicInteger shed = new AtomicInteger(0); // 累计抛弃请求数
     private final AtomicInteger windowShed = new AtomicInteger(0); // 窗口内抛弃请求数
@@ -35,6 +32,7 @@ public class SysloadAdaptiveSimulator implements Sysload {
     private final AtomicInteger inflight = new AtomicInteger(0); // 某一时刻的inflight数，qps是1秒内的总数
     private final ConcurrentLinkedQueue<Long> acceptedRequestsTs = new ConcurrentLinkedQueue<>(); // for qps
     private transient double exhaustedFactor;
+    private String algo = "v2";
 
     private final ReentrantLock cleanupLock = new ReentrantLock();
 
@@ -78,7 +76,7 @@ public class SysloadAdaptiveSimulator implements Sysload {
 
         windowLatency.set(0);
         windowShed.set(0);
-        return smoothed;
+        return usage; // 上层shedder会做平滑处理，这里不能重复做
     }
 
     private double cpuUsage_v2() {
@@ -130,8 +128,7 @@ public class SysloadAdaptiveSimulator implements Sysload {
         windowLatency.set(0);
         windowShed.set(0);
 
-        // 返回平滑后的CPU使用率
-        return smoothed;
+        return usage; // 上层shedder会做平滑处理，这里不能重复做
     }
 
     @Override
@@ -142,6 +139,11 @@ public class SysloadAdaptiveSimulator implements Sysload {
             default:
                 return cpuUsage_v1();
         }
+    }
+
+    public SysloadAdaptiveSimulator withAlgo(String algo) {
+        this.algo = algo;
+        return this;
     }
 
     public void injectRequest() {
