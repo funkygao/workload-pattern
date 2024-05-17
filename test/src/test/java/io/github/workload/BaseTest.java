@@ -25,8 +25,8 @@ public abstract class BaseTest {
         Configurator.setLevel("io.github.workload", Level.DEBUG);
     }
 
-    protected void concurrentRun(Runnable runnable) {
-        log.info("thread count: {}", THREAD_COUNT);
+    protected final void concurrentRun(Runnable runnable) {
+        log.info("concurrentRun with thread count: {}", THREAD_COUNT);
         CompletableFuture<?>[] futures = new CompletableFuture[THREAD_COUNT];
         for (int i = 0; i < THREAD_COUNT; i++) {
             futures[i] = CompletableFuture.runAsync(runnable, threadPool);
@@ -34,7 +34,8 @@ public abstract class BaseTest {
         CompletableFuture.allOf(futures).join();
     }
 
-    protected <T> List<T> concurrentRun(Supplier<T> task) {
+    protected final <T> List<T> concurrentRun(Supplier<T> task) {
+        log.info("concurrentRun with thread count: {}", THREAD_COUNT);
         CompletableFuture<T>[] futures = new CompletableFuture[THREAD_COUNT];
         for (int i = 0; i < THREAD_COUNT; i++) {
             futures[i] = CompletableFuture.supplyAsync(task, threadPool);
@@ -52,7 +53,7 @@ public abstract class BaseTest {
         return results;
     }
 
-    protected void sleep(long ms) {
+    protected final void sleep(long ms) {
         try {
             Thread.sleep(ms);
         } catch (InterruptedException e) {
@@ -60,7 +61,7 @@ public abstract class BaseTest {
         }
     }
 
-    protected void setLogLevel(Level level) {
+    protected final void setLogLevel(Level level) {
         Configurator.setLevel("io.github.workload", level);
     }
 }

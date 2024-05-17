@@ -69,10 +69,14 @@ public class SystemClock {
 
         clocksLock.lock();
         try {
-            return clocks.computeIfAbsent(precisionMs, key -> {
-                log.info("[{}] register new clock, precision:{}ms, present clocks:{}", who, key, clocks.size());
-                rescheduleTimerIfNec(key, who);
-                return new SystemClock(key);
+            return clocks.computeIfAbsent(precisionMs, precision -> {
+                if (clocks.isEmpty()) {
+                    log.info("[{}] register first precision:{}ms timer", who, precision);
+                } else {
+                    log.info("[{}] register {}nd precision:{}ms timer", who, clocks.size() + 1, precision);
+                }
+                rescheduleTimerIfNec(precision, who);
+                return new SystemClock(precision);
             });
         } finally {
             clocksLock.unlock();

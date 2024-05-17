@@ -19,7 +19,6 @@ import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * How to shed excess workload based on {@link WorkloadPriority}.
- * TODO 所有更改 watermark 的日志，容易识别
  */
 @Slf4j
 @ThreadSafe
@@ -47,7 +46,7 @@ abstract class FairShedder {
      *
      * @param nowNs    当前系统时间，in nano second
      * @param snapshot 上一个窗口的状态快照
-     * @return 为1时不过载；小于1说明过载，值越小表示过载越严重，最小0.5
+     * @return 为1时不过载；小于1说明过载，值越小表示过载越严重
      */
     protected abstract double overloadGradient(long nowNs, CountAndTimeWindowState snapshot);
 
@@ -76,7 +75,7 @@ abstract class FairShedder {
 
     @VisibleForTesting
     void predictWatermark(CountAndTimeWindowState lastWindow, double gradient) {
-        // TODO Enhanced logic to consider broader data history for watermark adaptation
+        // TODO Enhanced logic to consider broader data history for watermark prediction
         log.debug("[{}] predict with lastWindow total:{}, admit:{}, shed:{}, gradient:{}", name, lastWindow.requested(), lastWindow.admitted(), lastWindow.shedded(), gradient);
         if (isOverloaded(gradient)) {
             shedMore(lastWindow, gradient);

@@ -4,7 +4,9 @@ import io.github.workload.helper.RandomUtil;
 import org.junit.jupiter.api.RepeatedTest;
 import org.junit.jupiter.api.Test;
 
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -207,9 +209,22 @@ class WorkloadPriorityTest {
         WorkloadPriority priority = WorkloadPriority.of(1, 9);
         assertEquals(priority, priority);
         assertEquals(priority, WorkloadPriority.of(1, 9));
-        assertFalse(priority.equals(""));
-        assertTrue(priority.equals(WorkloadPriority.of(1, 9)));
-        assertFalse(priority.equals(WorkloadPriority.ofLowest()));
+        assertNotEquals("", priority);
+        assertEquals(priority, WorkloadPriority.of(1, 9));
+        assertNotEquals(priority, WorkloadPriority.ofLowest());
+    }
+
+    @Test
+    void test_hashCode() {
+        WorkloadPriority p1 = WorkloadPriority.of(1, 2);
+        WorkloadPriority p2 = WorkloadPriority.of(1, 2);
+        assertNotSame(p1, p2);
+        Map<WorkloadPriority, Integer> map = new HashMap<>();
+        map.put(p1, 1);
+        if (map.containsKey(p2)) {
+            map.put(p2, map.get(p2) + 1);
+        }
+        assertEquals(1, map.size());
     }
 
 }
