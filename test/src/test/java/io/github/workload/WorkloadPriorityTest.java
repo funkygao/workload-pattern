@@ -1,6 +1,7 @@
 package io.github.workload;
 
 import io.github.workload.helper.RandomUtil;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.RepeatedTest;
 import org.junit.jupiter.api.Test;
 
@@ -61,6 +62,20 @@ class WorkloadPriorityTest {
         p1 = WorkloadPriority.ofPeriodicRandomFromUID(6, 345);
         assertNotSame(p1, WorkloadPriority.ofPeriodicRandomFromUID(6, 345));
         assertEquals(p1, WorkloadPriority.ofPeriodicRandomFromUID(6, 345));
+    }
+
+    @Disabled
+    @Test
+    void test_warmPool() {
+        WorkloadPriority p1 = WorkloadPriority.of(WorkloadPriority.B_CRITICAL, 4);
+        WorkloadPriority p2 = WorkloadPriority.of(WorkloadPriority.B_CRITICAL, 4);
+        assertSame(p1, p2);
+
+        // 只有那几个固定B，才缓存
+        WorkloadPriority p3 = WorkloadPriority.of(44, 4);
+        WorkloadPriority p4 = WorkloadPriority.of(44, 4);
+        assertNotSame(p3, p4);
+        assertEquals(p3, p4);
     }
 
     @Test
