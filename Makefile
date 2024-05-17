@@ -46,3 +46,6 @@ simulation-overload-case-normal:
 
 visualize:
 	$(visualize_cmd)
+
+chat:
+	@pbcopy < doc/shed_visualize.chat
