@@ -1,7 +1,7 @@
 BRANCH := $(shell git rev-parse --abbrev-ref HEAD)
 
 define visualize_cmd
-    @cat test/log | grep -w cpu | head -200 | python doc/shed_visualize.py
+    @cat test/log | grep -w cpu | head -1200 | python doc/shed_visualize.py
 endef
 
 package:clean
