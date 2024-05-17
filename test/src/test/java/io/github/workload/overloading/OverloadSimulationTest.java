@@ -62,7 +62,7 @@ class OverloadSimulationTest extends BaseTest {
 
     private SysloadAdaptiveSimulator simulate(Config c) {
         final FairSafeAdmissionController http = (FairSafeAdmissionController) AdmissionController.getInstance("HTTP");
-        final SysloadAdaptiveSimulator sysload = new SysloadAdaptiveSimulator(0.05, c.exhaustedFactor, c.maxConcurrency, FairSafeAdmissionController.CPU_USAGE_UPPER_BOUND).withAlgo("v2");
+        final SysloadAdaptiveSimulator sysload = new SysloadAdaptiveSimulator(0.05, c.exhaustedFactor, c.maxConcurrency, FairShedderCpu.CPU_USAGE_UPPER_BOUND).withAlgo("v2");
         FairSafeAdmissionController.fairCpu().setSysload(sysload);
 
         Runnable businessThread = () -> {

@@ -1,6 +1,5 @@
 package io.github.workload.overloading;
 
-import io.github.workload.HyperParameter;
 import io.github.workload.Workload;
 import io.github.workload.WorkloadPriority;
 import io.github.workload.annotations.VisibleForTesting;
@@ -53,21 +52,11 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 @Slf4j
 class FairSafeAdmissionController implements AdmissionController {
-    static final long CPU_OVERLOAD_COOL_OFF_SEC = HyperParameter.getLong(Heuristic.CPU_OVERLOAD_COOL_OFF_SEC, 10 * 60);
-    static final double CPU_USAGE_UPPER_BOUND = HyperParameter.getDouble(Heuristic.CPU_USAGE_UPPER_BOUND, 0.75);
 
-    /**
-     * The optimistic throttling.
-     *
-     * <p>Shared singleton in JVM: not shed load until you reach global capacity.</p>
-     * <p>The downside of optimistic throttling is that you'll spike over your global maximum while you start shedding load.</p>
-     * <p>Most users will only experience this momentary overload in the form of slightly higher latency.</p>
-     */
-    private static final FairShedderCpu fairCpu = new FairShedderCpu(CPU_USAGE_UPPER_BOUND, CPU_OVERLOAD_COOL_OFF_SEC);
+    // The optimistic throttling, global capacity.
+    private static final FairShedderCpu fairCpu = new FairShedderCpu();
 
-    /**
-     * The pessimistic throttling.
-     */
+    // The pessimistic throttling, local capacity.
     private final FairShedderQueue fairQueue;
 
     private final IMetricsTracker metricsTracker;

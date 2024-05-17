@@ -18,13 +18,13 @@ class FairShedderCpuTest extends BaseTest {
 
     @Test
     void basic() {
-        FairShedderCpu shedder = new FairShedderCpu(FairSafeAdmissionController.CPU_USAGE_UPPER_BOUND, 0);
+        FairShedderCpu shedder = new FairShedderCpu(FairShedderCpu.CPU_USAGE_UPPER_BOUND, 0);
         assertFalse(shedder.isOverloaded(shedder.overloadGradient(System.nanoTime(), null)));
     }
 
     @Test
     void forceOverloaded() throws InterruptedException {
-        FairShedderCpu shedder = new FairShedderCpu(FairSafeAdmissionController.CPU_USAGE_UPPER_BOUND, 1);
+        FairShedderCpu shedder = new FairShedderCpu(FairShedderCpu.CPU_USAGE_UPPER_BOUND, 1);
         CpuStressLoader.burnCPUs();
         for (int i = 0; i < 10; i++) {
             if (shedder.isOverloaded(shedder.overloadGradient(0, null))) {
@@ -63,7 +63,7 @@ class FairShedderCpuTest extends BaseTest {
 
     @Test
     void gradient() {
-        FairShedderCpu shedder = new FairShedderCpu(FairSafeAdmissionController.CPU_USAGE_UPPER_BOUND, new SysloadAdaptiveSimulator());
+        FairShedderCpu shedder = new FairShedderCpu(FairShedderCpu.CPU_USAGE_UPPER_BOUND, new SysloadAdaptiveSimulator());
         double[] cpuUsages = new double[]{0.3, 0.6, 0.89, 0.2, 0.7, 1.0, 0.33};
         boolean[] overloads = new boolean[]{false, false, true, false, true, true, false};
         final double upperBound = 0.67;
@@ -76,7 +76,7 @@ class FairShedderCpuTest extends BaseTest {
 
     @Test
     void gradient_simulation() {
-        FairShedderCpu shedder = new FairShedderCpu(FairSafeAdmissionController.CPU_USAGE_UPPER_BOUND, new SysloadAdaptiveSimulator());
+        FairShedderCpu shedder = new FairShedderCpu(FairShedderCpu.CPU_USAGE_UPPER_BOUND, new SysloadAdaptiveSimulator());
         for (int i = 0; i < 100; i++) {
             shedder.overloadGradient(0, null);
         }
