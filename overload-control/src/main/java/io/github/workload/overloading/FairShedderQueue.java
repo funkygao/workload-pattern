@@ -28,7 +28,7 @@ class FairShedderQueue extends FairShedder {
                 && (nowNs - overloadedAtNs) <= timeCycleNs;
         if (stillExplicitOverloaded) {
             double grad = explicitOverloadGradient();
-            log.info("[{}] still in explicit overload interval, timeCycle:{}ms, grad:{}", name, timeCycleNs / WindowConfig.NS_PER_MS, grad);
+            log.info("[{}] within explicit overload interval:{}ms, random grad:{}", name, timeCycleNs / WindowConfig.NS_PER_MS, grad);
             return grad;
         }
 

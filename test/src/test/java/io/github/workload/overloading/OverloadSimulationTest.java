@@ -28,7 +28,7 @@ class OverloadSimulationTest extends BaseTest {
     @DisplayName("压力维持在CPU阈值附近")
     @Test
     void case_continuous_busy() {
-        setLogLevel(Level.INFO);
+        setLogLevel(Level.DEBUG);
 
         Config c = new Config();
         c.N = 4 << 10;
@@ -37,8 +37,17 @@ class OverloadSimulationTest extends BaseTest {
         c.latencyLow = 20;
         c.latencyHigh = 400;
         c.latencySteepness = 0.5;
-        SysloadAdaptiveSimulator sysload = simulate(c);
-        log.info("requested:{}, shed:{}, percent:{}", sysload.requests(), sysload.shedded(), (double) sysload.shedded() * 100d / sysload.requests());
+        simulate(c);
+    }
+
+    @EnabledIfSystemProperty(named = "simulate", matches = "true")
+    @DisplayName("请求少，但导致CPU飙升，而滚动窗口可shed数量少的降级场景")
+    @Test
+    void case_idle_greedy() {
+        setLogLevel(Level.INFO);
+
+        Config c = new Config(); // TODO
+        simulate(c);
     }
 
     @EnabledIfSystemProperty(named = "simulate", matches = "true")
@@ -56,11 +65,10 @@ class OverloadSimulationTest extends BaseTest {
         c.latencyHigh = 30;
         c.latencySteepness = 0.5;
         c.latencySleepFactor = 400 / (2 * THREAD_COUNT); // 为了模拟多客户端并发，否则无法提升qps
-        SysloadAdaptiveSimulator sysload = simulate(c);
-        log.info("requested:{}, shed:{}, percent:{}", sysload.requests(), sysload.shedded(), (double) sysload.shedded() * 100d / sysload.requests());
+        simulate(c);
     }
 
-    private SysloadAdaptiveSimulator simulate(Config c) {
+    private void simulate(Config c) {
         final FairSafeAdmissionController http = (FairSafeAdmissionController) AdmissionController.getInstance("HTTP");
         final SysloadAdaptiveSimulator sysload = new SysloadAdaptiveSimulator(0.05, c.exhaustedFactor, c.maxConcurrency, FairShedderCpu.CPU_USAGE_UPPER_BOUND).withAlgo("v2");
         FairSafeAdmissionController.fairCpu().setSysload(sysload);
@@ -94,7 +102,7 @@ class OverloadSimulationTest extends BaseTest {
         };
 
         concurrentRun(businessThread);
-        return sysload;
+        log.info("requested:{}, shed:{}, percent:{}", sysload.requests(), sysload.shedded(), (double) sysload.shedded() * 100d / sysload.requests());
     }
 
     private void executeWorkload(boolean admit, long cost) {

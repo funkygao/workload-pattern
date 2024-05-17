@@ -83,11 +83,10 @@ class FairSafeAdmissionController implements AdmissionController {
             return false;
         }
 
-        // 具体类型的业务准入，局部采样
         boolean ok = fairQueue.admit(priority);
         if (!ok) {
             if (log.isDebugEnabled()) {
-                log.debug("{}:queuing busy, shed {}, watermark {}", fairQueue.name, priority.simpleString(), fairQueue.watermark().simpleString());
+                log.debug("{}:queue busy, shed {}, watermark {}", fairQueue.name, priority.simpleString(), fairQueue.watermark().simpleString());
             }
 
             metricsTracker.shedByQueue(priority);

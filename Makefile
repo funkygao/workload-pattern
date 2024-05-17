@@ -49,6 +49,10 @@ simulation-overload-jitter:clean_generated
 	@mvn -Dtest=io.github.workload.overloading.OverloadSimulationTest#case_lazy_jitter -Dsimulate=true -Dsurefire.failIfNoSpecifiedTests=false test
 	@$(visualize_cmd)
 
+simulation-overload-greedy:clean_generated
+	@mvn -Dtest=io.github.workload.overloading.OverloadSimulationTest#case_idle_greedy -Dsimulate=true -Dsurefire.failIfNoSpecifiedTests=false test
+	@$(visualize_cmd)
+
 visualize:
 	$(visualize_cmd)
 

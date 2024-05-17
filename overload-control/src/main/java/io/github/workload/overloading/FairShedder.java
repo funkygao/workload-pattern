@@ -13,17 +13,18 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.util.Iterator;
 import java.util.Map;
-import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * How to shed excess workload based on {@link WorkloadPriority}.
+ *
+ * <p>shed：削减</p>
  */
 @Slf4j
 @ThreadSafe
 abstract class FairShedder {
-    static final double GRADIENT_IDLE = 1.0d;
+    static final double GRADIENT_IDLE = 1.2d;
     static final double GRADIENT_BUSIEST = 0.5d;
 
     static final double OVER_SHED_BOUND = HyperParameter.getDouble(Heuristic.OVER_SHED_BOUND, 1.01d);
@@ -89,60 +90,54 @@ abstract class FairShedder {
     }
 
     // penalize low priority workloads
+    // 确保在精确提高 watermark 时，不会因为过度抛弃低优先级请求而影响服务的整体可用性，尽可能保持高 goodput
     private void shedMore(CountAndTimeWindowState lastWindow, double gradient) {
-        // 确保在精确提高 watermark 时，不会因为过度抛弃低优先级请求而影响服务的整体可用性，尽可能保持高 goodput
         final int admitted = lastWindow.admitted();
         final int requested = lastWindow.requested();
-        final int expectedToDrop = (int) (DROP_RATE * admitted);
-        if (expectedToDrop == 0) {
-            // 上个周期的准入量太少，无法决策抛弃哪个 TODO 不调整watermark？会不会负载已经恢复正常但新请求一直被拒绝？
-            log.info("[{}] unable to shed more: too few window admitted {}/{}", name, admitted, requested);
+        final int targetDrop = (int) (DROP_RATE * admitted);
+        final WorkloadPriority currentWatermark = watermark();
+        if (targetDrop == 0) {
+            log.info("[{}] cannot shedMore: lastWindow too few admitted {}/{}, watermark {}, grad:{}", name, admitted, requested, currentWatermark.simpleString(), gradient);
             return;
         }
 
-        final WorkloadPriority currentWatermark = watermark();
-        final int currentP = currentWatermark.P();
-        final ConcurrentSkipListMap<Integer, AtomicInteger> histogram = lastWindow.histogram();
-        int accumulatedToDrop = 0;
-        // histogram: (6, 3) -> (9, 10) -> ... -> (112, 2) -> (195, 11) -> (1894, 3)
-        // expectedDropNextCycle:4
-        // watermark.P=1999/1894, 要切换到112，但195是过度抛弃了，errorRate=(11+3-4)/4=10/4=2.5
-        // TODO should we respect currentP?
-        final Iterator<Map.Entry<Integer, AtomicInteger>> descendingEntries = histogram.headMap(currentP, true).descendingMap().entrySet().iterator();
-        if (!descendingEntries.hasNext()) {
-            log.info("[{}] P:{} beyond histogram, nothing to shed", name, currentP);
+        int accDrop = 0; // accumulated drop count
+        final Iterator<Map.Entry<Integer, AtomicInteger>> higherPriorities = lastWindow.histogram().headMap(currentWatermark.P(), true).descendingMap().entrySet().iterator();
+        if (!higherPriorities.hasNext()) {
+            // e,g. watermark目前是112，last window histogram：[(150, 8), (149, 2), (132, 10), ..., (115, 9)]
+            // 实际上，这些低优先级的请求在上个窗口已经全部被shed了，当前准入门槛已经足够高了，无需调整
+            // 类死锁问题：它一直shed？等admitMore来解锁
+            log.info("[{}] need not shedMore: already shed enough, watermark {}, grad:{}", name, currentWatermark.simpleString(), gradient);
             return;
         }
 
         int round = 0;
-        while (descendingEntries.hasNext()) {
-            final Map.Entry<Integer, AtomicInteger> entry = descendingEntries.next();
-            final int candidateP = entry.getKey();
-            final int candidateRequested = entry.getValue().get();
-            accumulatedToDrop += candidateRequested;
+        while (higherPriorities.hasNext()) {
+            final Map.Entry<Integer, AtomicInteger> entry = higherPriorities.next();
+            final int candidateP = entry.getKey(); // WorkloadPriority#P
+            final int candidateR = entry.getValue().get(); // 该P在上个周期被请求次数：包括被drop量
+            accDrop += candidateR;
             round++;
-            if (accumulatedToDrop >= expectedToDrop) {
-                double errorRate = (double) (accumulatedToDrop - expectedToDrop) / expectedToDrop;
+            if (accDrop >= targetDrop) {
+                double errorRate = (double) (accDrop - targetDrop) / targetDrop;
                 int targetP;
-                if (descendingEntries.hasNext() && errorRate < OVER_SHED_BOUND) {
-                    // 误差率可接受，and candidate is not head, candidate will shed workload
-                    targetP = descendingEntries.next().getKey();
+                if (higherPriorities.hasNext() && errorRate < OVER_SHED_BOUND) {
+                    // not overly shed and candidate is not head: shed candidate(inclusive) workload
+                    targetP = higherPriorities.next().getKey();
                 } else {
                     targetP = candidateP; // this candidate wil not shed workload
                     // 备选项并没有被shed，提前加上去的退回来
-                    accumulatedToDrop -= candidateRequested;
-                    // errRate might be negative: below expectation
-                    errorRate = (double) (accumulatedToDrop - expectedToDrop) / expectedToDrop;
+                    accDrop -= candidateR;
+                    errorRate = (double) (accDrop - targetDrop) / targetDrop;
                 }
                 watermark.updateAndGet(curr -> curr.deriveFrom(targetP));
-                log.info("[{}] grad:{}, round:{} Updating watermark for shedMore: {} -> {}, drop {}/{} err:{}", name, gradient, round, currentWatermark.simpleString(), watermark().simpleString(), accumulatedToDrop, expectedToDrop, errorRate);
+                log.info("[{}] grad:{}, round:{} shedMore watermark: {} -> {}, drop {}/{} err:{}", name, gradient, round, currentWatermark.simpleString(), watermark().simpleString(), accDrop, targetDrop, errorRate);
                 return;
             }
 
-            if (!descendingEntries.hasNext()) {
-                // 还不够扣呢，但已经没有可扣的了：we should never shed all
+            if (!higherPriorities.hasNext()) {
                 watermark.updateAndGet(curr -> curr.deriveFrom(candidateP));
-                log.info("[{}] grad:{}, round:{} Updating watermark for shedMore: {} -> {}", name, gradient, round, currentWatermark.simpleString(), watermark().simpleString());
+                log.info("[{}] grad:{}, round:{} shedMore watermark: {} -> {}", name, gradient, round, currentWatermark.simpleString(), watermark().simpleString());
                 return;
             }
         }
@@ -158,35 +153,35 @@ abstract class FairShedder {
 
         final int admitted = lastWindow.admitted();
         final int requested = lastWindow.requested();
-        final int expectedToAdmit = (int) (RECOVER_RATE * admitted);
-        if (expectedToAdmit == 0) {
+        final int targetAdmit = (int) (RECOVER_RATE * admitted);
+        if (targetAdmit == 0) {
             watermark.set(WorkloadPriority.ofLowest());
             log.info("[{}] grad:{} Updating watermark for admitMore, idle window admit all: {}/{}", name, gradient, admitted, requested);
             return;
         }
 
-        int accumulatedToAdmit = 0;
-        final Iterator<Map.Entry<Integer, AtomicInteger>> ascendingP = lastWindow.histogram().tailMap(currentP, false).entrySet().iterator();
-        if (!ascendingP.hasNext()) {
+        int accAdmit = 0;
+        final Iterator<Map.Entry<Integer, AtomicInteger>> lowerPriorities = lastWindow.histogram().tailMap(currentP, false).entrySet().iterator();
+        if (!lowerPriorities.hasNext()) {
             watermark.set(WorkloadPriority.ofLowest());
             log.info("[{}] grad:{} Updating watermark for admitMore, beyond tail of histogram, admit all: {}/{}", name, gradient, admitted, requested);
             return;
         }
 
         int round = 0;
-        while (ascendingP.hasNext()) {
-            final Map.Entry<Integer, AtomicInteger> entry = ascendingP.next();
+        while (lowerPriorities.hasNext()) {
+            final Map.Entry<Integer, AtomicInteger> entry = lowerPriorities.next();
             final int candidateP = entry.getKey();
-            final int candidateRequested = entry.getValue().get();
-            accumulatedToAdmit += candidateRequested;
+            final int candidateR = entry.getValue().get();
+            accAdmit += candidateR;
             round++;
-            if (accumulatedToAdmit >= expectedToAdmit) { // TODO error rate
+            if (accAdmit >= targetAdmit) { // TODO error rate
                 watermark.updateAndGet(curr -> curr.deriveFrom(candidateP));
-                log.info("[{}] grad:{}, round:{} Updating watermark for admitMore: {} -> {}, admit {}/{}", name, gradient, round, currentWatermark.simpleString(), watermark().simpleString(), accumulatedToAdmit, expectedToAdmit);
+                log.info("[{}] grad:{}, round:{} Updating watermark for admitMore: {} -> {}, admit {}/{}", name, gradient, round, currentWatermark.simpleString(), watermark().simpleString(), accAdmit, targetAdmit);
                 return;
             }
 
-            if (!ascendingP.hasNext()) {
+            if (!lowerPriorities.hasNext()) {
                 log.info("[{}] grad:{}, round:{} histogram tail reached but still not enough for admit more: happy to admit all", name, gradient, round);
                 watermark.set(WorkloadPriority.ofLowest());
                 return;
