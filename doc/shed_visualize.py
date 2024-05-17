@@ -49,9 +49,13 @@ def plot_metrics(df):
     #for i in range(0, len(df["seconds"]), 30):
     #    ax1.text(df["seconds"][i], df["smooth"][i], f'{df["smooth"][i]:.0f}', color='red', fontsize=8, alpha=0.75)
 
-    # 在Shed线上也稀疏地标记对应的y值
-    for i in range(0, len(df["seconds"]), 10):
-        ax2.text(df["seconds"][i], df["shed"][i], f'{df["shed"][i]:.0f}', color='orange', fontsize=8, alpha=0.75)
+    # 在Shed线上稀疏地标记对应的y值
+    shed_mark_interval = 10
+    shed_last_marked_index = -shed_mark_interval
+    for i in range(len(df["seconds"])):
+        if df["shed"][i] > 0 and (i - shed_last_marked_index) >= shed_mark_interval:
+            ax2.text(df["seconds"][i], df["shed"][i], f'{df["shed"][i]:.0f}', color='orange', fontsize=8, alpha=0.75)
+            shed_last_marked_index = i
     
     # 设置图例
     ax1.legend(loc='upper left')
@@ -71,7 +75,7 @@ def plot_metrics(df):
     ax[1].grid(True)
 
     # check buttons
-    rax = plt.axes([0.02, 0.5, 0.1, 0.15], facecolor='lightgoldenrodyellow')
+    rax = plt.axes([0.08, 0.35, 0.1, 0.15], facecolor='lightgoldenrodyellow')
     labels = [str(line.get_label()) for line in lines]
     visibility = [line.get_visible() for line in lines]
     check = CheckButtons(rax, labels, visibility)
