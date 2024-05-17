@@ -73,7 +73,6 @@ abstract class FairShedder {
 
     @VisibleForTesting
     void predictWatermark(CountAndTimeWindowState lastWindow, double gradient) {
-        // TODO Enhanced logic to consider broader data history for watermark prediction
         log.debug("[{}] predict with lastWindow total:{}, admit:{}, shed:{}, gradient:{}", name, lastWindow.requested(), lastWindow.admitted(), lastWindow.shedded(), gradient);
         if (isOverloaded(gradient)) {
             penalizeLowPriorities(lastWindow, gradient);
@@ -189,7 +188,7 @@ abstract class FairShedder {
     }
 
     private boolean satisfyWatermark(WorkloadPriority priority) {
-        // 在水位线以下的请求放行
+        // 在水位线(含)以下的请求都放行
         return priority.P() <= watermark().P();
     }
 
