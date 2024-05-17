@@ -33,13 +33,16 @@ def plot_metrics(df):
     ax2 = ax1.twinx()
     
     # 绘制线条
+    loosely_dotted = (0, (1, 10))  # 1像素的线段，后面跟着10像素的空白
+    densely_dotted = (0, (1, 1))
+    loosely_dashed = (0, (5, 10))
     lines = []
-    lines += ax1.plot(df["seconds"], df["cpu"], linestyle=':', alpha=0.25, label='CPU', color='purple')
+    lines += ax1.plot(df["seconds"], df["cpu"], linestyle=loosely_dotted, alpha=0.25, label='CPU', color='purple')
     lines += ax1.plot(df["seconds"], df["smooth"], color='red', label='Smooth')
-    lines += ax2.plot(df["seconds"], df["qps_total"], linestyle='--', alpha=0.5, color='blue', label='QPS (Total)')
+    lines += ax2.plot(df["seconds"], df["qps_total"], linestyle='dashed', alpha=0.5, color='blue', label='QPS (Total)')
     lines += ax2.plot(df["seconds"], df["shed"], color='orange', label='Shed')
     
-    ax1.axhline(OVERLOAD_THRESHOLD, color='gray', linestyle='dashed', linewidth=2, alpha=0.7)
+    ax1.axhline(OVERLOAD_THRESHOLD, color='gray', linestyle='dashdot', linewidth=2, alpha=0.7)
     
     # 设置图例
     ax1.legend(loc='upper left')
@@ -58,18 +61,18 @@ def plot_metrics(df):
     ax[1].legend(loc='upper right', bbox_to_anchor=(1, 1))
     ax[1].grid(True)
 
-    # 检查按钮
+    # check buttons
     rax = plt.axes([0.02, 0.4, 0.1, 0.15], facecolor='lightgoldenrodyellow')
     labels = [str(line.get_label()) for line in lines]
     visibility = [line.get_visible() for line in lines]
     check = CheckButtons(rax, labels, visibility)
 
-    def func(label):
+    def on_clicked(label):
         index = labels.index(label)
         lines[index].set_visible(not lines[index].get_visible())
         plt.draw()
 
-    check.on_clicked(func)
+    check.on_clicked(on_clicked)
 
     plt.tight_layout()
     plt.show()
