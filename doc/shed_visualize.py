@@ -26,14 +26,14 @@ def parse_log_data(log_data):
 
 def plot_metrics(df):
     # 设置图的大小
-    fig, ax = plt.subplots(2, 1, figsize=(18, 10))
+    fig, ax = plt.subplots(2, 1, figsize=(18, 10), constrained_layout=True)
     
     # 双Y坐标轴
     ax1 = ax[0]
     ax2 = ax1.twinx()
     
     # 绘制线条
-    loosely_dotted = (0, (1, 10))  # 1像素的线段，后面跟着10像素的空白
+    loosely_dotted = (0, (1, 1))  # 1像素的线段，后面跟着10像素的空白
     densely_dotted = (0, (1, 1))
     loosely_dashed = (0, (5, 10))
     lines = []
@@ -62,7 +62,7 @@ def plot_metrics(df):
     ax[1].grid(True)
 
     # check buttons
-    rax = plt.axes([0.02, 0.4, 0.1, 0.15], facecolor='lightgoldenrodyellow')
+    rax = plt.axes([0.02, 0.5, 0.1, 0.15], facecolor='lightgoldenrodyellow')
     labels = [str(line.get_label()) for line in lines]
     visibility = [line.get_visible() for line in lines]
     check = CheckButtons(rax, labels, visibility)
@@ -74,7 +74,6 @@ def plot_metrics(df):
 
     check.on_clicked(on_clicked)
 
-    plt.tight_layout()
     plt.show()
 
 def main():
