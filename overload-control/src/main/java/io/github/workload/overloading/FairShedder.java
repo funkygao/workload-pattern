@@ -24,21 +24,17 @@ import java.util.concurrent.atomic.AtomicReference;
 @Slf4j
 @ThreadSafe
 abstract class FairShedder {
-    static final double GRADIENT_IDLEST = 1.2d;
-    static final double GRADIENT_HEALTHY = 1.0d;
-    static final double GRADIENT_BUSIEST = 0.5d;
-
+    static final double GRADIENT_IDLEST = HyperParameter.getDouble(Heuristic.GRADIENT_IDLEST, 1.2d);
+    static final double GRADIENT_HEALTHY = HyperParameter.getDouble(Heuristic.GRADIENT_HEALTHY, 1.0d);
+    static final double GRADIENT_BUSIEST = HyperParameter.getDouble(Heuristic.GRADIENT_BUSIEST, 0.5d);
     static final double OVER_SHED_BOUND = HyperParameter.getDouble(Heuristic.OVER_SHED_BOUND, 1.01d);
-    static final double OVER_ADMIT_BOUND = HyperParameter.getDouble(Heuristic.OVER_ADMIT_BOUND, 0.5d); // TODO
     static final double DROP_RATE = HyperParameter.getDouble(Heuristic.SHED_DROP_RATE, 0.05d);
     static final double RECOVER_RATE = HyperParameter.getDouble(Heuristic.SHED_RECOVER_RATE, 0.015d);
 
     protected final String name;
     private final TumblingWindow<CountAndTimeWindowState> window;
 
-    /**
-     * 准入等级水位线/准入门槛，其优先级越高则准入控制越严格，即门槛越高.
-     */
+    // 准入等级水位线/准入门槛，其优先级越高则准入控制越严格，即门槛越高.
     private final AtomicReference<WorkloadPriority> watermark = new AtomicReference<>(WorkloadPriority.ofLowest());
 
     /**
@@ -80,9 +76,9 @@ abstract class FairShedder {
         // TODO Enhanced logic to consider broader data history for watermark prediction
         log.debug("[{}] predict with lastWindow total:{}, admit:{}, shed:{}, gradient:{}", name, lastWindow.requested(), lastWindow.admitted(), lastWindow.shedded(), gradient);
         if (isOverloaded(gradient)) {
-            shedMore(lastWindow, gradient);
+            penalizeLowPriorities(lastWindow, gradient);
         } else {
-            admitMore(lastWindow, gradient);
+            rewardLowPriorities(lastWindow, gradient);
         }
     }
 
@@ -90,100 +86,94 @@ abstract class FairShedder {
         return gradient < GRADIENT_HEALTHY;
     }
 
-    // penalize low priority workloads
-    // 确保在精确提高 watermark 时，不会因为过度抛弃低优先级请求而影响服务的整体可用性，尽可能保持高 goodput
-    private void shedMore(CountAndTimeWindowState lastWindow, double gradient) {
+    // 确保在精准提高 watermark 时不会因为过度抛弃低优先级请求而影响服务的整体可用性，尽可能保持高 goodput
+    private void penalizeLowPriorities(CountAndTimeWindowState lastWindow, double gradient) {
         final int admitted = lastWindow.admitted();
-        final int requested = lastWindow.requested();
-        final int targetDrop = (int) (DROP_RATE * admitted);
+        final int targetDrop = (int) (DROP_RATE * admitted); // TODO integrate gradient
         final WorkloadPriority currentWatermark = watermark();
         if (targetDrop == 0) {
-            log.info("[{}] cannot shedMore: lastWindow too few admitted {}/{}, watermark {}, grad:{}", name, admitted, requested, currentWatermark.simpleString(), gradient);
+            log.info("[{}] cannot raise bar: poor admitted {}, watermark {}, grad:{}", name, admitted, currentWatermark.simpleString(), gradient);
             return;
         }
 
         int accDrop = 0; // accumulated drop count
         final Iterator<Map.Entry<Integer, AtomicInteger>> higherPriorities = lastWindow.histogram().headMap(currentWatermark.P(), true).descendingMap().entrySet().iterator();
         if (!higherPriorities.hasNext()) {
-            // e,g. watermark目前是112，last window histogram：[(150, 8), (149, 2), (132, 10), ..., (115, 9)]
-            // 实际上，这些低优先级的请求在上个窗口已经全部被shed了，当前准入门槛已经足够高了，无需调整
-            // 类死锁问题：它一直shed？等admitMore来解锁
-            log.info("[{}] need not shedMore: already shed enough, watermark {}, grad:{}", name, currentWatermark.simpleString(), gradient);
+            log.info("[{}] need not raise bar: has no higher peer, watermark {}, grad:{}", name, currentWatermark.simpleString(), gradient);
             return;
         }
 
-        int round = 0;
+        int steps = 0; // 迈了几步
         while (higherPriorities.hasNext()) {
             final Map.Entry<Integer, AtomicInteger> entry = higherPriorities.next();
             final int candidateP = entry.getKey(); // WorkloadPriority#P
-            final int candidateR = entry.getValue().get(); // 该P在上个周期被请求次数：包括被drop量
+            final int candidateR = entry.getValue().get(); // 该P在上个周期被请求次数：包括shed量
             accDrop += candidateR;
-            round++;
+            steps++;
             if (accDrop >= targetDrop) {
                 double errorRate = (double) (accDrop - targetDrop) / targetDrop;
                 int targetP;
                 if (higherPriorities.hasNext() && errorRate < OVER_SHED_BOUND) {
                     // not overly shed and candidate is not head: shed candidate(inclusive) workload
                     targetP = higherPriorities.next().getKey();
+                    steps++;
                 } else {
                     targetP = candidateP; // this candidate wil not shed workload
-                    // 备选项并没有被shed，提前加上去的退回来
-                    accDrop -= candidateR;
-                    errorRate = (double) (accDrop - targetDrop) / targetDrop;
+                    accDrop -= candidateR; // 候选项并没有被shed，提前加上去的退回来
+                    errorRate = (double) (accDrop - targetDrop) / targetDrop; // 重新计算误差率
                 }
-                watermark.updateAndGet(curr -> curr.deriveFrom(targetP));
-                log.info("[{}] grad:{}, round:{} shedMore watermark: {} -> {}, drop {}/{} err:{}", name, gradient, round, currentWatermark.simpleString(), watermark().simpleString(), accDrop, targetDrop, errorRate);
+
+                watermark.updateAndGet(curr -> curr.deriveFromP(targetP));
+                log.info("[{}] grad:{}, steps:{} raise bar: {} -> {}, drop {}/{} err:{}", name, gradient, steps, currentWatermark.simpleString(), watermark().simpleString(), accDrop, targetDrop, errorRate);
                 return;
             }
 
             if (!higherPriorities.hasNext()) {
-                watermark.updateAndGet(curr -> curr.deriveFrom(candidateP));
-                log.info("[{}] grad:{}, round:{} shedMore watermark: {} -> {}", name, gradient, round, currentWatermark.simpleString(), watermark().simpleString());
+                watermark.updateAndGet(curr -> curr.deriveFromP(candidateP));
+                log.info("[{}] grad:{}, steps:{} raise bar stop early: {} -> {}", name, gradient, steps, currentWatermark.simpleString(), watermark().simpleString());
                 return;
             }
         }
     }
 
-    // reward low priority workloads
-    private void admitMore(CountAndTimeWindowState lastWindow, double gradient) {
+    private void rewardLowPriorities(CountAndTimeWindowState lastWindow, double gradient) {
         final WorkloadPriority currentWatermark = watermark();
-        final int currentP = currentWatermark.P();
-        if (WorkloadPriority.MAX_P == currentP) {
+        if (currentWatermark.isLowest()) {
             return;
         }
 
         final int admitted = lastWindow.admitted();
-        final int requested = lastWindow.requested();
-        final int targetAdmit = (int) (RECOVER_RATE * admitted);
+        final int targetAdmit = (int) (RECOVER_RATE * admitted); // TODO integrate gradient
         if (targetAdmit == 0) {
             watermark.set(WorkloadPriority.ofLowest());
-            log.info("[{}] grad:{} Updating watermark for admitMore, idle window admit all: {}/{}", name, gradient, admitted, requested);
+            log.info("[{}] grad:{} lower bar, last window idle: admit all", name, gradient);
             return;
         }
 
         int accAdmit = 0;
-        final Iterator<Map.Entry<Integer, AtomicInteger>> lowerPriorities = lastWindow.histogram().tailMap(currentP, false).entrySet().iterator();
+        final Iterator<Map.Entry<Integer, AtomicInteger>> lowerPriorities = lastWindow.histogram().tailMap(currentWatermark.P(), false).entrySet().iterator();
         if (!lowerPriorities.hasNext()) {
             watermark.set(WorkloadPriority.ofLowest());
-            log.info("[{}] grad:{} Updating watermark for admitMore, beyond tail of histogram, admit all: {}/{}", name, gradient, admitted, requested);
+            log.info("[{}] grad:{} lower bar, has no lower peer: admit all", name, gradient);
             return;
         }
 
-        int round = 0;
+        int steps = 0; // 迈了几步
         while (lowerPriorities.hasNext()) {
             final Map.Entry<Integer, AtomicInteger> entry = lowerPriorities.next();
             final int candidateP = entry.getKey();
             final int candidateR = entry.getValue().get();
             accAdmit += candidateR;
-            round++;
-            if (accAdmit >= targetAdmit) { // TODO error rate
-                watermark.updateAndGet(curr -> curr.deriveFrom(candidateP));
-                log.info("[{}] grad:{}, round:{} Updating watermark for admitMore: {} -> {}, admit {}/{}", name, gradient, round, currentWatermark.simpleString(), watermark().simpleString(), accAdmit, targetAdmit);
+            steps++;
+            if (accAdmit >= targetAdmit) {
+                watermark.updateAndGet(curr -> curr.deriveFromP(candidateP));
+                double errorRate = (double) (accAdmit - targetAdmit) / targetAdmit;
+                log.info("[{}] grad:{}, steps:{} lower bar: {} -> {}, admit {}/{} err:{}", name, gradient, steps, currentWatermark.simpleString(), watermark().simpleString(), accAdmit, targetAdmit, errorRate);
                 return;
             }
 
             if (!lowerPriorities.hasNext()) {
-                log.info("[{}] grad:{}, round:{} histogram tail reached but still not enough for admit more: happy to admit all", name, gradient, round);
+                log.info("[{}] grad:{}, steps:{} lower bar stop early: admit all", name, gradient, steps);
                 watermark.set(WorkloadPriority.ofLowest());
                 return;
             }

@@ -123,6 +123,10 @@ public class WorkloadPriority {
         return LOWEST;
     }
 
+    public boolean isLowest() {
+        return LOWEST == this || P() == MAX_P;
+    }
+
     /**
      * 根据P值反序列化以重建一个新的{@link WorkloadPriority}.
      *
@@ -224,7 +228,7 @@ public class WorkloadPriority {
      *
      * @param targetP 目标P值
      */
-    public WorkloadPriority deriveFrom(int targetP) {
+    public WorkloadPriority deriveFromP(int targetP) {
         if (this.P() == targetP) {
             return this;
         }

@@ -61,7 +61,17 @@ interface Heuristic extends HyperParameter {
     String OVER_SHED_BOUND = "workload.OVER_SHED_BOUND";
 
     /**
-     * <p>默认值：0.5，即50%</p>
+     * 梯度的最大值：系统非常空闲.
      */
-    String OVER_ADMIT_BOUND = "workload.OVER_ADMIT_BOUND";
+    String GRADIENT_IDLEST = "workload.GRADIENT_IDLEST";
+
+    /**
+     * 健康梯度的阈值：低于它表示过载.
+     */
+    String GRADIENT_HEALTHY = "workload.GRADIENT_HEALTHY";
+
+    /**
+     * 梯度的最低值：系统非常繁忙，压力最大.
+     */
+    String GRADIENT_BUSIEST = "workload.GRADIENT_BUSIEST";
 }

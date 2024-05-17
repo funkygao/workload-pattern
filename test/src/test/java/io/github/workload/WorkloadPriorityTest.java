@@ -79,6 +79,17 @@ class WorkloadPriorityTest {
     }
 
     @Test
+    void test_isLowest() {
+        WorkloadPriority p1 = WorkloadPriority.ofLowest();
+        assertTrue(p1.isLowest());
+
+        WorkloadPriority p2 = WorkloadPriority.fromP(WorkloadPriority.MAX_P);
+        assertTrue(p2.isLowest());
+
+        assertEquals(p1, p2);
+    }
+
+    @Test
     void fromP() {
         WorkloadPriority priority = WorkloadPriority.fromP(1894);
         assertEquals(14, priority.B());
@@ -131,13 +142,13 @@ class WorkloadPriorityTest {
     @Test
     void derive() {
         WorkloadPriority priority = WorkloadPriority.ofLowest();
-        WorkloadPriority priority1 = priority.deriveFrom(WorkloadPriority.MAX_P);
+        WorkloadPriority priority1 = priority.deriveFromP(WorkloadPriority.MAX_P);
         assertSame(priority1, priority);
 
         priority = WorkloadPriority.of(1, 3);
-        priority1 = priority.deriveFrom(WorkloadPriority.of(2, 1).P());
+        priority1 = priority.deriveFromP(WorkloadPriority.of(2, 1).P());
         assertNotEquals(priority1, priority);
-        priority1 = priority.deriveFrom(WorkloadPriority.of(1, 3).P());
+        priority1 = priority.deriveFromP(WorkloadPriority.of(1, 3).P());
         assertSame(priority1, priority);
     }
 
