@@ -42,8 +42,8 @@ def plot_metrics(df):
     ax1.axhline(OVERLOAD_THRESHOLD, color='gray', linestyle='--', linewidth=2, alpha=0.9)
     
     # 设置图例
-    ax1.legend(loc='upper left', bbox_to_anchor=(0, 1))
-    ax2.legend(loc='upper left', bbox_to_anchor=(0, 0.9))
+    ax1.legend(loc='upper left')
+    ax2.legend(loc='upper right')
     
     # 设置标签
     ax1.set_ylabel("Percentage")
