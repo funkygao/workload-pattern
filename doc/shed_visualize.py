@@ -51,7 +51,7 @@ def plot_metrics(df):
 
     # 在Shed线上也稀疏地标记对应的y值
     for i in range(0, len(df["seconds"]), 10):
-        ax2.text(df["seconds"][i], df["shed"][i], f'{df["shed"][i]:.0f}', color='orange', fontsize=8, alpha=0.7)
+        ax2.text(df["seconds"][i], df["shed"][i], f'{df["shed"][i]:.0f}', color='orange', fontsize=8, alpha=0.75)
     
     # 设置图例
     ax1.legend(loc='upper left')
