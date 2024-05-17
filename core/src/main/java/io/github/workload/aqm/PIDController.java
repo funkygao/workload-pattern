@@ -32,8 +32,17 @@ class PIDController {
         integral += error; // 更新积分项
         double derivative = error - lastError; // 计算微分项
         lastError = error;
-        // 计算PID输出
-        return kp * error + ki * integral + kd * derivative;
+
+        // 比例控制P，是最直接的控制方式，它根据系统当前的误差来调整输出。误差越大，控制器的调整幅度也越大
+        double P = kp * error;
+        // 积分控制I，考虑了误差随时间的累积效应。
+        // 如果系统存在稳态误差，即使P已经达到最大或最小输出，系统仍然无法达到目标值
+        // 积分控制通过累积误差来调整输出，以消除稳态误差
+        double I = ki * integral;
+        //微分控制D，关注误差的变化率，即系统输出的变化趋势
+        // 通过预测误差的未来变化，微分控制可以提高系统的响应速度，减少超调和振荡
+        double D = kd * derivative;
+        return P + I + D;
     }
 
 }
