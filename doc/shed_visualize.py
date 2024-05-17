@@ -2,6 +2,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from io import StringIO
 import sys
+from matplotlib.widgets import CheckButtons
 
 # Overload Threshold
 OVERLOAD_THRESHOLD = 75
@@ -25,33 +26,52 @@ def parse_log_data(log_data):
 
 def plot_metrics(df):
     # 设置图的大小
-    plt.figure(figsize=(14, 7))
+    fig, ax = plt.subplots(2, 1, figsize=(14, 10))
+    
+    # 双Y坐标轴
+    ax1 = ax[0]
+    ax2 = ax1.twinx()
+    
+    # 绘制线条
+    lines = []
+    lines += ax1.plot(df["seconds"], df["cpu"], linestyle='--', alpha=0.5, label='CPU', color='purple')
+    lines += ax1.plot(df["seconds"], df["smooth"], color='red', label='Smooth')
+    lines += ax2.plot(df["seconds"], df["qps_total"], color='blue', label='QPS (Total)')
+    lines += ax2.plot(df["seconds"], df["shed"], color='orange', label='Shed')
+    
+    ax1.axhline(OVERLOAD_THRESHOLD, color='gray', linestyle='--', linewidth=2, alpha=0.9)
+    
+    # 设置图例
+    ax1.legend(loc='upper left', bbox_to_anchor=(0, 1))
+    ax2.legend(loc='upper left', bbox_to_anchor=(0, 0.9))
+    
+    # 设置标签
+    ax1.set_ylabel("Percentage")
+    ax2.set_ylabel("Count")
+    ax1.set_title("CPU, Smooth, QPS, Shed")
+    
+    # Latency图
+    ax[1].plot(df["seconds"], df["latency"], color='green', label='Latency')
+    ax[1].set_title("Latency")
+    ax[1].set_ylabel("Latency (ms)")
+    ax[1].set_xlabel("Seconds")
+    ax[1].legend(loc='upper right', bbox_to_anchor=(1, 1))
+    ax[1].grid(True)
 
-    # 上面的图
-    plt.subplot(2, 1, 1)
-    plt.title("CPU, Smooth, QPS, Shed")
-    plt.plot(df["seconds"], df["cpu"], linestyle='--', alpha=0.5, label='CPU')
-    plt.plot(df["seconds"], df["smooth"], color='red', label='Smooth')
-    plt.plot(df["seconds"], df["qps_total"], color='blue', label='QPS (Total)')
-    plt.plot(df["seconds"], df["shed"], color='orange', label='Shed')
-    plt.axhline(OVERLOAD_THRESHOLD, color='gray', linestyle='--', linewidth=2, alpha=0.9)
-    plt.legend(loc='upper right', bbox_to_anchor=(1, 1))
-    plt.ylabel("Percentage / Count")
-    #plt.grid(True)
+    # 检查按钮
+    rax = plt.axes([0.02, 0.4, 0.1, 0.15], facecolor='lightgoldenrodyellow')
+    labels = [str(line.get_label()) for line in lines]
+    visibility = [line.get_visible() for line in lines]
+    check = CheckButtons(rax, labels, visibility)
 
-    # 下面的图
-    plt.subplot(2, 1, 2)
-    plt.title("Latency")
-    plt.plot(df["seconds"], df["latency"], color='green', label='Latency')
-    plt.legend(loc='upper right', bbox_to_anchor=(1, 1))
-    plt.ylabel("Latency (ms)")
-    plt.xlabel("Seconds")
-    plt.grid(True)
+    def func(label):
+        index = labels.index(label)
+        lines[index].set_visible(not lines[index].get_visible())
+        plt.draw()
 
-    # 调整布局
+    check.on_clicked(func)
+
     plt.tight_layout()
-
-    # 显示图
     plt.show()
 
 def main():
