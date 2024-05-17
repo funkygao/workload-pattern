@@ -52,5 +52,3 @@ simulation-overload-jitter:clean_generated
 visualize:
 	$(visualize_cmd)
 
-chat:
-	@pbcopy < doc/shed_visualize.chat
