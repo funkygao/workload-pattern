@@ -160,6 +160,45 @@ public class SysloadAdaptiveSimulator implements Sysload {
         acceptedRequestsTs.add(System.currentTimeMillis());
     }
 
+    /**
+     * 根据惰性系数计算应该sleep多少毫秒，以便控制压力测试中产生压力的强度.
+     *
+     * @param laziness 惰性系数，决定了模拟压力的强度，[0.0, 1.0]
+     *                 0.0意味着几乎无延迟，模拟突发的大量请求；
+     *                 1.0意味着最大延迟，模拟低频的零星请求。
+     *                 值越小，模拟的请求压力越大；值越大，模拟的请求压力越小。
+     * @param pulseIntervalMs 脉冲时间长度
+     * @return the ms as {@link Thread#sleep(long)} arg
+     */
+    public long pulseDelay(double laziness, long pulseIntervalMs) {
+        // 确保laziness在合理范围内，这里假设是[0, 1]，0表示最小延迟，1表示最大延迟
+        laziness = Math.max(0, Math.min(laziness, 1));
+        if (laziness == 0) {
+            return 0;
+        }
+
+        long currentTime = System.currentTimeMillis();
+        if (currentTime % pulseIntervalMs < pulseIntervalMs / 10) {
+            // 当前时间是否处于脉冲周期的开始10%内：脉冲期，产生大量压力
+            return 0;
+        }
+
+        final long baseDelayMs = 1000;
+        // 随机性注入，生成[0.5, 1.5)范围的随机倍数，用于调整延迟时间，增加随机性
+        final double randomFactor = 0.5 + ThreadLocalRandom.current().nextDouble();
+
+        // 计算延迟时间
+        long delay = (long) (baseDelayMs * laziness * randomFactor);
+
+        // 为了模拟脉冲式压力，我们可以让随机一部分请求几乎没有延迟
+        // 例如，我们可以设置一个较小的概率（如10%），在这个概率下将延迟时间设置为非常小的值
+        if (ThreadLocalRandom.current().nextDouble() < 0.1) {
+            delay = ThreadLocalRandom.current().nextInt(10); // 随机生成0到9毫秒的延迟，模拟突然的大量请求
+        }
+
+        return delay;
+    }
+
     public int requests() {
         return requests.get();
     }

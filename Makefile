@@ -1,15 +1,17 @@
 BRANCH := $(shell git rev-parse --abbrev-ref HEAD)
 
 define visualize_cmd
-    @cat test/log | grep -w cpu | head -1200 | python doc/shed_visualize.py
+    @cat test/log | grep -w cpu | head -1800 | python doc/shed_visualize.py
 endef
 
 package:clean
 	@mvn package
 
-clean:
-	@mvn clean
+clean_generated:
 	@rm -f test/*.bench test/*.html test/*.jfr test/log
+
+clean:clean_generated
+	@mvn clean
 
 install:clean test
 	@mvn install
@@ -39,9 +41,12 @@ flamegraph:
 	@java -cp $(ASYNC_PROFILER_HOME)/lib/converter.jar jfr2flame test/pf.jfr test/flamegraph.html
 	@open test/flamegraph.html
 
-simulation-overload-case-normal:
-	@rm -f test/log
-	@mvn -Dtest=io.github.workload.overloading.OverloadSimulationTest#normal_case_http_only -Dsimulate=true -Dsurefire.failIfNoSpecifiedTests=false test
+simulation-overload-busy:clean_generated
+	@mvn -Dtest=io.github.workload.overloading.OverloadSimulationTest#case_continuous_busy -Dsimulate=true -Dsurefire.failIfNoSpecifiedTests=false test
+	@$(visualize_cmd)
+
+simulation-overload-jitter:clean_generated
+	@mvn -Dtest=io.github.workload.overloading.OverloadSimulationTest#case_lazy_jitter -Dsimulate=true -Dsurefire.failIfNoSpecifiedTests=false test
 	@$(visualize_cmd)
 
 visualize:
