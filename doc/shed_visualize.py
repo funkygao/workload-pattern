@@ -37,12 +37,21 @@ def plot_metrics(df):
     densely_dotted = (0, (1, 1))
     loosely_dashed = (0, (5, 10))
     lines = []
-    lines += ax1.plot(df["seconds"], df["cpu"], linestyle=loosely_dotted, alpha=0.25, label='CPU', color='purple')
-    lines += ax1.plot(df["seconds"], df["smooth"], color='red', label='Smooth')
-    lines += ax2.plot(df["seconds"], df["qps_total"], linestyle='dashed', alpha=0.5, color='blue', label='QPS (Total)')
-    lines += ax2.plot(df["seconds"], df["shed"], color='orange', label='Shed')
+    cpu_line, = ax1.plot(df["seconds"], df["cpu"], linestyle=loosely_dotted, alpha=0.25, label='CPU', color='purple')
+    smooth_line, = ax1.plot(df["seconds"], df["smooth"], color='red', label='Smooth')
+    qps_total_line, = ax2.plot(df["seconds"], df["qps_total"], linestyle='dashed', alpha=0.5, color='blue', label='QPS (Total)')
+    shed_line, = ax2.plot(df["seconds"], df["shed"], color='orange', label='Shed')
+    lines += [cpu_line, smooth_line, qps_total_line, shed_line]
     
     ax1.axhline(OVERLOAD_THRESHOLD, color='gray', linestyle='dashdot', linewidth=2, alpha=0.7)
+    
+    # 在smooth线上稀疏地标记对应的y值 每隔30个数据点标记一次
+    #for i in range(0, len(df["seconds"]), 30):
+    #    ax1.text(df["seconds"][i], df["smooth"][i], f'{df["smooth"][i]:.0f}', color='red', fontsize=8, alpha=0.75)
+
+    # 在Shed线上也稀疏地标记对应的y值
+    for i in range(0, len(df["seconds"]), 10):
+        ax2.text(df["seconds"][i], df["shed"][i], f'{df["shed"][i]:.0f}', color='orange', fontsize=8, alpha=0.7)
     
     # 设置图例
     ax1.legend(loc='upper left')
