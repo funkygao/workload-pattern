@@ -28,7 +28,7 @@ class OverloadSimulationTest extends BaseTest {
     @DisplayName("压力维持在CPU阈值附近")
     @Test
     void case_continuous_busy() {
-        setLogLevel(Level.DEBUG);
+        setLogLevel(Level.INFO);
 
         Config c = new Config();
         c.N = 4 << 10;

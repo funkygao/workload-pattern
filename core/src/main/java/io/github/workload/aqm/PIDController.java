@@ -27,8 +27,8 @@ class PIDController {
         this.setpoint = setpoint;
     }
 
-    public double compute(double currentUtilization) {
-        double error = setpoint - currentUtilization; // 计算偏差
+    public double compute(double sample) {
+        double error = setpoint - sample; // 计算偏差
         integral += error; // 更新积分项
         double derivative = error - lastError; // 计算微分项
         lastError = error;

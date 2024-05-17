@@ -1,10 +1,11 @@
 package io.github.workload.aqm;
 
+import io.github.workload.BaseTest;
 import org.junit.jupiter.api.Test;
 
 import java.util.concurrent.ThreadLocalRandom;
 
-class PIDControllerTest {
+class PIDControllerTest extends BaseTest {
     private static final int MAX_REQUESTS = 1000;
     private int allowedRequests = MAX_REQUESTS;
     private double currentUtilization;
@@ -20,9 +21,11 @@ class PIDControllerTest {
         PIDController pid = new PIDController(0.1, 0.01, 0.01, 65);
         for (int i = 0; i < 100; i++) {
             currentUtilization = getCurrentCPUUtilization();
-            double controlOutput = pid.compute(currentUtilization);
+            double pidValue = pid.compute(currentUtilization);
+            log.info("{} target:{}, sample:{}, pid:{}", i, 65, currentUtilization, pidValue);
+
             // 应用控制器的输出
-            adjustWorkload(controlOutput);
+            adjustWorkload(pidValue);
         }
     }
 
@@ -30,17 +33,17 @@ class PIDControllerTest {
         return ThreadLocalRandom.current().nextDouble(100d);
     }
 
-    private void adjustWorkload(double controlOutput) {
+    private void adjustWorkload(double PID) {
         final int wasAllowed = allowedRequests;
 
-        int adjustment = (int) (controlOutput * MAX_REQUESTS);
+        int adjustment = (int) (PID * MAX_REQUESTS);
         allowedRequests += adjustment;
 
         // 确保允许的请求量不超过最大值也不小于0
         allowedRequests = Math.min(MAX_REQUESTS, allowedRequests);
         allowedRequests = Math.max(0, allowedRequests);
 
-        System.out.printf("%5.2f   %6.2f  允许并发请求：%d -> %d\n", currentUtilization, controlOutput, wasAllowed, allowedRequests);
+        System.out.printf("%5.2f   %6.2f  允许并发请求：%d -> %d\n", currentUtilization, PID, wasAllowed, allowedRequests);
     }
 
 }
