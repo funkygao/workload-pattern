@@ -1,0 +1,56 @@
+如下是我的日志，现在请你根据该日志内容和格式开发一个可视化python脚本，输出随着时间变化的qps/shed/cpu/smooth/latency/exhausted的曲线，要求：
+1. 使用panda, matplotlib.pyplot
+2. 该日志格式可能会增加新的数据，但保证新增加的都是在每行日志尾部增加，你开发的脚步要兼容这个场景，例如：
+现在的日志行：
+```
+2024-05-17 09:30:31,143 pool-2-thread-4                [io.github.workload.overloading.mock.SysloadAdaptiveSimulator] cpu:0.96, +rand:0.67, smooth:0.96, qps:128.0, req:129, shed:0, latency:145, inflight:1, exhausted:false
+```
+将来可能是这样：
+```
+2024-05-17 09:30:31,143 pool-2-thread-4                [io.github.workload.overloading.mock.SysloadAdaptiveSimulator] cpu:0.96, +rand:0.67, smooth:0.96, qps:128.0, req:129, shed:0, latency:145, inflight:1, exhausted:false, foo:1, bar:88, egg
+```
+3. 各个指标解释：
+- qps：在该时间点(秒)被允许处理的请求总数量，不包括被拒绝的量
+- shed：在该时间点(秒)被拒绝的请求总数量，这是因为我们有过载保护算法：当系统压力变大时，系统会主动拒绝部分请求，即shed
+- cpu：该时间点的 cpu usage
+- smooth：该时间点的平滑处理后的 cpu usage，过载保护算法实际使用的是该值，而不是cpu
+- latency：该时间点所有接受的请求的平均处理时长，以毫秒为单位
+- exhausted：如果为true，表示在该时刻出现了线程池耗尽
+4. X坐标使用基于时间的秒数，而不是具体的时刻值，即X坐标从0开始，后面的每一个点代表距离起始时间经过了多少秒
+5. qps的y轴输出时，要把该时间点的 shed 数量加上：表示 (接受的请求量 + 拒绝的请求量) 
+6. qps/shed/cpu/smooth/exhausted，要生成一张图，根据它们的相互关系进行多y轴处理并且保证它们颜色有对应关系，生成的图容易识别，其中exhausted以tag标记形式展示而不是曲线
+7. 有一个参数 Overload Threshold，它表示 smooth 的阈值，超过该阈值就会进入过载状态，它要以一个灰色的比较粗的横向表示
+8. latency自己生成一张图
+9. 为每张图生成图例，图例要放在图的右上侧，而且图例里的线是可以点击的，以此来 show/hide 对应的线
+10. 生成的图，有个总标题：Sysload vs Shed
+11. 图的大小要适应屏幕大小，要考虑到qps/shed/etc那个图，由于时间(秒数)可能比较长，例如可能超过60分钟，也可能比较短，例如5分钟，要自适应地绘制图：不能太稠密，否则人就看不清楚了
+
+直接输出完整的可以运行的代码，不必解释。
+假设你生成的代码被保存到 doc/shed_v1.py，最好是这样使用的：
+```bash
+cat test/log | grep -w cpu | python doc/shed_v1.py
+```
+
+日志内容：
+```
+2024-05-17 09:30:31,143 pool-2-thread-4                [io.github.workload.overloading.mock.SysloadAdaptiveSimulator] cpu:0.96, +rand:0.67, smooth:0.96, qps:128.0, req:129, shed:0, latency:145, inflight:1, exhausted:false
+2024-05-17 09:30:32,149 pool-2-thread-14               [io.github.workload.overloading.mock.SysloadAdaptiveSimulator] cpu:0.60, +rand:0.27, smooth:0.87, qps:170.0, req:307, shed:7, latency:140, inflight:1, exhausted:false
+2024-05-17 09:30:33,158 pool-2-thread-13               [io.github.workload.overloading.mock.SysloadAdaptiveSimulator] cpu:0.78, +rand:0.45, smooth:0.84, qps:164.0, req:490, shed:17, latency:149, inflight:1, exhausted:false
+2024-05-17 09:30:34,161 pool-2-thread-2                [io.github.workload.overloading.mock.SysloadAdaptiveSimulator] cpu:0.73, +rand:0.41, smooth:0.82, qps:160.0, req:677, shed:26, latency:147, inflight:1, exhausted:false
+2024-05-17 09:30:35,168 pool-2-thread-1                [io.github.workload.overloading.mock.SysloadAdaptiveSimulator] cpu:0.34, +rand:0.01, smooth:0.70, qps:165.0, req:887, shed:43, latency:144, inflight:1, exhausted:false
+2024-05-17 09:30:36,180 pool-2-thread-10               [io.github.workload.overloading.mock.SysloadAdaptiveSimulator] cpu:0.55, +rand:0.21, smooth:0.66, qps:178.0, req:1108, shed:41, latency:135, inflight:1, exhausted:false
+2024-05-17 09:30:37,182 pool-2-thread-18               [io.github.workload.overloading.mock.SysloadAdaptiveSimulator] cpu:0.75, +rand:0.42, smooth:0.68, qps:159.0, req:1303, shed:34, latency:145, inflight:1, exhausted:false
+2024-05-17 09:30:38,183 pool-2-thread-22               [io.github.workload.overloading.mock.SysloadAdaptiveSimulator] cpu:0.65, +rand:0.33, smooth:0.67, qps:156.0, req:1492, shed:33, latency:152, inflight:1, exhausted:false
+2024-05-17 09:30:39,186 pool-2-thread-10               [io.github.workload.overloading.mock.SysloadAdaptiveSimulator] cpu:0.56, +rand:0.24, smooth:0.65, qps:158.0, req:1672, shed:21, latency:143, inflight:1, exhausted:false
+2024-05-17 09:30:40,188 pool-2-thread-19               [io.github.workload.overloading.mock.SysloadAdaptiveSimulator] cpu:0.47, +rand:0.14, smooth:0.60, qps:159.0, req:1853, shed:21, latency:151, inflight:1, exhausted:false
+2024-05-17 09:30:41,189 pool-2-thread-20               [io.github.workload.overloading.mock.SysloadAdaptiveSimulator] cpu:0.35, +rand:0.03, smooth:0.54, qps:159.0, req:2027, shed:15, latency:146, inflight:1, exhausted:false
+2024-05-17 09:30:42,191 pool-2-thread-13               [io.github.workload.overloading.mock.SysloadAdaptiveSimulator] cpu:0.78, +rand:0.46, smooth:0.60, qps:153.0, req:2188, shed:7, latency:151, inflight:1, exhausted:false
+2024-05-17 09:30:43,196 pool-2-thread-22               [io.github.workload.overloading.mock.SysloadAdaptiveSimulator] cpu:0.90, +rand:0.57, smooth:0.67, qps:161.0, req:2355, shed:4, latency:154, inflight:1, exhausted:false
+2024-05-17 09:30:44,198 pool-2-thread-19               [io.github.workload.overloading.mock.SysloadAdaptiveSimulator] cpu:0.73, +rand:0.40, smooth:0.69, qps:169.0, req:2527, shed:3, latency:138, inflight:1, exhausted:false
+2024-05-17 09:30:45,212 pool-2-thread-23               [io.github.workload.overloading.mock.SysloadAdaptiveSimulator] cpu:0.76, +rand:0.44, smooth:0.71, qps:162.0, req:2692, shed:1, latency:144, inflight:1, exhausted:false
+2024-05-17 09:30:46,216 pool-2-thread-23               [io.github.workload.overloading.mock.SysloadAdaptiveSimulator] cpu:0.93, +rand:0.61, smooth:0.76, qps:162.0, req:2855, shed:0, latency:146, inflight:1, exhausted:false
+2024-05-17 09:30:47,225 pool-2-thread-13               [io.github.workload.overloading.mock.SysloadAdaptiveSimulator] cpu:0.56, +rand:0.24, smooth:0.71, qps:160.0, req:3024, shed:6, latency:147, inflight:1, exhausted:false
+2024-05-17 09:30:48,228 pool-2-thread-24               [io.github.workload.overloading.mock.SysloadAdaptiveSimulator] cpu:0.74, +rand:0.41, smooth:0.72, qps:166.0, req:3201, shed:10, latency:142, inflight:1, exhausted:false
+2024-05-17 09:30:49,232 pool-2-thread-18               [io.github.workload.overloading.mock.SysloadAdaptiveSimulator] cpu:0.95, +rand:0.62, smooth:0.78, qps:168.0, req:3373, shed:3, latency:141, inflight:1, exhausted:false
+2024-05-17 09:30:50,234 pool-2-thread-17               [io.github.workload.overloading.mock.SysloadAdaptiveSimulator] cpu:0.75, +rand:0.42, smooth:0.77, qps:166.0, req:3554, shed:14, latency:143, inflight:1, exhausted:false
+```

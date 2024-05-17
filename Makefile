@@ -1,5 +1,9 @@
 BRANCH := $(shell git rev-parse --abbrev-ref HEAD)
 
+define visualize_cmd
+    @cat test/log | grep -w cpu | python doc/shed_visualize.py
+endef
+
 package:clean
 	@mvn package
 
@@ -38,7 +42,7 @@ flamegraph:
 simulation-overload-case-normal:
 	@rm -f test/log
 	@mvn -Dtest=io.github.workload.overloading.OverloadSimulationTest#normal_case_http_only -Dsimulate=true -Dsurefire.failIfNoSpecifiedTests=false test
-	@cat test/log | grep -w cpu | python doc/overload_visualize.py
+	@$(visualize_cmd)
 
 visualize:
-	@cat test/log | grep -w cpu | python doc/overload_visualize.py
+	$(visualize_cmd)
