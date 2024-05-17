@@ -24,7 +24,8 @@ import java.util.concurrent.atomic.AtomicReference;
 @Slf4j
 @ThreadSafe
 abstract class FairShedder {
-    static final double GRADIENT_IDLE = 1.2d;
+    static final double GRADIENT_IDLEST = 1.2d;
+    static final double GRADIENT_HEALTHY = 1.0d;
     static final double GRADIENT_BUSIEST = 0.5d;
 
     static final double OVER_SHED_BOUND = HyperParameter.getDouble(Heuristic.OVER_SHED_BOUND, 1.01d);
@@ -41,7 +42,7 @@ abstract class FairShedder {
     private final AtomicReference<WorkloadPriority> watermark = new AtomicReference<>(WorkloadPriority.ofLowest());
 
     /**
-     * 计算过载梯度值：[{@link #GRADIENT_BUSIEST}, {@link #GRADIENT_IDLE}].
+     * 计算过载梯度值：[{@link #GRADIENT_BUSIEST}, {@link #GRADIENT_IDLEST}].
      *
      * <p>负载反馈因子.</p>
      *
@@ -86,7 +87,7 @@ abstract class FairShedder {
     }
 
     protected final boolean isOverloaded(double gradient) {
-        return gradient < GRADIENT_IDLE;
+        return gradient < GRADIENT_HEALTHY;
     }
 
     // penalize low priority workloads

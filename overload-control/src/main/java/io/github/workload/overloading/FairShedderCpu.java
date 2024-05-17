@@ -61,7 +61,7 @@ class FairShedderCpu extends FairShedder {
     @VisibleForTesting
     double gradient(double cpuUsage, double upperBound) {
         double rawGradient = upperBound / cpuUsage;
-        return Math.min(GRADIENT_IDLE, Math.max(GRADIENT_BUSIEST, rawGradient));
+        return Math.min(GRADIENT_IDLEST, Math.max(GRADIENT_BUSIEST, rawGradient));
     }
 
     @VisibleForTesting

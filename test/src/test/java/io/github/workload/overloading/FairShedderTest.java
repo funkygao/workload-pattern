@@ -151,7 +151,7 @@ class FairShedderTest extends BaseTest {
 
         log.info("没有过载，调整admission level不变化");
         for (int i = 0; i < 10; i++) {
-            shedder.predictWatermark(currentWindow, FairShedder.GRADIENT_IDLE);
+            shedder.predictWatermark(currentWindow, FairShedder.GRADIENT_HEALTHY);
             assertEquals(initialP, shedder.watermark().P());
         }
 
@@ -244,7 +244,7 @@ class FairShedderTest extends BaseTest {
         boolean everAdmitted = false;
         for (int i = 0; i < Integer.MAX_VALUE; i++) {
             // 未过载
-            shedder.predictWatermark(currentWindow, FairShedder.GRADIENT_IDLE);
+            shedder.predictWatermark(currentWindow, FairShedder.GRADIENT_HEALTHY);
             if (lastLevel.equals(shedder.watermark())) {
                 admittingTimes = i + 1;
                 log.info("cannot admit any more:{}", admittingTimes);

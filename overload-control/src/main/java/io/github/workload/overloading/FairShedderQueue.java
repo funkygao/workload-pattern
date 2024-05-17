@@ -45,8 +45,8 @@ class FairShedderQueue extends FairShedder {
     @VisibleForTesting
     double queuingGradient(double avgQueuedMs, double upperBound) {
         double rawGradient = upperBound / avgQueuedMs;
-        double grad = Math.min(GRADIENT_IDLE, Math.max(GRADIENT_BUSIEST, rawGradient));
-        if (grad < GRADIENT_IDLE) {
+        double grad = Math.min(GRADIENT_IDLEST, Math.max(GRADIENT_BUSIEST, rawGradient));
+        if (grad < GRADIENT_HEALTHY) {
             log.info("[{}] avg:{} > {}, grad:{}", name, avgQueuedMs, upperBound, grad);
         }
         return grad;
