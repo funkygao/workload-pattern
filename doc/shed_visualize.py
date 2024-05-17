@@ -26,7 +26,7 @@ def parse_log_data(log_data):
 
 def plot_metrics(df):
     # 设置图的大小
-    fig, ax = plt.subplots(2, 1, figsize=(14, 10))
+    fig, ax = plt.subplots(2, 1, figsize=(18, 10))
     
     # 双Y坐标轴
     ax1 = ax[0]
@@ -34,12 +34,12 @@ def plot_metrics(df):
     
     # 绘制线条
     lines = []
-    lines += ax1.plot(df["seconds"], df["cpu"], linestyle='--', alpha=0.5, label='CPU', color='purple')
+    lines += ax1.plot(df["seconds"], df["cpu"], linestyle=':', alpha=0.25, label='CPU', color='purple')
     lines += ax1.plot(df["seconds"], df["smooth"], color='red', label='Smooth')
-    lines += ax2.plot(df["seconds"], df["qps_total"], color='blue', label='QPS (Total)')
+    lines += ax2.plot(df["seconds"], df["qps_total"], linestyle='--', alpha=0.5, color='blue', label='QPS (Total)')
     lines += ax2.plot(df["seconds"], df["shed"], color='orange', label='Shed')
     
-    ax1.axhline(OVERLOAD_THRESHOLD, color='gray', linestyle='--', linewidth=2, alpha=0.9)
+    ax1.axhline(OVERLOAD_THRESHOLD, color='gray', linestyle='dashed', linewidth=2, alpha=0.7)
     
     # 设置图例
     ax1.legend(loc='upper left')
