@@ -61,7 +61,7 @@ class OverloadSimulationTest extends BaseTest {
     @DisplayName("脉冲式请求压力")
     @Test
     void case_lazy_jitter() {
-        setLogLevel(Level.INFO);
+        setLogLevel(Level.DEBUG);
 
         Config c = new Config();
         c.N = 1 << 10;
