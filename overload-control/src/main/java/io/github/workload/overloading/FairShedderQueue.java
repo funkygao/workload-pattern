@@ -11,10 +11,9 @@ import java.util.concurrent.ThreadLocalRandom;
 
 @Slf4j
 class FairShedderQueue extends FairShedder {
-    @VisibleForTesting
     static final long AVG_QUEUED_MS_UPPER_BOUND = HyperParameter.getLong(Heuristic.AVG_QUEUED_MS_UPPER_BOUND, 200);
 
-    private volatile long overloadedAtNs = 0; // 最近一次显式过载的时间
+    private volatile long lastOverloadNs = 0;
     private final long timeCycleNs;
 
     FairShedderQueue(String name) {
@@ -24,11 +23,11 @@ class FairShedderQueue extends FairShedder {
 
     @Override
     protected double overloadGradient(long nowNs, CountAndTimeWindowState snapshot) {
-        boolean stillExplicitOverloaded = nowNs > 0 && overloadedAtNs > 0
-                && (nowNs - overloadedAtNs) <= timeCycleNs;
+        boolean stillExplicitOverloaded = nowNs > 0 && lastOverloadNs > 0
+                && (nowNs - lastOverloadNs) <= timeCycleNs;
         if (stillExplicitOverloaded) {
             double grad = explicitOverloadGradient();
-            log.info("[{}] within explicit overload interval:{}ms, random grad:{}", name, timeCycleNs / WindowConfig.NS_PER_MS, grad);
+            log.warn("[{}] within explicit overload period:{}ms, rand grad:{}", name, timeCycleNs / WindowConfig.NS_PER_MS, grad);
             return grad;
         }
 
@@ -57,7 +56,7 @@ class FairShedderQueue extends FairShedder {
 
     void overload(long overloadedAtNs) {
         log.debug("[{}] got explicit overload feedback", name);
-        this.overloadedAtNs = overloadedAtNs;
+        this.lastOverloadNs = overloadedAtNs;
     }
 
     @VisibleForTesting
@@ -65,7 +64,7 @@ class FairShedderQueue extends FairShedder {
     @Override
     void resetForTesting() {
         super.resetForTesting();
-        overloadedAtNs = 0;
+        lastOverloadNs = 0;
     }
 
 }

@@ -196,6 +196,6 @@ abstract class FairShedder {
     void resetForTesting() {
         this.window.resetForTesting();
         this.watermark.set(WorkloadPriority.ofLowest());
-        log.debug("[{}] WorkloadShedder has been reset for testing purposes.", name);
+        log.debug("[{}] has been reset for testing purposes.", name);
     }
 }
