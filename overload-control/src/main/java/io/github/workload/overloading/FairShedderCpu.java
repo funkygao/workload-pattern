@@ -53,7 +53,7 @@ class FairShedderCpu extends FairShedder {
         final double smoothed = valueSmoother.update(raw).smoothedValue();
         final double gradient = gradient(smoothed, cpuUsageUpperBound);
         if (isOverloaded(gradient)) {
-            log.warn("smoothed CPU BUSY:{} > {}, grad:{}, raw:{}", smoothed, cpuUsageUpperBound, gradient, raw);
+            log.warn("smoothed CPU BUSY:{} > {}, raw:{}, grad:{}", smoothed, cpuUsageUpperBound, raw, gradient);
         }
         return gradient;
     }
