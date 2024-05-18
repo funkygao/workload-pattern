@@ -88,7 +88,7 @@ abstract class FairShedder {
     // 确保在精准提高 watermark 时不会因为过度抛弃低优先级请求而影响服务的整体可用性，尽可能保持高 goodput
     private void penalizeFutureLowPriorities(CountAndTimeWindowState lastWindow, double gradient) {
         final int admitted = lastWindow.admitted();
-        final int targetDrop = (int) (DROP_RATE * admitted); // TODO integrate gradient
+        final int targetDrop = (int) (DROP_RATE / gradient * admitted);
         final WorkloadPriority currentWatermark = watermark();
         if (targetDrop == 0) {
             log.debug("[{}] cannot raise bar: poor admitted {}, watermark {}, grad:{}", name, admitted, currentWatermark.simpleString(), gradient);
