@@ -95,7 +95,7 @@ class OverloadSimulationTest extends BaseTest {
                 executeWorkload(admit, latencyMs / c.latencySleepFactor);
                 long delay = sysload.pulseDelay(c.laziness, 5000);
                 if (delay > 0) {
-                    log.info("delay:{}ms", delay);
+                    log.trace("delay:{}ms", delay);
                     sleep(delay);
                 }
             }
