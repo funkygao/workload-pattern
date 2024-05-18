@@ -67,7 +67,7 @@ class FairShedderQueueTest extends BaseTest {
         FairShedderQueue shedder = new FairShedderQueue("cpu");
         for (int i = 0; i < 20; i++) {
             final double gradient = shedder.explicitOverloadGradient();
-            assertTrue(gradient < FairShedder.GRADIENT_HEALTHY);
+            assertTrue(shedder.isOverloaded(gradient));
             assertTrue(gradient >= FairShedder.GRADIENT_BUSIEST);
             assertTrue(shedder.isOverloaded(gradient));
             log.info("explicitOverloadGradient: {}", shedder.explicitOverloadGradient());

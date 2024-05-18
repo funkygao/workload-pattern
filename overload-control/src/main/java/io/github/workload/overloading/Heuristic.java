@@ -66,11 +66,6 @@ interface Heuristic extends HyperParameter {
     String GRADIENT_IDLEST = "workload.GRADIENT_IDLEST";
 
     /**
-     * 健康梯度的阈值：低于它表示过载.
-     */
-    String GRADIENT_HEALTHY = "workload.GRADIENT_HEALTHY";
-
-    /**
      * 梯度的最低值：系统非常繁忙，压力最大.
      */
     String GRADIENT_BUSIEST = "workload.GRADIENT_BUSIEST";

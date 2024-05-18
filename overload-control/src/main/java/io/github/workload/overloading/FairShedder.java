@@ -24,8 +24,8 @@ import java.util.concurrent.atomic.AtomicReference;
 @Slf4j
 @ThreadSafe
 abstract class FairShedder {
+    static final double GRADIENT_HEALTHY = 1d;
     static final double GRADIENT_IDLEST = HyperParameter.getDouble(Heuristic.GRADIENT_IDLEST, 1.2d);
-    static final double GRADIENT_HEALTHY = HyperParameter.getDouble(Heuristic.GRADIENT_HEALTHY, 1.0d);
     static final double GRADIENT_BUSIEST = HyperParameter.getDouble(Heuristic.GRADIENT_BUSIEST, 0.5d);
     static final double OVER_SHED_BOUND = HyperParameter.getDouble(Heuristic.OVER_SHED_BOUND, 1.01d);
     static final double DROP_RATE = HyperParameter.getDouble(Heuristic.SHED_DROP_RATE, 0.05d);
@@ -142,7 +142,7 @@ abstract class FairShedder {
         }
 
         final int admitted = lastWindow.admitted();
-        final int targetAdmit = (int) (RECOVER_RATE * admitted); // TODO integrate gradient
+        final int targetAdmit = (int) (RECOVER_RATE * gradient * admitted);
         if (targetAdmit == 0) {
             watermark.set(WorkloadPriority.ofLowest());
             log.info("[{}] grad:{} lower bar, last window idle: admit all", name, gradient);
