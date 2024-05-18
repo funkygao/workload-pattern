@@ -24,7 +24,7 @@ import java.util.concurrent.atomic.AtomicReference;
 @Slf4j
 @ThreadSafe
 abstract class FairShedder {
-    static final double GRADIENT_HEALTHY = 1d;
+    protected final double GRADIENT_HEALTHY = 1d;
     static final double GRADIENT_IDLEST = HyperParameter.getDouble(Heuristic.GRADIENT_IDLEST, 1.2d);
     static final double GRADIENT_BUSIEST = HyperParameter.getDouble(Heuristic.GRADIENT_BUSIEST, 0.5d);
     static final double OVER_SHED_BOUND = HyperParameter.getDouble(Heuristic.OVER_SHED_BOUND, 1.01d);
