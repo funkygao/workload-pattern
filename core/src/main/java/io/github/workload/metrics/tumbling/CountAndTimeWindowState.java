@@ -55,13 +55,6 @@ public class CountAndTimeWindowState extends WindowState {
         return admittedCounter.intValue();
     }
 
-    /**
-     * 窗口期内总计拒绝了多少工作负荷.
-     */
-    public int shedded() {
-        return requested() - admitted();
-    }
-
     public void waitNs(long waitingNs) {
         if (waitingNs > 0) {
             accumulatedQueuedNs.add(waitingNs);
@@ -98,11 +91,7 @@ public class CountAndTimeWindowState extends WindowState {
     @Override
     protected void logRollover(String prefix, long nowNs, WindowState nextWindow, WindowConfig config) {
         if (log.isTraceEnabled()) {
-            log.trace("[{}] after:{}ms, swap window:{} -> {}, admitted:{}/{}, error:{}",
-                    prefix, (nowNs - startNs) / NS_PER_MS,
-                    this.hashCode(), nextWindow.hashCode(),
-                    this.admitted(), this.requested(),
-                    this.requested() - config.getRequestCycle());
+            log.trace("[{}] swap after:{}ms, admit:{}/{}", prefix, (nowNs - startNs) / NS_PER_MS, this.admitted(), this.requested());
         }
     }
 

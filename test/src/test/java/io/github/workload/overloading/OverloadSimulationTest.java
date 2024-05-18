@@ -44,9 +44,16 @@ class OverloadSimulationTest extends BaseTest {
     @DisplayName("请求少，但导致CPU飙升，而滚动窗口可shed数量少的降级场景")
     @Test
     void case_idle_greedy() {
-        setLogLevel(Level.INFO);
+        setLogLevel(Level.TRACE);
 
-        Config c = new Config(); // TODO
+        Config c = new Config();
+        c.exhaustedFactor = 0.1;
+        c.N = 1 << 10;
+        c.maxConcurrency = 400;
+        c.laziness = 0.21; // 越大sleep越久
+        c.latencyLow = 20;
+        c.latencyHigh = 3000;
+        c.latencySteepness = 0.5;
         simulate(c);
     }
 
@@ -59,7 +66,7 @@ class OverloadSimulationTest extends BaseTest {
         Config c = new Config();
         c.N = 1 << 10;
         c.maxConcurrency = 400;
-        c.laziness = 0.86; // 越大sleep越久
+        c.laziness = 0.76; // 越大sleep越久
         c.exhaustedFactor = 0.0002;
         c.latencyLow = 20;
         c.latencyHigh = 30;
@@ -95,7 +102,6 @@ class OverloadSimulationTest extends BaseTest {
                 executeWorkload(admit, latencyMs / c.latencySleepFactor);
                 long delay = sysload.pulseDelay(c.laziness, 5000);
                 if (delay > 0) {
-                    log.trace("delay:{}ms", delay);
                     sleep(delay);
                 }
             }

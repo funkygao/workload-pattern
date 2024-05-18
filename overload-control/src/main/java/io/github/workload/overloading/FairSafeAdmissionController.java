@@ -76,7 +76,7 @@ class FairSafeAdmissionController implements AdmissionController {
         metricsTracker.enter(workload.getPriority());
         if (!fairCpu.admit(priority)) {
             if (log.isDebugEnabled()) {
-                log.debug("{}:shared CPU saturated, shed {}, watermark {}", fairQueue.name, priority.simpleString(), fairCpu.watermark().simpleString());
+                log.debug("[{}] shared CPU saturated, shed {}, watermark {}", fairQueue.name, priority.simpleString(), fairCpu.watermark().simpleString());
             }
 
             metricsTracker.shedByCpu(priority);
@@ -86,7 +86,7 @@ class FairSafeAdmissionController implements AdmissionController {
         boolean ok = fairQueue.admit(priority);
         if (!ok) {
             if (log.isDebugEnabled()) {
-                log.debug("{}:queue busy, shed {}, watermark {}", fairQueue.name, priority.simpleString(), fairQueue.watermark().simpleString());
+                log.debug("[{}] queue busy, shed {}, watermark {}", fairQueue.name, priority.simpleString(), fairQueue.watermark().simpleString());
             }
 
             metricsTracker.shedByQueue(priority);
