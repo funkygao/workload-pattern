@@ -88,7 +88,7 @@ abstract class FairShedder {
     // 确保在精准提高 watermark 时不会因为过度抛弃低优先级请求而影响服务的整体可用性，尽可能保持高 goodput
     private void penalizeFutureLowPriorities(CountAndTimeWindowState lastWindow, double gradient) {
         final int admitted = lastWindow.admitted();
-        final int targetDrop = (int) (DROP_RATE / gradient * admitted);
+        final int targetDrop = (int) (DROP_RATE * admitted / gradient);
         final WorkloadPriority currentWatermark = watermark();
         if (targetDrop == 0) {
             log.debug("[{}] cannot raise bar: poor admitted {}, watermark {}, grad:{}", name, admitted, currentWatermark.simpleString(), gradient);
@@ -123,13 +123,13 @@ abstract class FairShedder {
                 }
 
                 watermark.updateAndGet(curr -> curr.deriveFromP(targetP));
-                log.info("[{}] grad:{}, steps:{} raise bar: {} -> {}, drop {}/{} err:{}", name, gradient, steps, currentWatermark.simpleString(), watermark().simpleString(), accDrop, targetDrop, errorRate);
+                log.info("[{}] raise bar ok, steps:{}, {} -> {}, drop {}/{} err:{}, grad:{}", name, steps, currentWatermark.simpleString(), watermark().simpleString(), accDrop, targetDrop, errorRate, gradient);
                 return;
             }
 
             if (!higherPriorities.hasNext()) { // read ahead
                 watermark.updateAndGet(curr -> curr.deriveFromP(candidateP));
-                log.info("[{}] grad:{}, steps:{} raise bar stop early: {} -> {}", name, gradient, steps, currentWatermark.simpleString(), watermark().simpleString());
+                log.info("[{}] raise bar stop early, steps:{}, {} -> {}, grad:{}", name, steps, currentWatermark.simpleString(), watermark().simpleString(), gradient);
                 return;
             }
         }
@@ -145,7 +145,7 @@ abstract class FairShedder {
         final int targetAdmit = (int) (RECOVER_RATE * gradient * admitted);
         if (targetAdmit == 0) {
             watermark.set(WorkloadPriority.ofLowest());
-            log.info("[{}] grad:{} lower bar, last window idle: admit all", name, gradient);
+            log.info("[{}] lower bar to lowest, last window idle {}/{}, grad:{}", name, admitted, lastWindow.requested(), gradient);
             return;
         }
 
@@ -153,7 +153,7 @@ abstract class FairShedder {
         final Iterator<Map.Entry<Integer, AtomicInteger>> lowerPriorities = lastWindow.histogram().tailMap(currentWatermark.P(), false).entrySet().iterator();
         if (!lowerPriorities.hasNext()) {
             watermark.set(WorkloadPriority.ofLowest());
-            log.info("[{}] grad:{} lower bar, has no lower peer: admit all", name, gradient);
+            log.info("[{}] lower bar to lowest, has no lower peer, grad:{}", name, gradient);
             return;
         }
 
@@ -167,12 +167,12 @@ abstract class FairShedder {
             if (accAdmit >= targetAdmit) {
                 watermark.updateAndGet(curr -> curr.deriveFromP(candidateP));
                 final double errorRate = (double) (accAdmit - targetAdmit) / targetAdmit;
-                log.info("[{}] grad:{}, steps:{} lower bar: {} -> {}, admit {}/{} err:{}", name, gradient, steps, currentWatermark.simpleString(), watermark().simpleString(), accAdmit, targetAdmit, errorRate);
+                log.info("[{}] lower bar ok, steps:{}, {} -> {}, admit {}/{} err:{}, grad:{}", name, steps, currentWatermark.simpleString(), watermark().simpleString(), accAdmit, targetAdmit, errorRate, gradient);
                 return;
             }
 
             if (!lowerPriorities.hasNext()) { // read ahead
-                log.info("[{}] grad:{}, steps:{} lower bar stop early: admit all", name, gradient, steps);
+                log.info("[{}] lower bar to lowest, stop early, steps:{}, grad:{}", name, gradient, steps);
                 watermark.set(WorkloadPriority.ofLowest());
                 return;
             }
