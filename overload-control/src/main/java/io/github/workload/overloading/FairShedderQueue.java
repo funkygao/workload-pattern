@@ -37,7 +37,8 @@ class FairShedderQueue extends FairShedder {
     // 显式过载的梯度值
     @VisibleForTesting
     double explicitOverloadGradient() {
-        return GRADIENT_BUSIEST + ThreadLocalRandom.current().nextDouble(GRADIENT_BUSIEST);
+        // TODO
+        return GRADIENT_BUSIEST + ThreadLocalRandom.current().nextDouble(GRADIENT_HEALTHY - GRADIENT_BUSIEST);
     }
 
     @VisibleForTesting
