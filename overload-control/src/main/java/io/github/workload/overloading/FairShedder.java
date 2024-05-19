@@ -123,13 +123,13 @@ abstract class FairShedder {
                 }
 
                 watermark.updateAndGet(curr -> curr.deriveFromP(targetP));
-                log.info("[{}] raise bar ok, steps:{}, {} -> {}, drop {}/{} err:{}, grad:{}", name, steps, currentWatermark.simpleString(), watermark().simpleString(), accDrop, targetDrop, errorRate, gradient);
+                log.info("[{}] raise bar ok, last drop:{}/{}, steps:{}, {} -> {}, to drop {}/{} err:{}, grad:{}", name, lastWindow.shedded(), lastWindow.requested(), steps, currentWatermark.simpleString(), watermark().simpleString(), accDrop, targetDrop, errorRate, gradient);
                 return;
             }
 
             if (!higherPriorities.hasNext()) { // read ahead
                 watermark.updateAndGet(curr -> curr.deriveFromP(candidateP));
-                log.info("[{}] raise bar stop early, steps:{}, {} -> {}, grad:{}", name, steps, currentWatermark.simpleString(), watermark().simpleString(), gradient);
+                log.info("[{}] raise bar stop early, last drop:{}/{}, steps:{}, {} -> {}, to drop {}/{}, grad:{}", name, lastWindow.shedded(), lastWindow.requested(), steps, currentWatermark.simpleString(), watermark().simpleString(), accDrop, targetDrop, gradient);
                 return;
             }
         }
@@ -153,7 +153,7 @@ abstract class FairShedder {
         final Iterator<Map.Entry<Integer, AtomicInteger>> lowerPriorities = lastWindow.histogram().tailMap(currentWatermark.P(), false).entrySet().iterator();
         if (!lowerPriorities.hasNext()) {
             watermark.set(WorkloadPriority.ofLowest());
-            log.info("[{}] lower bar to lowest, has no lower peer, grad:{}", name, gradient);
+            log.info("[{}] lower bar to lowest, has no lower peer, last drop:{}/{}, grad:{}", name, lastWindow.shedded(), lastWindow.requested(), gradient);
             return;
         }
 
@@ -167,12 +167,12 @@ abstract class FairShedder {
             if (accAdmit >= targetAdmit) {
                 watermark.updateAndGet(curr -> curr.deriveFromP(candidateP));
                 final double errorRate = (double) (accAdmit - targetAdmit) / targetAdmit;
-                log.info("[{}] lower bar ok, steps:{}, {} -> {}, admit {}/{} err:{}, grad:{}", name, steps, currentWatermark.simpleString(), watermark().simpleString(), accAdmit, targetAdmit, errorRate, gradient);
+                log.info("[{}] lower bar ok, last drop:{}/{}, steps:{}, {} -> {}, to admit {}/{} err:{}, grad:{}", name, lastWindow.shedded(), lastWindow.requested(), steps, currentWatermark.simpleString(), watermark().simpleString(), accAdmit, targetAdmit, errorRate, gradient);
                 return;
             }
 
             if (!lowerPriorities.hasNext()) { // read ahead
-                log.info("[{}] lower bar to lowest, stop early, steps:{}, grad:{}", name, gradient, steps);
+                log.info("[{}] lower bar to lowest, stop early, last drop:{}/{}, steps:{}, grad:{}", name, lastWindow.shedded(), lastWindow.requested(), steps, gradient);
                 watermark.set(WorkloadPriority.ofLowest());
                 return;
             }

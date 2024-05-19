@@ -55,6 +55,13 @@ public class CountAndTimeWindowState extends WindowState {
         return admittedCounter.intValue();
     }
 
+    /**
+     * 窗口期内总计削减了多少工作负荷.
+     */
+    public int shedded() {
+        return requested() - admitted();
+    }
+
     public void waitNs(long waitingNs) {
         if (waitingNs > 0) {
             accumulatedQueuedNs.add(waitingNs);
