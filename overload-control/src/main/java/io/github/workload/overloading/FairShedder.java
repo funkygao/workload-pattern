@@ -98,7 +98,7 @@ abstract class FairShedder {
         int accDrop = 0; // accumulated drop count
         final Iterator<Map.Entry<Integer, AtomicInteger>> higherPriorities = lastWindow.histogram().headMap(currentWatermark.P(), true).descendingMap().entrySet().iterator();
         if (!higherPriorities.hasNext()) {
-            log.debug("[{}] refuse raise bar: already highest, watermark {}, grad:{}", name, currentWatermark.simpleString(), gradient);
+            log.debug("[{}] refuse raise bar for being highest, watermark {}, grad:{}", name, currentWatermark.simpleString(), gradient);
             return;
         }
 
@@ -127,7 +127,7 @@ abstract class FairShedder {
                 return;
             }
 
-            if (!higherPriorities.hasNext()) { // read ahead
+            if (!higherPriorities.hasNext()) {
                 watermark.updateAndGet(curr -> curr.deriveFromP(candidateP));
                 log.info("[{}] raise bar stop early, last drop:{}/{}, steps:{}, {} -> {}, to drop {}/{}, grad:{}", name, lastWindow.shedded(), lastWindow.requested(), steps, currentWatermark.simpleString(), watermark().simpleString(), accDrop, targetDrop, gradient);
                 return;
@@ -154,7 +154,7 @@ abstract class FairShedder {
         final Iterator<Map.Entry<Integer, AtomicInteger>> lowerPriorities = lastWindow.histogram().tailMap(currentWatermark.P(), false).entrySet().iterator();
         if (!lowerPriorities.hasNext()) {
             watermark.set(WorkloadPriority.ofLowest());
-            log.info("[{}] lower bar to lowest for being highest, last drop:{}/{}, grad:{}", name, lastWindow.shedded(), lastWindow.requested(), gradient);
+            log.info("[{}] lower bar to lowest for being lowest, last drop:{}/{}, grad:{}", name, lastWindow.shedded(), lastWindow.requested(), gradient);
             return;
         }
 
