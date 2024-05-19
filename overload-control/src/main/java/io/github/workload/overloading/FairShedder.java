@@ -128,6 +128,7 @@ abstract class FairShedder {
             }
 
             if (!higherPriorities.hasNext()) {
+                // accDrop 没有达到预期，但已经无法再 raise bar了：best effort
                 watermark.updateAndGet(curr -> curr.deriveFromP(candidateP));
                 log.info("[{}] raise bar stop early, last drop:{}/{}, steps:{}, {} -> {}, to drop {}/{}, grad:{}", name, lastWindow.shedded(), lastWindow.requested(), steps, currentWatermark.simpleString(), watermark().simpleString(), accDrop, targetDrop, gradient);
                 return;
