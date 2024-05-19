@@ -45,7 +45,7 @@ interface Heuristic extends HyperParameter {
      * <p>(加速下降，慢速恢复)</p>
      * <p>该因子相当于系统恢复的冷却周期：没有它会造成负载短时间下降引起大量请求被放行，严重时再次打满CPU</p>
      *
-     * <p>默认值：0.015，即1.5%</p>
+     * <p>默认值：0.03，即3%</p>
      */
     String SHED_RECOVER_RATE = "workload.SHED_RECOVER_RATE";
 

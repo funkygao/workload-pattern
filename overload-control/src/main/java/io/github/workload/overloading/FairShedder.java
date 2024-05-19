@@ -29,7 +29,7 @@ abstract class FairShedder {
     static final double GRADIENT_BUSIEST = HyperParameter.getDouble(Heuristic.GRADIENT_BUSIEST, 0.5d);
     static final double OVER_SHED_BOUND = HyperParameter.getDouble(Heuristic.OVER_SHED_BOUND, 1.01d);
     static final double DROP_RATE = HyperParameter.getDouble(Heuristic.SHED_DROP_RATE, 0.05d);
-    static final double RECOVER_RATE = HyperParameter.getDouble(Heuristic.SHED_RECOVER_RATE, 0.015d);
+    static final double RECOVER_RATE = HyperParameter.getDouble(Heuristic.SHED_RECOVER_RATE, 0.03d);
 
     protected final String name;
     private final TumblingWindow<CountAndTimeWindowState> window;
