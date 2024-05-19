@@ -128,7 +128,7 @@ abstract class FairShedder {
             }
 
             if (!higherPriorities.hasNext()) {
-                // accDrop 没有达到预期，但已经无法再 raise bar了：best effort
+                // 凑不够数了：best effort
                 watermark.updateAndGet(curr -> curr.deriveFromP(candidateP));
                 log.info("[{}] raise bar stop early, last drop:{}/{}, steps:{}, {} -> {}, to drop {}/{}, grad:{}", name, lastWindow.shedded(), lastWindow.requested(), steps, currentWatermark.simpleString(), watermark().simpleString(), accDrop, targetDrop, gradient);
                 return;
@@ -172,13 +172,11 @@ abstract class FairShedder {
                 log.info("[{}] lower bar ok, last drop:{}/{}, steps:{}, {} -> {}, to admit {}/{} err:{}, grad:{}", name, lastWindow.shedded(), lastWindow.requested(), steps, currentWatermark.simpleString(), watermark().simpleString(), accAdmit, targetAdmit, errorRate, gradient);
                 return;
             }
-
-            if (!lowerPriorities.hasNext()) { // read ahead
-                log.info("[{}] lower bar to lowest, stop early, last drop:{}/{}, steps:{}, grad:{}", name, lastWindow.shedded(), lastWindow.requested(), steps, gradient);
-                watermark.set(WorkloadPriority.ofLowest());
-                return;
-            }
         }
+
+        // 凑不够数了
+        log.info("[{}] lower bar to lowest, stop early, last drop:{}/{}, steps:{}, grad:{}", name, lastWindow.shedded(), lastWindow.requested(), steps, gradient);
+        watermark.set(WorkloadPriority.ofLowest());
     }
 
     protected final CountAndTimeWindowState currentWindow() {
