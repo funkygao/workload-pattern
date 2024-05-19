@@ -147,7 +147,7 @@ abstract class FairShedder {
         if (targetAdmit == 0) {
             // FIXME 也可能请求很多，全被shed
             watermark.set(WorkloadPriority.ofLowest());
-            log.info("[{}] lower bar to lowest for idle window, last drop:{}/{}, grad:{}", name, lastWindow.shedded(), lastWindow.requested(), gradient);
+            log.info("[{}] lower bar to 0 for idle window, last drop:{}/{}, grad:{}", name, lastWindow.shedded(), lastWindow.requested(), gradient);
             return;
         }
 
@@ -155,7 +155,7 @@ abstract class FairShedder {
         final Iterator<Map.Entry<Integer, AtomicInteger>> lowerPriorities = lastWindow.histogram().tailMap(currentWatermark.P(), false).entrySet().iterator();
         if (!lowerPriorities.hasNext()) {
             watermark.set(WorkloadPriority.ofLowest());
-            log.info("[{}] lower bar to lowest for being lowest, last drop:{}/{}, grad:{}", name, lastWindow.shedded(), lastWindow.requested(), gradient);
+            log.info("[{}] lower bar to 0 for being last stop, last drop:{}/{}, grad:{}", name, lastWindow.shedded(), lastWindow.requested(), gradient);
             return;
         }
 
@@ -175,7 +175,7 @@ abstract class FairShedder {
         }
 
         // 凑不够数了
-        log.info("[{}] lower bar to lowest, stop early, last drop:{}/{}, steps:{}, grad:{}", name, lastWindow.shedded(), lastWindow.requested(), steps, gradient);
+        log.info("[{}] lower bar to 0, stop early, last drop:{}/{}, steps:{}, grad:{}", name, lastWindow.shedded(), lastWindow.requested(), steps, gradient);
         watermark.set(WorkloadPriority.ofLowest());
     }
 
