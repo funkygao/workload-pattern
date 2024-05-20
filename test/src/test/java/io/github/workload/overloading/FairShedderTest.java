@@ -3,7 +3,9 @@ package io.github.workload.overloading;
 import com.google.common.collect.ImmutableMap;
 import io.github.workload.BaseTest;
 import io.github.workload.WorkloadPriority;
+import io.github.workload.metrics.tumbling.CountAndTimeRolloverStrategy;
 import io.github.workload.metrics.tumbling.CountAndTimeWindowState;
+import io.github.workload.metrics.tumbling.TumblingWindow;
 import io.github.workload.metrics.tumbling.WindowConfig;
 import io.github.workload.simulate.WorkloadPrioritySimulator;
 import one.profiler.AsyncProfiler;
@@ -15,6 +17,7 @@ import org.junit.jupiter.api.parallel.ExecutionMode;
 import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.ConcurrentSkipListMap;
+import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -268,7 +271,7 @@ class FairShedderTest extends BaseTest {
         if (currentWindow.admitted() > 99) {
             if (sheddingTimes == 0) {
                 assertEquals(0, admittingTimes);
-            }else if (sheddingTimes==1) {
+            } else if (sheddingTimes == 1) {
                 assertEquals(1, admittingTimes);
             } else {
                 //assertTrue(admittingTimes > 2 * sheddingTimes, String.format("%d %d", sheddingTimes, admittingTimes));
@@ -336,6 +339,65 @@ class FairShedderTest extends BaseTest {
             }
         };
         concurrentRun(task);
+    }
+
+    @Test
+    void predictWatermark_penalizeFutureLowPriorities() {
+        WindowConfig<CountAndTimeWindowState> config = WindowConfig.create(TimeUnit.HOURS.toNanos(1), 1 << 20,
+                new CountAndTimeRolloverStrategy() {
+                    @Override
+                    public void onRollover(long nowNs, CountAndTimeWindowState snapshot, TumblingWindow<CountAndTimeWindowState> window) {
+                    }
+                }
+        );
+
+        TumblingWindow<CountAndTimeWindowState> window = new TumblingWindow<>(config, "unit_test", System.nanoTime());
+        List<PredictFixture> fixtures = Arrays.asList(
+                new PredictFixture(0, 0.8, false),
+                new PredictFixture(10, 0.8, false),
+                new PredictFixture(19, 1.0, false),
+                new PredictFixture(19, 0.8, true),
+                new PredictFixture(16, 0.8, true),
+                new PredictFixture(16, 1, false),
+                new PredictFixture(20, 0.8, true),
+                new PredictFixture(100, 0.8, true));
+
+        for (PredictFixture fixture : fixtures) {
+            WorkloadPrioritySimulator generator = new WorkloadPrioritySimulator().simulateMixedWorkloadPriority(fixture.N);
+            for (Map.Entry<WorkloadPriority, Integer> entry : generator) {
+                for (int i = 0; i < entry.getValue(); i++) {
+                    window.advance(entry.getKey());
+                }
+            }
+
+            FairShedder shedder = new FairShedder("unit_test") {
+                @Override
+                protected double overloadGradient(long nowNs, CountAndTimeWindowState snapshot) {
+                    return 0;
+                }
+            };
+            WorkloadPriority watermarkBefore = shedder.watermark();
+            shedder.predictWatermark(window.current(), fixture.grad);
+            WorkloadPriority watermarkAfter = shedder.watermark();
+            if (fixture.watermarkChange) {
+                assertNotEquals(watermarkBefore, watermarkAfter);
+            } else {
+                assertEquals(watermarkBefore, watermarkAfter, fixture.N + ":" + fixture.grad);
+            }
+            window.resetForTesting();
+        }
+    }
+
+    static class PredictFixture {
+        final int N;
+        final double grad;
+        final boolean watermarkChange;
+
+        PredictFixture(int N, double grad, boolean watermarkChange) {
+            this.N = N;
+            this.grad = grad;
+            this.watermarkChange = watermarkChange;
+        }
     }
 
 }
