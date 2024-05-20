@@ -25,11 +25,11 @@ import java.util.concurrent.atomic.AtomicReference;
 @ThreadSafe
 abstract class FairShedder {
     protected final double GRADIENT_HEALTHY = 1d;
-    static final double GRADIENT_IDLEST = HyperParameter.getDouble(Heuristic.GRADIENT_IDLEST, 1.2d);
-    static final double GRADIENT_BUSIEST = HyperParameter.getDouble(Heuristic.GRADIENT_BUSIEST, 0.5d);
-    static final double OVER_SHED_BOUND = HyperParameter.getDouble(Heuristic.OVER_SHED_BOUND, 1.01d);
-    static final double DROP_RATE = HyperParameter.getDouble(Heuristic.SHED_DROP_RATE, 0.05d);
-    static final double RECOVER_RATE = HyperParameter.getDouble(Heuristic.SHED_RECOVER_RATE, 0.03d);
+    static final double GRADIENT_IDLEST = HyperParameter.getDouble(Empirical.GRADIENT_IDLEST, 1.2d);
+    static final double GRADIENT_BUSIEST = HyperParameter.getDouble(Empirical.GRADIENT_BUSIEST, 0.5d);
+    static final double OVER_SHED_BOUND = HyperParameter.getDouble(Empirical.OVER_SHED_BOUND, 1.01d);
+    static final double DROP_RATE = HyperParameter.getDouble(Empirical.SHED_DROP_RATE, 0.05d);
+    static final double RECOVER_RATE = HyperParameter.getDouble(Empirical.SHED_RECOVER_RATE, 0.03d);
 
     protected final String name;
     private final TumblingWindow<CountAndTimeWindowState> window;

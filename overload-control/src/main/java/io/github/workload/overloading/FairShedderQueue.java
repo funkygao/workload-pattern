@@ -11,7 +11,7 @@ import java.util.concurrent.ThreadLocalRandom;
 
 @Slf4j
 class FairShedderQueue extends FairShedder {
-    static final long AVG_QUEUED_MS_UPPER_BOUND = HyperParameter.getLong(Heuristic.AVG_QUEUED_MS_UPPER_BOUND, 20);
+    static final long AVG_QUEUED_MS_UPPER_BOUND = HyperParameter.getLong(Empirical.AVG_QUEUED_MS_UPPER_BOUND, 20);
 
     private volatile long lastOverloadNs = 0;
     private final long timeCycleNs;

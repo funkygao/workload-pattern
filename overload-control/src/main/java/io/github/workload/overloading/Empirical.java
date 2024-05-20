@@ -2,7 +2,7 @@ package io.github.workload.overloading;
 
 import io.github.workload.HyperParameter;
 
-interface Heuristic extends HyperParameter {
+interface Empirical extends HyperParameter {
 
     /**
      * CPU过载静默期：JVM启动期间通常CPU比较高，静默期跳过该时间段.
