@@ -54,7 +54,7 @@ def plot_metrics(df):
     shed_last_marked_index = -shed_mark_interval
     for i in range(len(df["seconds"])):
         if df["shed"][i] > 0 and (i - shed_last_marked_index) >= shed_mark_interval:
-            ax2.text(df["seconds"][i], df["shed"][i], f'{df["shed"][i]:.0f}', color='orange', fontsize=8, alpha=0.75)
+            ax2.text(df["seconds"][i] + 0.3, df["shed"][i], f'{df["shed"][i]:.0f}', color='orange', fontsize=8, alpha=1.0)
             shed_last_marked_index = i
     
     # 设置图例
