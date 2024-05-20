@@ -58,8 +58,8 @@ def plot_metrics(df):
             shed_last_marked_index = i
     
     # 在图表中标记exhausted为True的点
-    for i in df.index[df['exhausted']]:
-        ax1.text(df.loc[i, 'seconds'], df.loc[i, 'smooth'], 'exhausted', fontsize=8, color='black', rotation=45)
+    exhausted_points = df[df['exhausted']]
+    ax1.scatter(exhausted_points['seconds'], exhausted_points['smooth'], s=50, color='black', label='Exhausted', marker='o', alpha=0.6)
 
     # 设置图例
     ax1.legend(loc='upper left')
