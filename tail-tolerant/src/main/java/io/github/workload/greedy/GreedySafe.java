@@ -29,51 +29,51 @@ public class GreedySafe {
     /**
      * 处理大数据集分批任务的方法，无返回值场景.
      *
-     * @param items             要处理的数据集
-     * @param config            大报文保护的配置
-     * @param partitionConsumer 处理每一个({@link Partition})数据处理者
-     * @param <IN>              输入数据类型
-     * @param <E>               异常类型
+     * @param items         要处理的数据集
+     * @param config        大报文保护的配置
+     * @param batchConsumer 处理每一个({@link Batch})数据处理者
+     * @param <IN>          输入数据类型
+     * @param <E>           异常类型
      * @throws E 如果在处理数据时发生异常
      */
-    public <IN, E extends Throwable> void scatter(List<IN> items, GreedyConfig config, @NonNull ThrowingConsumer<Partition<IN>, E> partitionConsumer) throws E {
-        processItems(items, config.getBatchSize(), partition -> {
-            partitionConsumer.accept(partition);
+    public <IN, E extends Throwable> void scatter(List<IN> items, GreedyConfig config, @NonNull GreedySafe.BatchConsumer<Batch<IN>, E> batchConsumer) throws E {
+        processItems(items, config.getBatchSize(), batch -> {
+            batchConsumer.accept(batch);
             return null;
         }, config, false);
     }
 
     /**
-     * {@link #scatter(List, GreedyConfig, ThrowingConsumer)} with default config.
+     * {@link #scatter(List, GreedyConfig, BatchConsumer)} with default config.
      */
-    public <IN, E extends Throwable> void scatter(List<IN> items, @NonNull ThrowingConsumer<Partition<IN>, E> partitionConsumer) throws E {
-        scatter(items, GreedyConfig.newDefault(), partitionConsumer);
+    public <IN, E extends Throwable> void scatter(List<IN> items, @NonNull GreedySafe.BatchConsumer<Batch<IN>, E> batchConsumer) throws E {
+        scatter(items, GreedyConfig.newDefault(), batchConsumer);
     }
 
     /**
      * 处理大数据集分批任务的方法，有返回值场景.
      *
-     * @param items             要处理的数据集
-     * @param config            大报文保护的配置
-     * @param partitionFunction 处理每一个({@link Partition})数据处理者
-     * @param <OUT>             结果数据类型
-     * @param <IN>              输入数据类型
-     * @param <E>               异常类型
+     * @param items         要处理的数据集
+     * @param config        大报文保护的配置
+     * @param batchFunction 处理每一个({@link Batch})数据处理者
+     * @param <OUT>         结果数据类型
+     * @param <IN>          输入数据类型
+     * @param <E>           异常类型
      * @return 结果集
      * @throws E 如果在处理数据时发生异常
      */
-    public <OUT, IN, E extends Throwable> List<OUT> scatterGather(List<IN> items, GreedyConfig config, @NonNull ThrowingFunction<Partition<IN>, List<OUT>, E> partitionFunction) throws E {
-        return processItems(items, config.getBatchSize(), partitionFunction, config, true);
+    public <OUT, IN, E extends Throwable> List<OUT> scatterGather(List<IN> items, GreedyConfig config, @NonNull GreedySafe.BatchFunction<Batch<IN>, List<OUT>, E> batchFunction) throws E {
+        return processItems(items, config.getBatchSize(), batchFunction, config, true);
     }
 
     /**
-     * {@link #scatterGather(List, GreedyConfig, ThrowingFunction)} with default config.
+     * {@link #scatterGather(List, GreedyConfig, BatchFunction)} with default config.
      */
-    public <OUT, IN, E extends Throwable> List<OUT> scatterGather(List<IN> items, @NonNull ThrowingFunction<Partition<IN>, List<OUT>, E> partitionFunction) throws E {
-        return scatterGather(items, GreedyConfig.newDefault(), partitionFunction);
+    public <OUT, IN, E extends Throwable> List<OUT> scatterGather(List<IN> items, @NonNull GreedySafe.BatchFunction<Batch<IN>, List<OUT>, E> batchFunction) throws E {
+        return scatterGather(items, GreedyConfig.newDefault(), batchFunction);
     }
 
-    private <OUT, IN, E extends Throwable> List<OUT> processItems(List<IN> items, int partitionSize, ThrowingFunction<Partition<IN>, List<OUT>, E> processor, GreedyConfig config, boolean hasResult) throws E {
+    private <OUT, IN, E extends Throwable> List<OUT> processItems(List<IN> items, int batchSize, BatchFunction<Batch<IN>, List<OUT>, E> processor, GreedyConfig config, boolean hasResult) throws E {
         if (items == null || items.isEmpty()) {
             return hasResult ? new ArrayList<>() : null;
         }
@@ -84,24 +84,24 @@ public class GreedySafe {
         }
         int itemsProcessed = 0;
         int costs = 0;
-        for (int start = 0, partitionId = 0; start < items.size(); start += partitionSize, partitionId++) {
-            final int end = Math.min(items.size(), start + partitionSize);
-            List<IN> partitionData = items.subList(start, end);
-            Partition<IN> partition = new Partition<>(partitionData, partitionId);
-            List<OUT> partitionResult = processor.apply(partition);
-            if (results != null && partitionResult != null) {
-                results.addAll(partitionResult);
+        for (int start = 0, batchId = 0; start < items.size(); start += batchSize, batchId++) {
+            final int end = Math.min(items.size(), start + batchSize);
+            List<IN> batchData = items.subList(start, end);
+            Batch<IN> batch = new Batch<>(batchData, batchId);
+            List<OUT> batchResult = processor.apply(batch);
+            if (results != null && batchResult != null) {
+                results.addAll(batchResult);
             }
 
-            itemsProcessed += partitionData.size();
-            if (!partition.accessed) {
+            itemsProcessed += batchData.size();
+            if (!batch.accessed) {
                 // fail fast to avoid escaping to production environment
-                throw new IllegalStateException("BUG! Partition not accessed, accessing the whole dataset?");
+                throw new IllegalStateException("BUG! Batch not accessed, accessing the whole dataset?");
             }
 
             if (config.getRateLimiter() != null) {
                 final String key = config.getRateLimiterKey();
-                costs += partition.costs();
+                costs += batch.costs();
                 if (costs > config.getRateLimitOnCostExceed()) {
                     if (!config.getRateLimiter().canAcquire(key, 1)) {
                         log.warn("Fail to acquire limiter token, accCost:{} > {}, itemProcessed:{}, key:{}", costs, config.getRateLimitOnCostExceed(), itemsProcessed, key);
@@ -124,7 +124,7 @@ public class GreedySafe {
     }
 
     @RequiredArgsConstructor
-    public class Partition<T> {
+    public class Batch<T> {
         private final List<T> items;
         @Getter
         private final int id;
@@ -148,12 +148,12 @@ public class GreedySafe {
     }
 
     @FunctionalInterface
-    public interface ThrowingFunction<T, R, E extends Throwable> {
+    public interface BatchFunction<T, R, E extends Throwable> {
         R apply(T t) throws E;
     }
 
     @FunctionalInterface
-    public interface ThrowingConsumer<T, E extends Throwable> {
+    public interface BatchConsumer<T, E extends Throwable> {
         void accept(T t) throws E;
     }
 }
