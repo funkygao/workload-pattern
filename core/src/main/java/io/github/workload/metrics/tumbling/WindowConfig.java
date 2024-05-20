@@ -20,7 +20,7 @@ import java.util.concurrent.TimeUnit;
 public class WindowConfig<S extends WindowState> {
     public static final long NS_PER_MS = TimeUnit.MILLISECONDS.toNanos(1);
     public static final long DEFAULT_TIME_CYCLE_NS = TimeUnit.MILLISECONDS.toNanos(HyperParameter.getLong(HyperParameter.WINDOW_TIME_CYCLE_MS, 1000)); // 1s
-    public static final int DEFAULT_REQUEST_CYCLE = HyperParameter.getInt(HyperParameter.WINDOW_REQUEST_CYCLE, 2 << 10);
+    public static final int DEFAULT_REQUEST_CYCLE = HyperParameter.getInt(HyperParameter.WINDOW_REQUEST_CYCLE, 1 << 10);
 
     /**
      * 时间周期.
