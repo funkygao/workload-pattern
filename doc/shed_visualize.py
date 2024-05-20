@@ -1,5 +1,6 @@
 import pandas as pd
 import matplotlib.pyplot as plt
+import mplcursors
 from io import StringIO
 import sys
 from matplotlib.widgets import CheckButtons
@@ -90,6 +91,27 @@ def plot_metrics(df):
         plt.draw()
 
     check.on_clicked(on_clicked)
+
+    # 添加悬停功能
+    cursor = mplcursors.cursor(hover=True)
+    @cursor.connect("add")
+    def on_add(sel):
+        index = sel.index  # 获取当前点的索引
+        # 获取当前点对应的所有指标的值
+        time_point = df.iloc[index]['seconds']
+        cpu_value = df.iloc[index]['cpu']
+        smooth_value = df.iloc[index]['smooth']
+        shed_value = df.iloc[index]['shed']
+        qps_total_value = df.iloc[index]['qps_total']
+    
+        # 设置annotation的文本为所有指标的值
+        text = f"Time: {time_point:.2f}s\nCPU: {cpu_value:.2f}%\nSmooth: {smooth_value:.2f}%\nShed: {shed_value}\nQPS (Total): {qps_total_value:.2f}"
+    
+        # 设置annotation的文本
+        sel.annotation.set(text=text, position=(20, 20), bbox=dict(boxstyle="round,pad=0.6", fc="yellow", ec="black", lw=1, alpha=0.5))
+        sel.annotation.xy = (time_point, sel.target[1])  # 设置annotation的位置为当前点的位置
+        sel.annotation.get_bbox_patch().set_alpha(0.5)
+
 
     plt.show()
 

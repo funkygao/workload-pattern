@@ -105,6 +105,9 @@ public class SysloadAdaptiveSimulator implements Sysload {
         if (usage > cpuOverloadThreshold) { // 当CPU使用率超过阈值时，减少随机增量的上限
             maxRandomIncrement *= 0.5;
         }
+        if (maxRandomIncrement == 0) {
+            maxRandomIncrement = 0.1;
+        }
 
         // 在当前的动态CPU使用率基础上添加随机增量，模拟真实环境中的波动
         usage = dynamicCpuUsage + ThreadLocalRandom.current().nextDouble(0, maxRandomIncrement);
