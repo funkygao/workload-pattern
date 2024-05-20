@@ -94,9 +94,11 @@ def plot_metrics(df):
 
     # 添加悬停功能
     cursor = mplcursors.cursor(hover=True)
+
     @cursor.connect("add")
     def on_add(sel):
-        index = sel.index  # 获取当前点的索引
+        # 强制将index转换为整数
+        index = int(sel.index)  # 获取当前点的索引，并确保它是整数
         # 获取当前点对应的所有指标的值
         time_point = df.iloc[index]['seconds']
         cpu_value = df.iloc[index]['cpu']
