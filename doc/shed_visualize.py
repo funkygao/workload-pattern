@@ -26,7 +26,7 @@ def parse_log_data(log_data):
 
 def plot_metrics(df):
     # 设置图的大小
-    fig, ax = plt.subplots(2, 1, figsize=(18, 10), constrained_layout=True)
+    fig, ax = plt.subplots(2, 1, figsize=(18, 10), constrained_layout=True, gridspec_kw={'height_ratios': [3, 1]})
     
     # 双Y坐标轴
     ax1 = ax[0]
@@ -54,7 +54,7 @@ def plot_metrics(df):
     shed_last_marked_index = -shed_mark_interval
     for i in range(len(df["seconds"])):
         if df["shed"][i] > 0 and (i - shed_last_marked_index) >= shed_mark_interval:
-            ax2.text(df["seconds"][i] + 0.3, df["shed"][i], f'{df["shed"][i]:.0f}', color='orange', fontsize=8, alpha=1.0)
+            ax2.text(df["seconds"][i] + 0.3, df["shed"][i], f'{df["shed"][i]:.0f}', color='orange', fontsize=10, alpha=1.0)
             shed_last_marked_index = i
     
     # 在图表中标记exhausted为True的点
@@ -79,7 +79,7 @@ def plot_metrics(df):
     ax[1].grid(True)
 
     # check buttons
-    rax = plt.axes([0.08, 0.35, 0.1, 0.15], facecolor='lightgoldenrodyellow')
+    rax = plt.axes([0.08, 0.15, 0.1, 0.15], facecolor='lightgoldenrodyellow')
     labels = [str(line.get_label()) for line in lines]
     visibility = [line.get_visible() for line in lines]
     check = CheckButtons(rax, labels, visibility)
