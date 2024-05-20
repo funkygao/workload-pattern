@@ -21,6 +21,7 @@ class WorkloadPriorityConcurrentTest {
     @BeforeAll
     static void reset() {
         uniqueU.clear();
+        WorkloadPriority.resetForTesting();
     }
 
     @AfterAll

@@ -1,7 +1,6 @@
 package io.github.workload;
 
 import io.github.workload.helper.RandomUtil;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.RepeatedTest;
 import org.junit.jupiter.api.Test;
 
@@ -43,14 +42,14 @@ class WorkloadPriorityTest {
 
     @Test
     void P() {
-        WorkloadPriority p1 = WorkloadPriority.of(5, 3);
+        WorkloadPriority p1 = WorkloadPriority.of(7, 3);
         WorkloadPriority p2 = WorkloadPriority.of(8, 10);
-        assertEquals(643, p1.P());
+        assertEquals(899, p1.P());
         assertEquals(1024 + 10, p2.P());
-        assertFalse(p1.equals(p2));
-        assertTrue(p1.equals(WorkloadPriority.of(5, 3)));
-        assertNotSame(p1, WorkloadPriority.of(5, 3));
-        assertEquals(p1, WorkloadPriority.of(5, 3));
+        assertNotEquals(p1, p2);
+        assertEquals(p1, WorkloadPriority.of(7, 3));
+        assertNotSame(p1, WorkloadPriority.of(7, 3));
+        assertEquals(p1, WorkloadPriority.of(7, 3));
     }
 
     @Test
@@ -64,7 +63,6 @@ class WorkloadPriorityTest {
         assertEquals(p1, WorkloadPriority.ofPeriodicRandomFromUID(6, 345));
     }
 
-    @Disabled
     @Test
     void test_warmPool() {
         WorkloadPriority p1 = WorkloadPriority.of(WorkloadPriority.B_CRITICAL, 4);
