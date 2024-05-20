@@ -8,22 +8,24 @@ import java.util.function.Consumer;
 
 @Getter
 public class GreedyConfig {
-    private final int partitionSize;
+    private final int batchSize;
 
-    private final int greedyThreshold;
-    private final Consumer<Integer> thresholdExceededAction;
+    private final int itemsLimit;
+    private final Consumer<Integer> onItemsLimitExceed;
 
-    private final int limitCostsThreshold;
-    private final GreedyLimiter greedyLimiter;
-    private final String limiterKey;
+    private final int rateLimitOnCostExceed;
+    private final GreedyLimiter rateLimiter;
+    private final String rateLimiterKey;
 
     private GreedyConfig(Builder builder) {
-        this.partitionSize = builder.partitionSize;
-        this.greedyThreshold = builder.greedyThreshold;
-        this.thresholdExceededAction = builder.thresholdExceededAction;
-        this.limitCostsThreshold = builder.limitCostsThreshold;
-        this.greedyLimiter = builder.greedyLimiter;
-        this.limiterKey = builder.limiterKey;
+        this.batchSize = builder.batchSize;
+
+        this.itemsLimit = builder.itemsLimit;
+        this.onItemsLimitExceed = builder.onItemsLimitExceed;
+
+        this.rateLimitOnCostExceed = builder.rateLimitOnCostExceed;
+        this.rateLimiter = builder.rateLimiter;
+        this.rateLimiterKey = builder.rateLimiterKey;
     }
 
     public static Builder newBuilder() {
@@ -35,57 +37,57 @@ public class GreedyConfig {
                 .build();
     }
 
-    public static GreedyConfig newDefaultWithLimiter(int costsThreshold, @NonNull String limiterKey, @NonNull GreedyLimiter limiter) {
+    public static GreedyConfig newDefaultWithLimiter(int rateLimitOnCostExceed, @NonNull String rateLimiterKey, @NonNull GreedyLimiter rateLimiter) {
         return new Builder()
-                .throttle(costsThreshold, limiterKey, limiter)
+                .throttle(rateLimitOnCostExceed, rateLimiterKey, rateLimiter)
                 .build();
     }
 
     @Slf4j
     public static class Builder {
-        private int partitionSize = 100;
+        private int batchSize = 100;
 
-        private int greedyThreshold = 1000;
-        private Consumer<Integer> thresholdExceededAction;
+        private int itemsLimit = 1000;
+        private Consumer<Integer> onItemsLimitExceed;
 
-        private int limitCostsThreshold = Integer.MAX_VALUE;
-        private String limiterKey;
-        private GreedyLimiter greedyLimiter;
+        private int rateLimitOnCostExceed = Integer.MAX_VALUE;
+        private String rateLimiterKey;
+        private GreedyLimiter rateLimiter;
 
-        public Builder partitionSize(int partitionSize) {
-            this.partitionSize = partitionSize;
+        public Builder batchSize(int batchSize) {
+            this.batchSize = batchSize;
             return this;
         }
 
-        public Builder greedyThreshold(int greedyThreshold) {
-            this.greedyThreshold = greedyThreshold;
+        public Builder itemsLimit(int itemsLimit) {
+            this.itemsLimit = itemsLimit;
             return this;
         }
 
-        public Builder throttle(int costsThreshold, @NonNull String limiterKey, @NonNull GreedyLimiter limiter) {
-            this.limitCostsThreshold = costsThreshold;
-            this.limiterKey = limiterKey;
-            this.greedyLimiter = limiter;
+        public Builder throttle(int rateLimitOnCostExceed, @NonNull String rateLimiterKey, @NonNull GreedyLimiter rateLimiter) {
+            this.rateLimitOnCostExceed = rateLimitOnCostExceed;
+            this.rateLimiterKey = rateLimiterKey;
+            this.rateLimiter = rateLimiter;
             return this;
         }
 
-        public Builder thresholdExceededAction(Consumer<Integer> action) {
-            this.thresholdExceededAction = action;
+        public Builder onItemsLimitExceed(Consumer<Integer> onItemsLimitExceed) {
+            this.onItemsLimitExceed = onItemsLimitExceed;
             return this;
         }
 
         public GreedyConfig build() {
-            if (partitionSize <= 0) {
+            if (batchSize <= 0) {
                 throw new IllegalArgumentException("partitionSize must be greater than 0");
             }
-            if (greedyThreshold <= partitionSize) {
+            if (itemsLimit <= batchSize) {
                 throw new IllegalArgumentException("greedyThreshold must be greater than partitionSize");
             }
-            if (greedyLimiter != null) {
-                if (limiterKey == null || limiterKey.trim().isEmpty()) {
+            if (rateLimiter != null) {
+                if (rateLimiterKey == null || rateLimiterKey.trim().isEmpty()) {
                     throw new IllegalArgumentException("greedyLimiter not null, limiterKey cannot be empty");
                 }
-                if (limitCostsThreshold == Integer.MAX_VALUE) {
+                if (rateLimitOnCostExceed == Integer.MAX_VALUE) {
                     throw new IllegalArgumentException("greedyLimiter not null, costsThreshold must be set");
                 }
             }

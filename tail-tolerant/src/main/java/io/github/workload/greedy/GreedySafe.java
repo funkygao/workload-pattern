@@ -37,7 +37,7 @@ public class GreedySafe {
      * @throws E 如果在处理数据时发生异常
      */
     public <IN, E extends Throwable> void scatter(List<IN> items, GreedyConfig config, @NonNull ThrowingConsumer<Partition<IN>, E> partitionConsumer) throws E {
-        processItems(items, config.getPartitionSize(), partition -> {
+        processItems(items, config.getBatchSize(), partition -> {
             partitionConsumer.accept(partition);
             return null;
         }, config, false);
@@ -63,7 +63,7 @@ public class GreedySafe {
      * @throws E 如果在处理数据时发生异常
      */
     public <OUT, IN, E extends Throwable> List<OUT> scatterGather(List<IN> items, GreedyConfig config, @NonNull ThrowingFunction<Partition<IN>, List<OUT>, E> partitionFunction) throws E {
-        return processItems(items, config.getPartitionSize(), partitionFunction, config, true);
+        return processItems(items, config.getBatchSize(), partitionFunction, config, true);
     }
 
     /**
@@ -99,22 +99,22 @@ public class GreedySafe {
                 throw new IllegalStateException("BUG! Partition not accessed, accessing the whole dataset?");
             }
 
-            if (config.getGreedyLimiter() != null) {
-                final String key = config.getLimiterKey();
+            if (config.getRateLimiter() != null) {
+                final String key = config.getRateLimiterKey();
                 costs += partition.costs();
-                if (costs > config.getLimitCostsThreshold()) {
-                    if (!config.getGreedyLimiter().canAcquire(key, 1)) {
-                        log.warn("Fail to acquire limiter token, accCost:{} > {}, itemProcessed:{}, key:{}", costs, config.getLimitCostsThreshold(), itemsProcessed, key);
+                if (costs > config.getRateLimitOnCostExceed()) {
+                    if (!config.getRateLimiter().canAcquire(key, 1)) {
+                        log.warn("Fail to acquire limiter token, accCost:{} > {}, itemProcessed:{}, key:{}", costs, config.getRateLimitOnCostExceed(), itemsProcessed, key);
                         throw new GreedyException();
                     }
                 }
             }
         }
 
-        if (itemsProcessed > config.getGreedyThreshold()) {
-            Consumer<Integer> thresholdExceededAction = config.getThresholdExceededAction();
+        if (itemsProcessed > config.getItemsLimit()) {
+            Consumer<Integer> thresholdExceededAction = config.getOnItemsLimitExceed();
             if (thresholdExceededAction == null) {
-                log.warn("Items processed exceed threshold: {} > {}", itemsProcessed, config.getGreedyThreshold());
+                log.warn("Items processed exceed threshold: {} > {}", itemsProcessed, config.getItemsLimit());
             } else {
                 thresholdExceededAction.accept(itemsProcessed);
             }
