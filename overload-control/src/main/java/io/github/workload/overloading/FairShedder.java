@@ -145,9 +145,12 @@ abstract class FairShedder {
 
         final int requested = lastWindow.requested();
         final int admitted = lastWindow.admitted();
-        final int targetAdmit = (int) (RECOVER_RATE * gradient * admitted);
+        int targetAdmit = (int) (RECOVER_RATE * gradient * admitted);
         if (targetAdmit == 0) {
-            // FIXME 也可能请求很多，全被shed
+            // 1000个请求，admit 10，则目标：30
+            targetAdmit = (int) (RECOVER_RATE * gradient * requested);
+        }
+        if (targetAdmit == 0) {
             watermark.set(WorkloadPriority.ofLowest());
             log.info("[{}] lower bar to 0 for idle window, last drop:{}/{}, grad:{}", name, lastWindow.shedded(), requested, gradient);
             return;
