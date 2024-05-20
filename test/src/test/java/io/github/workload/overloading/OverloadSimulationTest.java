@@ -64,7 +64,7 @@ class OverloadSimulationTest extends BaseTest {
         setLogLevel(Level.DEBUG);
 
         Config c = new Config();
-        c.N = 1 << 10;
+        c.N = 8 << 10;
         c.maxConcurrency = 400;
         c.laziness = 0.76; // 越大sleep越久
         c.exhaustedFactor = 0.0002;
