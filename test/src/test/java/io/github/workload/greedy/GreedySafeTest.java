@@ -1,6 +1,7 @@
 package io.github.workload.greedy;
 
 import io.github.workload.BaseTest;
+import io.github.workload.mock.CostAwareDto;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -93,6 +94,41 @@ class GreedySafeTest extends BaseTest {
     }
 
     @Test
+    void scatter_with_default() {
+        Exception expected = assertThrows(IllegalStateException.class, () -> GreedySafe.scatter(generateOrderNos(1200), partition -> {
+        }));
+        assertEquals("BUG! Partition not accessed, accessing the whole dataset?", expected.getMessage());
+
+        GreedySafe.scatter(generateOrderNos(1200), stringPartition -> {
+            log.info("{}", stringPartition.getItems());
+        });
+
+        assertThrows(GreedyException.class, () -> GreedySafe.scatter(generateCostAwareDtos(1300, 10),
+                GreedyConfig.newDefaultWithLimiter(1000, "cannotAcquire", new MockGreedyLimiter()),
+                partition -> {
+                    partition.getItems();
+                }));
+        GreedySafe.scatter(generateCostAwareDtos(1300, 10),
+                GreedyConfig.newDefaultWithLimiter(1000, "ok", new MockGreedyLimiter()),
+                partition -> {
+                    partition.getItems();
+                });
+    }
+
+    @Test
+    void scatterGather_with_default() {
+        List<Integer> result = GreedySafe.scatterGather(generateCostAwareDtos(125, 2), costAwareDtoPartition -> {
+            List<Integer> r = new ArrayList<>();
+            for (CostAwareDto dto : costAwareDtoPartition.getItems()) {
+                r.add(dto.cost());
+            }
+            return r;
+        });
+        assertEquals(125, result.size());
+        assertEquals(125 * 2, result.stream().reduce(Integer::sum).get());
+    }
+
+    @Test
     @DisplayName("演示分批发送kafka消息")
     void demo_kafka_batch_send() throws Exception {
         List<String> orderNos = generateOrderNos(123);
@@ -123,6 +159,14 @@ class GreedySafeTest extends BaseTest {
             orderNos.add(String.valueOf(i));
         }
         return orderNos;
+    }
+
+    private List<CostAwareDto> generateCostAwareDtos(int n, int skuCount) {
+        List<CostAwareDto> dtos = new ArrayList<>(n);
+        for (long i = 0; i < n; i++) {
+            dtos.add(CostAwareDto.create(i, skuCount));
+        }
+        return dtos;
     }
 
 }

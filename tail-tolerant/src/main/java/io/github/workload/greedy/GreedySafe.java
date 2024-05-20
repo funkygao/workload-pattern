@@ -9,6 +9,7 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Consumer;
 
 /**
  * 大报文(贪婪工作负荷)安全的分批处理大数据集的工具类，控制方法内(无法使用AOP)的大报文风险.
@@ -43,6 +44,13 @@ public class GreedySafe {
     }
 
     /**
+     * {@link #scatter(List, GreedyConfig, ThrowingConsumer)} with default config.
+     */
+    public <IN, E extends Throwable> void scatter(List<IN> items, @NonNull ThrowingConsumer<Partition<IN>, E> partitionConsumer) throws E {
+        scatter(items, GreedyConfig.newDefault(), partitionConsumer);
+    }
+
+    /**
      * 处理大数据集分批任务的方法，有返回值场景.
      *
      * @param items             要处理的数据集
@@ -56,6 +64,13 @@ public class GreedySafe {
      */
     public <OUT, IN, E extends Throwable> List<OUT> scatterGather(List<IN> items, GreedyConfig config, @NonNull ThrowingFunction<Partition<IN>, List<OUT>, E> partitionFunction) throws E {
         return processItems(items, config.getPartitionSize(), partitionFunction, config, true);
+    }
+
+    /**
+     * {@link #scatterGather(List, GreedyConfig, ThrowingFunction)} with default config.
+     */
+    public <OUT, IN, E extends Throwable> List<OUT> scatterGather(List<IN> items, @NonNull ThrowingFunction<Partition<IN>, List<OUT>, E> partitionFunction) throws E {
+        return scatterGather(items, GreedyConfig.newDefault(), partitionFunction);
     }
 
     private <OUT, IN, E extends Throwable> List<OUT> processItems(List<IN> items, int partitionSize, ThrowingFunction<Partition<IN>, List<OUT>, E> processor, GreedyConfig config, boolean hasResult) throws E {
@@ -74,7 +89,7 @@ public class GreedySafe {
             List<IN> partitionData = items.subList(start, end);
             Partition<IN> partition = new Partition<>(partitionData, partitionId);
             List<OUT> partitionResult = processor.apply(partition);
-            if (partitionResult != null && results != null) {
+            if (results != null && partitionResult != null) {
                 results.addAll(partitionResult);
             }
 
@@ -87,16 +102,22 @@ public class GreedySafe {
             if (config.getGreedyLimiter() != null) {
                 final String key = config.getLimiterKey();
                 costs += partition.costs();
-                if (costs > config.getCostsThreshold()) {
+                if (costs > config.getLimitCostsThreshold()) {
                     if (!config.getGreedyLimiter().canAcquire(key, 1)) {
-                        throw new GreedyException("costs:" + costs);
+                        log.warn("Fail to acquire limiter token, accCost:{} > {}, itemProcessed:{}, key:{}", costs, config.getLimitCostsThreshold(), itemsProcessed, key);
+                        throw new GreedyException();
                     }
                 }
             }
         }
 
         if (itemsProcessed > config.getGreedyThreshold()) {
-            config.getThresholdExceededAction().accept(itemsProcessed);
+            Consumer<Integer> thresholdExceededAction = config.getThresholdExceededAction();
+            if (thresholdExceededAction == null) {
+                log.warn("Items processed exceed threshold: {} > {}", itemsProcessed, config.getGreedyThreshold());
+            } else {
+                thresholdExceededAction.accept(itemsProcessed);
+            }
         }
 
         return results;

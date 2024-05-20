@@ -1,6 +1,7 @@
 package io.github.workload.greedy;
 
 import lombok.Getter;
+import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.function.Consumer;
@@ -12,7 +13,7 @@ public class GreedyConfig {
     private final int greedyThreshold;
     private final Consumer<Integer> thresholdExceededAction;
 
-    private final int costsThreshold;
+    private final int limitCostsThreshold;
     private final GreedyLimiter greedyLimiter;
     private final String limiterKey;
 
@@ -20,7 +21,7 @@ public class GreedyConfig {
         this.partitionSize = builder.partitionSize;
         this.greedyThreshold = builder.greedyThreshold;
         this.thresholdExceededAction = builder.thresholdExceededAction;
-        this.costsThreshold = builder.costsThreshold;
+        this.limitCostsThreshold = builder.limitCostsThreshold;
         this.greedyLimiter = builder.greedyLimiter;
         this.limiterKey = builder.limiterKey;
     }
@@ -29,14 +30,27 @@ public class GreedyConfig {
         return new Builder();
     }
 
+    public static GreedyConfig newDefault() {
+        return new Builder()
+                .build();
+    }
+
+    public static GreedyConfig newDefaultWithLimiter(int costsThreshold, @NonNull String limiterKey, @NonNull GreedyLimiter limiter) {
+        return new Builder()
+                .throttle(costsThreshold, limiterKey, limiter)
+                .build();
+    }
+
     @Slf4j
     public static class Builder {
         private int partitionSize = 100;
-        private int greedyThreshold = Integer.MAX_VALUE;
-        private int costsThreshold = Integer.MAX_VALUE;
+
+        private int greedyThreshold = 1000;
+        private Consumer<Integer> thresholdExceededAction;
+
+        private int limitCostsThreshold = Integer.MAX_VALUE;
         private String limiterKey;
         private GreedyLimiter greedyLimiter;
-        private Consumer<Integer> thresholdExceededAction = itemsProcessed -> log.warn("Items processed exceed threshold: {} > {}", itemsProcessed, greedyThreshold);
 
         public Builder partitionSize(int partitionSize) {
             this.partitionSize = partitionSize;
@@ -48,17 +62,9 @@ public class GreedyConfig {
             return this;
         }
 
-        public Builder costsThreshold(int costsThreshold) {
-            this.costsThreshold = costsThreshold;
-            return this;
-        }
-
-        public Builder limiterKey(String limiterKey) {
+        public Builder throttle(int costsThreshold, @NonNull String limiterKey, @NonNull GreedyLimiter limiter) {
+            this.limitCostsThreshold = costsThreshold;
             this.limiterKey = limiterKey;
-            return this;
-        }
-
-        private Builder greedyLimiter(GreedyLimiter limiter) {
             this.greedyLimiter = limiter;
             return this;
         }
@@ -79,7 +85,7 @@ public class GreedyConfig {
                 if (limiterKey == null || limiterKey.trim().isEmpty()) {
                     throw new IllegalArgumentException("greedyLimiter not null, limiterKey cannot be empty");
                 }
-                if (costsThreshold == Integer.MAX_VALUE) {
+                if (limitCostsThreshold == Integer.MAX_VALUE) {
                     throw new IllegalArgumentException("greedyLimiter not null, costsThreshold must be set");
                 }
             }
