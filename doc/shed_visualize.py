@@ -57,6 +57,10 @@ def plot_metrics(df):
             ax2.text(df["seconds"][i] + 0.3, df["shed"][i], f'{df["shed"][i]:.0f}', color='orange', fontsize=8, alpha=1.0)
             shed_last_marked_index = i
     
+    # 在图表中标记exhausted为True的点
+    for i in df.index[df['exhausted']]:
+        ax1.text(df.loc[i, 'seconds'], df.loc[i, 'smooth'], 'exhausted', fontsize=8, color='black', rotation=45)
+
     # 设置图例
     ax1.legend(loc='upper left')
     ax2.legend(loc='upper right')
