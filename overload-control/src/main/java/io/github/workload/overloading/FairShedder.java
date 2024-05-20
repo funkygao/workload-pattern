@@ -73,7 +73,7 @@ abstract class FairShedder {
 
     @VisibleForTesting
     void predictWatermark(CountAndTimeWindowState lastWindow, double gradient) {
-        log.debug("[{}] predict with lastWindow workload({}/{}), grad:{}", name, lastWindow.admitted(), lastWindow.requested(), gradient);
+        log.trace("[{}] predict with lastWindow workload({}/{}), grad:{}", name, lastWindow.admitted(), lastWindow.requested(), gradient);
         if (isOverloaded(gradient)) {
             penalizeFutureLowPriorities(lastWindow, gradient);
         } else {
