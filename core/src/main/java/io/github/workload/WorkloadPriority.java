@@ -134,8 +134,8 @@ public class WorkloadPriority {
      * 根据P值反序列化以重建一个新的{@link WorkloadPriority}.
      *
      * @param P 一个 14 位整数，其中高 7 位用来表示 `B` 值，低 7 位用来表示 `U` 值
-     * @return
-     * @throws IllegalArgumentException
+     * @return workload
+     * @throws IllegalArgumentException if P is illegal
      */
     public static WorkloadPriority fromP(int P) throws IllegalArgumentException {
         if (P > MAX_P || P < 0) {
