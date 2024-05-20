@@ -38,7 +38,7 @@ public class WorkloadPriority {
 
     private static final int PRIORITY_BITS = 7;
     private static final int MAX_7BIT_VALUE = (1 << PRIORITY_BITS) - 1;
-    private static final WorkloadPriority LOWEST = of(MAX_7BIT_VALUE, MAX_7BIT_VALUE);
+    private static final WorkloadPriority LOWEST = new WorkloadPriority(MAX_7BIT_VALUE, MAX_7BIT_VALUE);
 
     public static final int MAX_P = ofLowest().P(); // 16383
 
@@ -84,7 +84,7 @@ public class WorkloadPriority {
     }
 
     // at most 128 keys, periodic consistent cohorting
-    private static Map<Integer /* U */, UState> uStates = new ConcurrentHashMap<>();
+    private static final Map<Integer /* U */, UState> uStates = new ConcurrentHashMap<>();
 
     private final int B;
     private final int U;
@@ -100,7 +100,10 @@ public class WorkloadPriority {
             throw new IllegalArgumentException("Out of range for B or U");
         }
 
-        // TODO warmPool and test_warmPool
+        WorkloadPriority priority = warmPool.get(bu2p(b, u));
+        if (priority != null) {
+            return priority;
+        }
 
         return new WorkloadPriority(b, u);
     }
@@ -202,7 +205,6 @@ public class WorkloadPriority {
                 log.trace("b:{}, create random U:{} for uid:{}", b, randomU, uid);
                 return new UState(randomU, nowMs);
             } else {
-                // log.debug("b:{} reuse U:{} for uid:{}", b, presentValue.U, uid);
                 return presentValue;
             }
         });
@@ -260,6 +262,11 @@ public class WorkloadPriority {
     private static class UState {
         final int U;
         final long createdAtMs;
+    }
+
+    @VisibleForTesting
+    static void resetForTesting() {
+        uStates.clear();
     }
 
 }
