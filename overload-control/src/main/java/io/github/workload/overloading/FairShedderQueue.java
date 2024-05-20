@@ -11,7 +11,7 @@ import java.util.concurrent.ThreadLocalRandom;
 
 @Slf4j
 class FairShedderQueue extends FairShedder {
-    static final long AVG_QUEUED_MS_UPPER_BOUND = HyperParameter.getLong(Heuristic.AVG_QUEUED_MS_UPPER_BOUND, 200);
+    static final long AVG_QUEUED_MS_UPPER_BOUND = HyperParameter.getLong(Heuristic.AVG_QUEUED_MS_UPPER_BOUND, 20);
 
     private volatile long lastOverloadNs = 0;
     private final long timeCycleNs;
@@ -19,6 +19,7 @@ class FairShedderQueue extends FairShedder {
     FairShedderQueue(String name) {
         super(name);
         this.timeCycleNs = windowConfig().getTimeCycleNs();
+        log.info("[{}] created with timeCycle:{}ms, AVG_QUEUED_MS_UPPER_BOUND:{}", name, timeCycleNs / WindowConfig.NS_PER_MS, AVG_QUEUED_MS_UPPER_BOUND);
     }
 
     @Override
@@ -47,6 +48,8 @@ class FairShedderQueue extends FairShedder {
         double grad = Math.min(GRADIENT_IDLEST, Math.max(GRADIENT_BUSIEST, rawGradient));
         if (isOverloaded(grad)) {
             log.warn("[{}] buffer bloat, avg:{} > {}, grad:{}", name, avgQueuedMs, upperBound, grad);
+        } else {
+            log.debug("[{}] avg queuing ms:{} < {}", name, avgQueuedMs, upperBound);
         }
         return grad;
     }
