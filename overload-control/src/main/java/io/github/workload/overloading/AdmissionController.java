@@ -9,6 +9,7 @@ import lombok.NonNull;
 /**
  * 基于反馈控制原理的自适应式工作负荷准入控制器，前置保护.
  *
+ * <p>Decentralized and autonomous overload control at the server granule rather than counting on the centralized resource scheduling.</p>
  * <p>Regulate incoming requests and shed excess trivial workload.</p>
  */
 @ThreadSafe
