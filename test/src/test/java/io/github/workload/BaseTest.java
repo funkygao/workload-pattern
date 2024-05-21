@@ -8,9 +8,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.concurrent.*;
 import java.util.function.Supplier;
 
 public abstract class BaseTest {
@@ -32,6 +30,25 @@ public abstract class BaseTest {
             futures[i] = CompletableFuture.runAsync(runnable, threadPool);
         }
         CompletableFuture.allOf(futures).join();
+    }
+
+    protected <T> List<T> concurrentRun(List<Callable<T>> tasks) throws InterruptedException {
+        ExecutorService executorService = Executors.newFixedThreadPool(tasks.size());
+        List<Future<T>> futures = executorService.invokeAll(tasks);
+        List<T> results = new ArrayList<>(tasks.size());
+        for (Future<T> future : futures) {
+            try {
+                // Assuming the tasks are well-behaved and don't throw exceptions.
+                // If they do, you might want to handle them differently.
+                results.add(future.get());
+            } catch (ExecutionException e) {
+                throw new RuntimeException("Task execution resulted in exception", e.getCause());
+            }
+        }
+
+        // It's important to shut down the executor service to avoid resource leaks.
+        executorService.shutdown();
+        return results;
     }
 
     protected final <T> List<T> concurrentRun(Supplier<T> task) {
