@@ -4,9 +4,11 @@ import io.github.workload.BaseTest;
 import io.github.workload.Workload;
 import io.github.workload.WorkloadPriority;
 import io.github.workload.metrics.tumbling.WindowConfig;
+import io.github.workload.overloading.mock.SimulatorRecorder;
 import io.github.workload.overloading.mock.SysloadAdaptiveSimulator;
 import io.github.workload.simulate.LatencySimulator;
 import io.github.workload.simulate.WorkloadPrioritySimulator;
+import lombok.NonNull;
 import org.apache.logging.log4j.Level;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
@@ -37,7 +39,9 @@ class OverloadSimulationTest extends BaseTest {
         c.latencyLow = 20;
         c.latencyHigh = 400;
         c.latencySteepness = 0.5;
-        simulate(c);
+
+        SimulatorRecorder recorder = new SimulatorRecorder();
+        simulate(c, recorder);
     }
 
     @EnabledIfSystemProperty(named = "simulate", matches = "true")
@@ -54,7 +58,9 @@ class OverloadSimulationTest extends BaseTest {
         c.latencyLow = 20;
         c.latencyHigh = 3000;
         c.latencySteepness = 0.5;
-        simulate(c);
+
+        SimulatorRecorder recorder = new SimulatorRecorder();
+        simulate(c, recorder);
     }
 
     @EnabledIfSystemProperty(named = "simulate", matches = "true")
@@ -72,21 +78,30 @@ class OverloadSimulationTest extends BaseTest {
         c.latencyHigh = 30;
         c.latencySteepness = 0.5;
         c.latencySleepFactor = 400 / (2 * THREAD_COUNT); // 为了模拟多客户端并发，否则无法提升qps
-        simulate(c);
+
+        SimulatorRecorder recorder = new SimulatorRecorder();
+        simulate(c, recorder);
     }
 
-    private void simulate(Config c) {
+    private void simulate(@NonNull Config c, @NonNull SimulatorRecorder recorder) {
         final FairSafeAdmissionController http = (FairSafeAdmissionController) AdmissionController.getInstance("HTTP");
-        final SysloadAdaptiveSimulator sysload = new SysloadAdaptiveSimulator(0.05, c.exhaustedFactor, c.maxConcurrency, FairShedderCpu.CPU_USAGE_UPPER_BOUND).withAlgo("v2");
+        final SysloadAdaptiveSimulator sysload = new SysloadAdaptiveSimulator(0.05, c.exhaustedFactor, c.maxConcurrency, FairShedderCpu.CPU_USAGE_UPPER_BOUND)
+                .withRecorder(recorder)
+                .withAlgo("v2");
         FairSafeAdmissionController.fairCpu().setSysload(sysload);
 
         Runnable businessThread = () -> {
+            final long threadId = Thread.currentThread().getId();
             List<WorkloadPriority> priorities = generateWorkloads(c.N, 3);
-            Iterator<Integer> steepLatency = new LatencySimulator(c.latencyLow, c.latencyHigh).simulate(priorities.size(), latencySteepness).iterator();
+            recorder.recordWorkloads(threadId, priorities);
+
+            Iterator<Integer> steepLatency = new LatencySimulator(c.latencyLow, c.latencyHigh)
+                    .simulate(priorities.size(), latencySteepness).iterator();
             for (WorkloadPriority priority : priorities) {
                 sysload.injectRequest();
                 final boolean admit = http.admit(Workload.ofPriority(priority));
                 final long latencyMs = steepLatency.next();
+                recorder.recordLatencies(threadId, latencyMs);
                 if (admit) {
                     sysload.admit(latencyMs);
                 } else {

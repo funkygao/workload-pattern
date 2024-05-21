@@ -37,6 +37,7 @@ public class SysloadAdaptiveSimulator implements Sysload {
      * {@link io.github.workload.overloading.FairShedderCpu#CPU_EMA_ALPHA}
      */
     private final ValueSmoother smoother = ValueSmoother.ofEMA(0.25);
+    private SimulatorRecorder recorder;
 
     public SysloadAdaptiveSimulator() {
         this(0.2, 0, 200, 0.75);
@@ -143,6 +144,11 @@ public class SysloadAdaptiveSimulator implements Sysload {
 
     public SysloadAdaptiveSimulator withAlgo(String algo) {
         this.algo = algo;
+        return this;
+    }
+
+    public SysloadAdaptiveSimulator withRecorder(SimulatorRecorder recorder) {
+        this.recorder = recorder;
         return this;
     }
 
