@@ -28,7 +28,7 @@ class OverloadSimulationTest extends BaseTest {
     @DisplayName("压力维持在CPU阈值附近")
     @Test
     void case_continuous_busy() {
-        setLogLevel(Level.INFO);
+        setLogLevel(Level.TRACE);
 
         Config c = new Config();
         c.N = 4 << 10;
@@ -61,7 +61,7 @@ class OverloadSimulationTest extends BaseTest {
     @DisplayName("脉冲式请求压力")
     @Test
     void case_lazy_jitter() {
-        setLogLevel(Level.DEBUG);
+        setLogLevel(Level.TRACE);
 
         Config c = new Config();
         c.N = 8 << 10;
