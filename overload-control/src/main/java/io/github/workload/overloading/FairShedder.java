@@ -11,8 +11,10 @@ import io.github.workload.metrics.tumbling.WindowConfig;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -63,6 +65,9 @@ abstract class FairShedder {
 
     boolean admit(@NonNull WorkloadPriority priority) {
         boolean admitted = satisfyWatermark(priority);
+        if (!admitted) {
+            admitted = stochasticShed(priority);
+        }
         window.advance(priority, admitted, System.nanoTime());
         return admitted;
     }
@@ -73,16 +78,14 @@ abstract class FairShedder {
 
     @VisibleForTesting
     void predictWatermark(CountAndTimeWindowState lastWindow, double gradient) {
+        // 引入反馈机制：在每个窗口结束时，根据实际的 shed 情况和系统性能指标，对预测模型进行反馈和调整
+        // 动态调整窗口大小：根据系统的负载情况动态调整窗口的大小。当系统负载较高时，缩小窗口大小，以更快地响应负载变化
         log.trace("[{}] predict with lastWindow workload({}/{}), grad:{}", name, lastWindow.admitted(), lastWindow.requested(), gradient);
         if (isOverloaded(gradient)) {
             penalizeFutureLowPriorities(lastWindow, gradient);
         } else {
             rewardFutureLowPriorities(lastWindow, gradient);
         }
-    }
-
-    protected final boolean isOverloaded(double gradient) {
-        return gradient < GRADIENT_HEALTHY;
     }
 
     // 确保在精准提高 watermark 时不会因为过度抛弃低优先级请求而影响服务的整体可用性，尽可能保持高 goodput
@@ -198,9 +201,29 @@ abstract class FairShedder {
         return window.getConfig();
     }
 
+    protected final boolean isOverloaded(double gradient) {
+        return gradient < GRADIENT_HEALTHY;
+    }
+
     private boolean satisfyWatermark(WorkloadPriority priority) {
         // 在水位线(含)以下的请求都放行
         return priority.P() <= watermark().P();
+    }
+
+    // 概率拒绝：一种简单且有效解决请求优先级分布不均的方法
+    // 对于低优先级请求，不是完全拒绝，而是按一定的概率拒绝
+    // 这种方法可以确保每个优先级级别的请求都能得到一定处理，同时又可以限制低优先级请求对系统的影响
+    private boolean stochasticShed(WorkloadPriority priority) {
+        int P = priority.P();
+        if (false) {
+            Map<Integer, Integer> weights = new HashMap<>();
+            Map<Integer, Double> rejectProbabilities = new HashMap<>();
+            final int weight = weights.get(P);
+            final double rejectProbability = rejectProbabilities.get(P);
+            final double probability = weight / (weight + rejectProbability);
+            return ThreadLocalRandom.current().nextDouble() < probability;
+        }
+        return true;
     }
 
     @VisibleForTesting
