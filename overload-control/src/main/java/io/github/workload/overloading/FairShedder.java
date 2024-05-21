@@ -145,10 +145,12 @@ abstract class FairShedder {
 
         final int requested = lastWindow.requested();
         final int admitted = lastWindow.admitted();
+        boolean degraded = false;
         int targetAdmit = (int) (RECOVER_RATE * gradient * admitted);
         if (targetAdmit == 0) {
             // 1000个请求，admit 10，则目标：30
             targetAdmit = (int) (RECOVER_RATE * gradient * requested);
+            degraded = true;
         }
         if (targetAdmit == 0) {
             watermark.set(WorkloadPriority.ofLowest());
@@ -174,7 +176,11 @@ abstract class FairShedder {
             if (accAdmit >= targetAdmit) {
                 watermark.updateAndGet(curr -> curr.deriveFromP(candidateP));
                 final double errorRate = (double) (accAdmit - targetAdmit) / targetAdmit;
-                log.warn("[{}] lower bar ok, last drop:{}/{}, steps:{}, {} -> {}, to admit {}/{} err:{}, grad:{}", name, lastWindow.shedded(), requested, steps, currentWatermark.simpleString(), watermark().simpleString(), accAdmit, targetAdmit, errorRate, gradient);
+                if (degraded) {
+                    log.warn("[{}] lower bar degraded, last drop:{}/{}, steps:{}, {} -> {}, to admit {}/{} err:{}, grad:{}", name, lastWindow.shedded(), requested, steps, currentWatermark.simpleString(), watermark().simpleString(), accAdmit, targetAdmit, errorRate, gradient);
+                } else {
+                    log.warn("[{}] lower bar ok, last drop:{}/{}, steps:{}, {} -> {}, to admit {}/{} err:{}, grad:{}", name, lastWindow.shedded(), requested, steps, currentWatermark.simpleString(), watermark().simpleString(), accAdmit, targetAdmit, errorRate, gradient);
+                }
                 return;
             }
         }
