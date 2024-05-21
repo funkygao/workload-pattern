@@ -27,6 +27,9 @@ import java.util.concurrent.atomic.AtomicReference;
 @Slf4j
 @ThreadSafe
 abstract class FairShedder {
+    private static final boolean PID_CONTROL = false;
+    private static final boolean STOCHASTIC = false;
+
     protected final double GRADIENT_HEALTHY = 1d;
     static final double GRADIENT_IDLEST = HyperParameter.getDouble(Empirical.GRADIENT_IDLEST, 1.2d);
     static final double GRADIENT_BUSIEST = HyperParameter.getDouble(Empirical.GRADIENT_BUSIEST, 0.5d);
@@ -59,12 +62,12 @@ abstract class FairShedder {
                 new CountAndTimeRolloverStrategy() {
                     @Override
                     public void onRollover(long nowNs, CountAndTimeWindowState snapshot, TumblingWindow<CountAndTimeWindowState> window) {
-                        predictWatermark(snapshot, overloadGradient(nowNs, snapshot));
+                        predictWatermark(snapshot, overloadGradient(nowNs, snapshot), nowNs);
                     }
                 }
         );
         this.window = new TumblingWindow<>(config, name, System.nanoTime());
-        this.pidController = new PIDController(0.1, 0.01, 0.05, 1);
+        this.pidController = new PIDController(0.1, 0.01, 0.05);
     }
 
     boolean admit(@NonNull WorkloadPriority priority) {
@@ -81,15 +84,20 @@ abstract class FairShedder {
     }
 
     @VisibleForTesting
-    void predictWatermark(CountAndTimeWindowState lastWindow, double gradient) {
-        // 引入反馈机制：在每个窗口结束时，根据实际的 shed 情况和系统性能指标，对预测模型进行反馈和调整
-        // 动态调整窗口大小：根据系统的负载情况动态调整窗口的大小。当系统负载较高时，缩小窗口大小，以更快地响应负载变化
+    void predictWatermark(CountAndTimeWindowState lastWindow, double gradient, long nowNs) {
         log.trace("[{}] predict with lastWindow workload({}/{}), grad:{}", name, lastWindow.admitted(), lastWindow.requested(), gradient);
         if (isOverloaded(gradient)) {
             penalizeFutureLowPriorities(lastWindow, gradient);
         } else {
             rewardFutureLowPriorities(lastWindow, gradient);
         }
+
+        // 引入反馈机制：在每个窗口结束时，根据实际的 shed 情况对预测模型进行反馈和调整
+        if (PID_CONTROL) {
+            adjustWatermarkUsingPID(nowNs);
+        }
+
+        // 动态调整窗口大小：根据系统的负载情况动态调整窗口的大小。当系统负载较高时，缩小窗口大小，以更快地响应负载变化
     }
 
     // 确保在精准提高 watermark 时不会因为过度抛弃低优先级请求而影响服务的整体可用性，尽可能保持高 goodput
@@ -218,8 +226,8 @@ abstract class FairShedder {
     // 对于低优先级请求，不是完全拒绝，而是按一定的概率拒绝
     // 这种方法可以确保每个优先级级别的请求都能得到一定处理，同时又可以限制低优先级请求对系统的影响
     private boolean stochasticAdmit(WorkloadPriority priority) {
-        int P = priority.P();
-        if (false) {
+        if (STOCHASTIC) {
+            final int P = priority.P();
             Map<Integer, Integer> weights = new HashMap<>();
             Map<Integer, Double> rejectProbabilities = new HashMap<>();
             final int weight = weights.get(P);
@@ -228,6 +236,24 @@ abstract class FairShedder {
             return ThreadLocalRandom.current().nextDouble() < probability;
         }
         return false;
+    }
+
+    // 通过PID控制调整watermark
+    private void adjustWatermarkUsingPID(long nowNs) {
+        final double targetDropRate = 1;
+        final double actualDropRate = 1;
+        double error = targetDropRate - actualDropRate; // 计算误差
+        // pidOutput反映了系统当前状态与目标状态之间的偏差，以及为了达到目标状态需要做出的调整方向和幅度
+        // 如果pidOutput为正，这意味着为了减少误差，需要增加currentWatermark.P()的值。正值表明当前状态低于目标状态，需要向上调整
+        // 如果pidOutput为负，这表明需要减少currentWatermark.P()的值以接近目标
+        // pidOutput的绝对值表示调整的幅度
+        final double pidOutput = pidController.getOutput(error, nowNs);
+        WorkloadPriority currentWatermark = watermark.get();
+        int pValue = currentWatermark.P() + (int) pidOutput; // 将PID输出转换为整数
+        pValue = Math.min(0, Math.max(WorkloadPriority.ofLowest().P(), pValue));
+        WorkloadPriority newWatermark = WorkloadPriority.fromP(pValue);
+        watermark.set(newWatermark);
+        log.info("[{}] watermark adjusted by PID, new watermark: {}", name, newWatermark.simpleString());
     }
 
     @VisibleForTesting
