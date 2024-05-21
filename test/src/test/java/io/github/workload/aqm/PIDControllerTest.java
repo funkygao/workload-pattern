@@ -1,14 +1,41 @@
 package io.github.workload.aqm;
 
 import io.github.workload.BaseTest;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import java.util.LinkedList;
+import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class PIDControllerTest extends BaseTest {
     private static final int MAX_REQUESTS = 1000;
     private int allowedRequests = MAX_REQUESTS;
     private double currentUtilization;
+
+    @DisplayName("根据watermark预测与实际的误差，微调watermark")
+    @Test
+    void overloadWatermark() {
+        // setpoint 100%
+        PIDController pid = new PIDController(0.5, 0.01, 0.1, 1d);
+        List<String> errors = new LinkedList<>();
+        List<String> adjustments = new LinkedList<>();
+        for (int i = 0; i < 20; i++) {
+            double err = ThreadLocalRandom.current().nextDouble(0.4);
+            errors.add(String.format("%.2f", err));
+            double adjustment = pid.compute(1 - err);
+            adjustments.add(String.format("%.2f", adjustment));
+        }
+        log.info("err: {}", errors);
+        log.info("adj: {}", adjustments);
+
+        pid = new PIDController(0.5, 0.01, 0.1, 1d);
+        for (int i = 0; i < 100; i++) {
+            assertEquals(0, pid.compute(1d));
+        }
+    }
 
     @Test
     void demo() throws InterruptedException {
