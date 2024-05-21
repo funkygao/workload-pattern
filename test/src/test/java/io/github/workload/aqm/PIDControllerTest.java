@@ -20,20 +20,25 @@ class PIDControllerTest extends BaseTest {
     void overloadWatermark() {
         // setpoint 100%
         PIDController pid = new PIDController(0.5, 0.01, 0.1, 1d);
+        PIDController pid2 = new PIDController(0.1, 0.01, 0.05, 1d);
         List<String> errors = new LinkedList<>();
         List<String> adjustments = new LinkedList<>();
+        List<String> adjustments2 = new LinkedList<>();
         for (int i = 0; i < 20; i++) {
             double err = ThreadLocalRandom.current().nextDouble(0.4);
             errors.add(String.format("%.2f", err));
-            double adjustment = pid.compute(1 - err);
+            double adjustment = pid.update(1 - err);
             adjustments.add(String.format("%.2f", adjustment));
+            adjustment = pid2.update(1 - err);
+            adjustments2.add(String.format("%.2f", adjustment));
         }
         log.info("err: {}", errors);
         log.info("adj: {}", adjustments);
+        log.info("adj: {}", adjustments2);
 
         pid = new PIDController(0.5, 0.01, 0.1, 1d);
         for (int i = 0; i < 100; i++) {
-            assertEquals(0, pid.compute(1d));
+            assertEquals(0, pid.update(1d));
         }
     }
 
@@ -48,7 +53,7 @@ class PIDControllerTest extends BaseTest {
         PIDController pid = new PIDController(0.1, 0.01, 0.01, 65);
         for (int i = 0; i < 100; i++) {
             currentUtilization = getCurrentCPUUtilization();
-            double pidValue = pid.compute(currentUtilization);
+            double pidValue = pid.update(currentUtilization);
             log.info("{} target:{}, sample:{}, pid:{}", i, 65, currentUtilization, pidValue);
 
             // 应用控制器的输出

@@ -4,6 +4,7 @@ import io.github.workload.HyperParameter;
 import io.github.workload.WorkloadPriority;
 import io.github.workload.annotations.ThreadSafe;
 import io.github.workload.annotations.VisibleForTesting;
+import io.github.workload.aqm.PIDController;
 import io.github.workload.metrics.tumbling.CountAndTimeRolloverStrategy;
 import io.github.workload.metrics.tumbling.CountAndTimeWindowState;
 import io.github.workload.metrics.tumbling.TumblingWindow;
@@ -39,6 +40,8 @@ abstract class FairShedder {
     // 准入等级水位线/准入门槛，其优先级越高则准入控制越严格，即门槛越高.
     private final AtomicReference<WorkloadPriority> watermark = new AtomicReference<>(WorkloadPriority.ofLowest());
 
+    private final PIDController pidController;
+
     /**
      * 计算过载梯度值：[{@link #GRADIENT_BUSIEST}, {@link #GRADIENT_IDLEST}].
      *
@@ -61,6 +64,7 @@ abstract class FairShedder {
                 }
         );
         this.window = new TumblingWindow<>(config, name, System.nanoTime());
+        this.pidController = new PIDController(0.1, 0.01, 0.05, 1);
     }
 
     boolean admit(@NonNull WorkloadPriority priority) {
