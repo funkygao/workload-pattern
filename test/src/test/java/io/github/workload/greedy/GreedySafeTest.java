@@ -22,25 +22,25 @@ class GreedySafeTest extends BaseTest {
                 GreedyConfig.newBuilder().batchSize(0).itemsLimit(1).build(),
                 batch -> {
                 }));
-        assertEquals("partitionSize must be greater than 0", expected.getMessage());
+        assertEquals("batchSize must be greater than 0", expected.getMessage());
         expected = assertThrows(IllegalArgumentException.class, () -> GreedySafe.scatter(null,
                 GreedyConfig.newBuilder().batchSize(5).itemsLimit(1).build(),
                 batch -> {
                 }));
-        assertEquals("greedyThreshold must be greater than partitionSize", expected.getMessage());
+        assertEquals("itemsLimit must be greater than batchSize", expected.getMessage());
 
         expected = assertThrows(IllegalArgumentException.class, () -> GreedySafe.scatterGather(null,
                 GreedyConfig.newBuilder().batchSize(0).itemsLimit(12).build(),
                 batch -> {
                     return new ArrayList<MockOrder>();
                 }));
-        assertEquals("partitionSize must be greater than 0", expected.getMessage());
+        assertEquals("batchSize must be greater than 0", expected.getMessage());
         expected = assertThrows(IllegalArgumentException.class, () -> GreedySafe.scatterGather(null,
                 GreedyConfig.newBuilder().batchSize(4).itemsLimit(2).build(),
                 batch -> {
                     return new ArrayList<MockOrder>();
                 }));
-        assertEquals("greedyThreshold must be greater than partitionSize", expected.getMessage());
+        assertEquals("itemsLimit must be greater than batchSize", expected.getMessage());
 
 
         GreedySafe.scatter(null,
@@ -79,7 +79,7 @@ class GreedySafeTest extends BaseTest {
     }
 
     @Test
-    @DisplayName("partitionConsumer使用全集而不是分区后的子集，会抛异常，fail fast，避免数据污染")
+    @DisplayName("使用全集而不是分区后的子集，会抛异常，fail fast，避免数据污染")
     void runWithoutResult_access_whole_set_not_allowed() {
         List<String> orderNos = generateOrderNos(180);
         Exception expected = assertThrows(IllegalStateException.class, () -> {
@@ -99,8 +99,8 @@ class GreedySafeTest extends BaseTest {
         }));
         assertEquals("BUG! Batch not accessed, accessing the whole dataset?", expected.getMessage());
 
-        GreedySafe.scatter(generateOrderNos(1200), stringPartition -> {
-            log.info("{}", stringPartition.getItems());
+        GreedySafe.scatter(generateOrderNos(1200), batch -> {
+            log.info("{}", batch.getItems());
         });
 
         assertThrows(GreedyException.class, () -> GreedySafe.scatter(generateCostAwareDtos(1300, 10),
@@ -117,9 +117,9 @@ class GreedySafeTest extends BaseTest {
 
     @Test
     void scatterGather_with_default() {
-        List<Integer> result = GreedySafe.scatterGather(generateCostAwareDtos(125, 2), costAwareDtoPartition -> {
+        List<Integer> result = GreedySafe.scatterGather(generateCostAwareDtos(125, 2), batch -> {
             List<Integer> r = new ArrayList<>();
-            for (CostAwareDto dto : costAwareDtoPartition.getItems()) {
+            for (CostAwareDto dto : batch.getItems()) {
                 r.add(dto.cost());
             }
             return r;
@@ -146,9 +146,7 @@ class GreedySafeTest extends BaseTest {
         List<String> orderNos = generateOrderNos(30);
         List<MockOrder> orders = GreedySafe.scatterGather(orderNos,
                 GreedyConfig.newBuilder().batchSize(30).itemsLimit(1000).build(),
-                batch -> {
-                    return rpc.fetchOrders(batch.getItems());
-                });
+                batch -> rpc.fetchOrders(batch.getItems()));
         assertEquals(30, orders.size());
         assertEquals(1, orders.get(1).getId());
     }
