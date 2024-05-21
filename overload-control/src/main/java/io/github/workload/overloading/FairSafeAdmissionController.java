@@ -26,9 +26,9 @@ import java.util.concurrent.ConcurrentHashMap;
  * </ul>
  * <ul>不同
  *     <li>可以应用于所有类型{@link Workload}：RPC/HTTP/MQ/Task/etc</li>
- *     <li>引入过载梯度概念，衡量过载程度</li>
  *     <li>基于({@link WorkloadPriority}, (cpu, queuingTime)) vs RTT</li>
  *     <li>全局视角：{@link WorkloadPriority}在微服务上下游之间继承式传递，流量入口确定{@link WorkloadPriority}</li>
+ *     <li>引入过载梯度，PID控制</li>
  * </ul>
  * </ul>
  *
