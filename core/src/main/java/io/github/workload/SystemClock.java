@@ -120,7 +120,7 @@ public class SystemClock {
 
     @VisibleForTesting
     @Generated
-    static void resetForTesting() {
+    static synchronized void resetForTesting() {
         if (timerTask != null) {
             timerTask.cancel(true);
             timerTask = null;

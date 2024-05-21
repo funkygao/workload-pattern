@@ -51,7 +51,7 @@ public abstract class WindowState {
 
     @VisibleForTesting
     @Generated
-    protected void resetForTesting() {
+    protected synchronized void resetForTesting() {
         requestCounter.reset();
         rolloverLock.set(false);
     }

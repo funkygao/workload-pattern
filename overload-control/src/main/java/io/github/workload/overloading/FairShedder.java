@@ -204,7 +204,7 @@ abstract class FairShedder {
     }
 
     @VisibleForTesting
-    void resetForTesting() {
+    synchronized void resetForTesting() {
         this.window.resetForTesting();
         this.watermark.set(WorkloadPriority.ofLowest());
         log.debug("[{}] has been reset for testing purposes.", name);

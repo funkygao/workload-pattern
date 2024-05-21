@@ -66,7 +66,7 @@ class FairShedderQueue extends FairShedder {
     @VisibleForTesting
     @Generated
     @Override
-    void resetForTesting() {
+    synchronized void resetForTesting() {
         super.resetForTesting();
         lastOverloadNs = 0;
     }

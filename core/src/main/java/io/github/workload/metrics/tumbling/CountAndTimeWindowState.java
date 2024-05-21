@@ -103,7 +103,7 @@ public class CountAndTimeWindowState extends WindowState {
     }
 
     @Override
-    protected void resetForTesting() {
+    protected synchronized void resetForTesting() {
         super.resetForTesting();
         histogram.clear();
         this.admittedCounter.reset();

@@ -265,7 +265,7 @@ public class WorkloadPriority {
     }
 
     @VisibleForTesting
-    static void resetForTesting() {
+    static synchronized void resetForTesting() {
         uStates.clear();
     }
 
