@@ -160,7 +160,7 @@ class FairShedderTest extends BaseTest {
 
         log.info("显式过载，看看调整到哪个优先级。当前窗口，histogram size:{}, {}", currentWindow.histogram().size(), currentWindow.histogram());
         WorkloadPriority lastLevel = shedder.watermark();
-        for (int i = 0; i < (1 / FairShedder.DROP_RATE); i++) {
+        for (int i = 0; i < (1 / FairShedder.DROP_RATE_BASE); i++) {
             shedder.predictWatermark(currentWindow, 0.5, System.nanoTime());
             log.debug("adapted {}: {} -> {}", lastLevel.P() - shedder.watermark().P(), lastLevel, shedder.watermark());
             if (lastLevel.equals(shedder.watermark())) {
@@ -218,7 +218,7 @@ class FairShedderTest extends BaseTest {
         shedHistory.add(lastLevel.P());
         log.info("overloaded, shed more...");
         int sheddingTimes = 0;
-        for (int i = 0; i < (1 / FairShedder.DROP_RATE); i++) {
+        for (int i = 0; i < (1 / FairShedder.DROP_RATE_BASE); i++) {
             // 已过载
             shedder.predictWatermark(currentWindow, 0.6, System.nanoTime());
             log.debug("adapted {}: {} -> {}", lastLevel.P() - shedder.watermark().P(), lastLevel, shedder.watermark());
@@ -228,7 +228,7 @@ class FairShedderTest extends BaseTest {
                 break;
             }
 
-            if (i == (1 / FairShedder.DROP_RATE) - 1) {
+            if (i == (1 / FairShedder.DROP_RATE_BASE) - 1) {
                 sheddingTimes = i + 1;
                 log.info("drained, stop shed any more:{}", sheddingTimes);
             }

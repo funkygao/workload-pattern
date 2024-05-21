@@ -29,13 +29,14 @@ import java.util.concurrent.atomic.AtomicReference;
 abstract class FairShedder {
     private static final boolean PID_CONTROL = false;
     private static final boolean STOCHASTIC = false;
+    private static final int PID_TARGET_IGNORED = 0;
 
     protected final double GRADIENT_HEALTHY = 1d;
     static final double GRADIENT_IDLEST = HyperParameter.getDouble(Empirical.GRADIENT_IDLEST, 1.2d);
     static final double GRADIENT_BUSIEST = HyperParameter.getDouble(Empirical.GRADIENT_BUSIEST, 0.5d);
     static final double OVER_SHED_BOUND = HyperParameter.getDouble(Empirical.OVER_SHED_BOUND, 1.01d);
-    static final double DROP_RATE = HyperParameter.getDouble(Empirical.SHED_DROP_RATE, 0.05d);
-    static final double RECOVER_RATE = HyperParameter.getDouble(Empirical.SHED_RECOVER_RATE, 0.03d);
+    static final double DROP_RATE_BASE = HyperParameter.getDouble(Empirical.SHED_DROP_RATE, 0.05d);
+    static final double RECOVER_RATE_BASE = HyperParameter.getDouble(Empirical.SHED_RECOVER_RATE, 0.03d);
 
     protected final String name;
     private final TumblingWindow<CountAndTimeWindowState> window;
@@ -44,6 +45,7 @@ abstract class FairShedder {
     private final AtomicReference<WorkloadPriority> watermark = new AtomicReference<>(WorkloadPriority.ofLowest());
 
     private final PIDController pidController;
+    private final AtomicInteger lastTargetCount = new AtomicInteger(PID_TARGET_IGNORED);
 
     /**
      * 计算过载梯度值：[{@link #GRADIENT_BUSIEST}, {@link #GRADIENT_IDLEST}].
@@ -86,16 +88,14 @@ abstract class FairShedder {
     @VisibleForTesting
     void predictWatermark(CountAndTimeWindowState lastWindow, double gradient, long nowNs) {
         log.trace("[{}] predict with lastWindow workload({}/{}), grad:{}", name, lastWindow.admitted(), lastWindow.requested(), gradient);
-        if (isOverloaded(gradient)) {
+        final boolean overloaded = isOverloaded(gradient);
+        if (overloaded) {
             penalizeFutureLowPriorities(lastWindow, gradient);
         } else {
             rewardFutureLowPriorities(lastWindow, gradient);
         }
 
-        // 引入反馈机制：在每个窗口结束时，根据实际的 shed 情况对预测模型进行反馈和调整
-        if (PID_CONTROL) {
-            adjustWatermarkUsingPID(nowNs);
-        }
+        pidControlWatermark(lastWindow, nowNs, overloaded);
 
         // 动态调整窗口大小：根据系统的负载情况动态调整窗口的大小。当系统负载较高时，缩小窗口大小，以更快地响应负载变化
     }
@@ -104,10 +104,12 @@ abstract class FairShedder {
     private void penalizeFutureLowPriorities(CountAndTimeWindowState lastWindow, double gradient) {
         final int requested = lastWindow.requested();
         final int admitted = lastWindow.admitted();
-        final int targetDrop = (int) (DROP_RATE * admitted / gradient);
+        final double actualDropRate = DROP_RATE_BASE / gradient;
+        final int targetDrop = (int) (actualDropRate * admitted);
         final WorkloadPriority currentWatermark = watermark();
         if (targetDrop == 0) {
             log.debug("[{}] refuse raise bar for poor admit:{}, watermark {}, grad:{}", name, admitted, currentWatermark.simpleString(), gradient);
+            ignorePIDControl();
             return;
         }
 
@@ -115,9 +117,11 @@ abstract class FairShedder {
         final Iterator<Map.Entry<Integer, AtomicInteger>> higherPriorities = lastWindow.histogram().headMap(currentWatermark.P(), true).descendingMap().entrySet().iterator();
         if (!higherPriorities.hasNext()) {
             log.debug("[{}] refuse raise bar for being highest, watermark {}, grad:{}", name, currentWatermark.simpleString(), gradient);
+            ignorePIDControl();
             return;
         }
 
+        lastTargetCount.set(targetDrop);
         int steps = 0; // 迈了几步
         while (true) {
             final Map.Entry<Integer, AtomicInteger> entry = higherPriorities.next();
@@ -155,20 +159,23 @@ abstract class FairShedder {
     private void rewardFutureLowPriorities(CountAndTimeWindowState lastWindow, double gradient) {
         final WorkloadPriority currentWatermark = watermark();
         if (currentWatermark.isLowest()) {
+            ignorePIDControl();
             return;
         }
 
         final int requested = lastWindow.requested();
         final int admitted = lastWindow.admitted();
         boolean degraded = false;
-        int targetAdmit = (int) (RECOVER_RATE * gradient * admitted);
+        final double actualRecoverRate = RECOVER_RATE_BASE * gradient;
+        int targetAdmit = (int) (actualRecoverRate * admitted);
         if (targetAdmit == 0) {
             // 1000个请求，admit 10，则目标：30
-            targetAdmit = (int) (RECOVER_RATE * gradient * requested);
+            targetAdmit = (int) (RECOVER_RATE_BASE * gradient * requested);
             degraded = true;
         }
         if (targetAdmit == 0) {
             watermark.set(WorkloadPriority.ofLowest());
+            ignorePIDControl();
             log.info("[{}] lower bar to 0 for idle window, last drop:{}/{}, grad:{}", name, lastWindow.shedded(), requested, gradient);
             return;
         }
@@ -177,10 +184,12 @@ abstract class FairShedder {
         final Iterator<Map.Entry<Integer, AtomicInteger>> lowerPriorities = lastWindow.histogram().tailMap(currentWatermark.P(), false).entrySet().iterator();
         if (!lowerPriorities.hasNext()) {
             watermark.set(WorkloadPriority.ofLowest());
+            ignorePIDControl();
             log.info("[{}] lower bar to 0 for being last stop, last drop:{}/{}, grad:{}", name, lastWindow.shedded(), requested, gradient);
             return;
         }
 
+        lastTargetCount.set(targetAdmit);
         int steps = 0; // 迈了几步
         while (lowerPriorities.hasNext()) {
             final Map.Entry<Integer, AtomicInteger> entry = lowerPriorities.next();
@@ -238,28 +247,41 @@ abstract class FairShedder {
         return false;
     }
 
-    // 通过PID控制调整watermark
-    private void adjustWatermarkUsingPID(long nowNs) {
-        final double targetDropRate = 1;
-        final double actualDropRate = 1;
-        double error = targetDropRate - actualDropRate; // 计算误差
-        // pidOutput反映了系统当前状态与目标状态之间的偏差，以及为了达到目标状态需要做出的调整方向和幅度
-        // 如果pidOutput为正，这意味着为了减少误差，需要增加currentWatermark.P()的值。正值表明当前状态低于目标状态，需要向上调整
-        // 如果pidOutput为负，这表明需要减少currentWatermark.P()的值以接近目标
-        // pidOutput的绝对值表示调整的幅度
+    private void ignorePIDControl() {
+        lastTargetCount.set(PID_TARGET_IGNORED);
+    }
+
+    private void pidControlWatermark(CountAndTimeWindowState lastWindow, long nowNs, boolean overloaded) {
+        final int target = lastTargetCount.get();
+        if (target == PID_TARGET_IGNORED) {
+            return;
+        }
+
+        int actual;
+        if (overloaded) {
+            actual = lastWindow.shedded();
+        } else {
+            actual = lastWindow.admitted();
+        }
+        final double error = actual - target;
         final double pidOutput = pidController.getOutput(error, nowNs);
-        WorkloadPriority currentWatermark = watermark.get();
-        int pValue = currentWatermark.P() + (int) pidOutput; // 将PID输出转换为整数
-        pValue = Math.min(0, Math.max(WorkloadPriority.ofLowest().P(), pValue));
-        WorkloadPriority newWatermark = WorkloadPriority.fromP(pValue);
-        watermark.set(newWatermark);
-        log.info("[{}] watermark adjusted by PID, new watermark: {}", name, newWatermark.simpleString());
+        log.trace("[{}] PID({})={}, actual:{}, target:{}", name, error, pidOutput, actual, target);
+
+        if (PID_CONTROL) {
+            final WorkloadPriority current = watermark();
+            int P = current.P() + (int) pidOutput; // TODO
+            P = Math.min(0, Math.max(WorkloadPriority.ofLowest().P(), P));
+            final WorkloadPriority newWatermark = WorkloadPriority.fromP(P);
+            watermark.set(newWatermark);
+            log.info("[{}] watermark by PID, {} -> {}", name, current.simpleString(), newWatermark.simpleString());
+        }
     }
 
     @VisibleForTesting
     synchronized void resetForTesting() {
         this.window.resetForTesting();
         this.watermark.set(WorkloadPriority.ofLowest());
-        log.debug("[{}] has been reset for testing purposes.", name);
+        this.lastTargetCount.set(0);
+        log.debug("[{}] has been reset for testing purpose", name);
     }
 }
