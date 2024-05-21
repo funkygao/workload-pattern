@@ -8,8 +8,6 @@ import lombok.extern.slf4j.Slf4j;
 import java.util.Map;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * 支持多精度的系统时钟.
@@ -30,14 +28,13 @@ public class SystemClock {
     private final AtomicLong currentTimeMillis = new AtomicLong(System.currentTimeMillis());
 
     // key is precisionMs
-    private static final Map<Long, SystemClock> clocks = new ConcurrentHashMap<>();
-    private static final Lock clocksLock = new ReentrantLock();
-
-    private static volatile ScheduledFuture<?> timerTask;
-    private static volatile long minPrecisionMs = Long.MAX_VALUE;
+    private static final Map<Long, SystemClock> instances = new ConcurrentHashMap<>();
+    private static final AtomicLong minPrecisionMs = new AtomicLong(Long.MAX_VALUE);
 
     @VisibleForTesting
-    static final ScheduledExecutorService precisestClockUpdater = Executors.newSingleThreadScheduledExecutor(new NamedThreadFactory(THREAD_NAME));
+    private static final ScheduledExecutorService precisestClockUpdater = Executors.newSingleThreadScheduledExecutor(new NamedThreadFactory(THREAD_NAME));
+
+    private static ScheduledFuture<?> timerTask;
 
     private SystemClock(long precisionMs) {
         this.precisionMs = precisionMs;
@@ -62,36 +59,25 @@ public class SystemClock {
 
         // https://github.com/apache/shardingsphere/pull/13275/files
         // https://bugs.openjdk.org/browse/JDK-8161372
-        SystemClock clock = clocks.get(precisionMs);
-        if (clock != null) {
-            return clock;
-        }
-
-        clocksLock.lock();
-        try {
-            return clocks.computeIfAbsent(precisionMs, precision -> {
-                if (clocks.isEmpty()) {
+        // 一种推荐的模式，即在使用computeIfAbsent之前先尝试使用get方法，特别是在高并发场景下
+        // 这种模式的主要目的是减少computeIfAbsent可能引入的锁竞争
+        // computeIfAbsent方法在某些情况下会锁定ConcurrentHashMap的一部分来确保操作的原子性，这可能会导致不必要的性能开销，特别是在键已经存在的情况下
+        // 先使用get方法尝试检索键对应的值，只有在键不存在时，再使用computeIfAbsent来添加值，可以避免这种性能开销
+        SystemClock clock = instances.get(precisionMs);
+        if (clock == null) {
+            clock = instances.computeIfAbsent(precisionMs, precision -> {
+                if (instances.isEmpty()) {
                     log.info("[{}] register first precision:{}ms timer", who, precision);
                 } else {
-                    log.info("[{}] register {}nd precision:{}ms timer", who, clocks.size() + 1, precision);
+                    log.info("[{}] register {}nd precision:{}ms timer", who, instances.size() + 1, precision);
                 }
+
                 rescheduleTimerIfNec(precision, who);
                 return new SystemClock(precision);
             });
-        } finally {
-            clocksLock.unlock();
         }
-    }
 
-    @VisibleForTesting("共享状态清理，以便测试用例隔离")
-    @Generated
-    static void resetForTesting() {
-        if (timerTask != null) {
-            timerTask.cancel(true);
-            timerTask = null;
-        }
-        clocks.clear();
-        minPrecisionMs = Long.MAX_VALUE;
+        return clock;
     }
 
     /**
@@ -103,48 +89,44 @@ public class SystemClock {
         return precisionMs == 0 ? System.currentTimeMillis() : currentTimeMillis.get();
     }
 
-    private static void rescheduleTimerIfNec(long precisionMs, String who) {
-        if (precisionMs == 0 || precisionMs >= minPrecisionMs) {
-            log.info("[{}] precision:{}ms need not reschedule timer", who, precisionMs);
+    private static void rescheduleTimerIfNec(long newPrecisionMs, String who) {
+        final long currentMinPrecision = minPrecisionMs.get();
+        if (newPrecisionMs == 0 || newPrecisionMs >= currentMinPrecision) {
+            log.info("[{}] precision:{}ms need not reschedule timer", who, newPrecisionMs);
             return;
         }
 
-        clocksLock.lock();
-        try {
-            // double check: 另外一个线程可能先拿到锁，并修改了 minPrecisionMs
-            if (precisionMs >= minPrecisionMs) {
-                // minPrecisionMs=100，precisionMs=5 和 precisionMs=10会并发执行
-                // 5先拿到锁，minPrecisionMs被改为5；等10拿到锁时，走到这里
-                return;
+        if (minPrecisionMs.compareAndSet(currentMinPrecision, newPrecisionMs)) {
+            if (timerTask != null) {
+                timerTask.cancel(false);
+                log.info("[{}] reschedule timer: {} -> {}ms", who, currentMinPrecision, newPrecisionMs);
+            } else {
+                log.info("[{}] schedule first timer, interval:{}ms", who, newPrecisionMs);
             }
 
-            if (timerTask != null) {
-                log.info("[{}] reschedule timer: {} -> {}ms", who, minPrecisionMs, precisionMs);
-                timerTask.cancel(true);
-            } else {
-                log.info("[{}] schedule first timer, interval:{}ms", who, precisionMs);
-            }
-            minPrecisionMs = precisionMs;
-            // scheduleAtFixedRate 会把任务放入queue，即使任务执行时长跨调度周期也不会并发执行
-            timerTask = precisestClockUpdater.scheduleAtFixedRate(SystemClock::syncAllClocks, minPrecisionMs, minPrecisionMs, TimeUnit.MILLISECONDS);
-        } finally {
-            clocksLock.unlock();
+            // 受CAS保护，确保了timerTask赋值操作的原子性和可见性，因此它没有volatile修饰
+            timerTask = precisestClockUpdater.scheduleAtFixedRate(SystemClock::syncAllClocks, newPrecisionMs, newPrecisionMs, TimeUnit.MILLISECONDS);
         }
     }
 
     private static void syncAllClocks() {
-        long currentTimeMillis = System.currentTimeMillis();
-        // 防止在迭代过程中clocks进行更新：clocks.computeIfAbsent
-        clocksLock.lock();
-        try {
-            for (SystemClock clock : clocks.values()) {
-                if (clock.precisionMs != 0) {
-                    clock.currentTimeMillis.set(currentTimeMillis);
-                }
+        final long currentTimeMillis = System.currentTimeMillis();
+        instances.forEach((precision, clock) -> {
+            if (clock.precisionMs != 0) {
+                clock.currentTimeMillis.set(currentTimeMillis);
             }
-        } finally {
-            clocksLock.unlock();
+        });
+    }
+
+    @VisibleForTesting
+    @Generated
+    static void resetForTesting() {
+        if (timerTask != null) {
+            timerTask.cancel(true);
+            timerTask = null;
         }
+        instances.clear();
+        minPrecisionMs.set(Long.MAX_VALUE);
     }
 
 }

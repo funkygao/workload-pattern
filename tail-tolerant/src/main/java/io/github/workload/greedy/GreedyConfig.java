@@ -78,17 +78,17 @@ public class GreedyConfig {
 
         public GreedyConfig build() {
             if (batchSize <= 0) {
-                throw new IllegalArgumentException("partitionSize must be greater than 0");
+                throw new IllegalArgumentException("batchSize must be greater than 0");
             }
             if (itemsLimit <= batchSize) {
-                throw new IllegalArgumentException("greedyThreshold must be greater than partitionSize");
+                throw new IllegalArgumentException("itemsLimit must be greater than batchSize");
             }
             if (rateLimiter != null) {
                 if (rateLimiterKey == null || rateLimiterKey.trim().isEmpty()) {
-                    throw new IllegalArgumentException("greedyLimiter not null, limiterKey cannot be empty");
+                    throw new IllegalArgumentException("rateLimiter not null, rateLimiterKey cannot be empty");
                 }
                 if (rateLimitOnCostExceed == Integer.MAX_VALUE) {
-                    throw new IllegalArgumentException("greedyLimiter not null, costsThreshold must be set");
+                    throw new IllegalArgumentException("rateLimiter not null, rateLimitOnCostExceed must be set");
                 }
             }
             return new GreedyConfig(this);
