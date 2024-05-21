@@ -66,7 +66,7 @@ abstract class FairShedder {
     boolean admit(@NonNull WorkloadPriority priority) {
         boolean admitted = satisfyWatermark(priority);
         if (!admitted) {
-            admitted = stochasticShed(priority);
+            admitted = stochasticAdmit(priority);
         }
         window.advance(priority, admitted, System.nanoTime());
         return admitted;
@@ -213,7 +213,7 @@ abstract class FairShedder {
     // 概率拒绝：一种简单且有效解决请求优先级分布不均的方法
     // 对于低优先级请求，不是完全拒绝，而是按一定的概率拒绝
     // 这种方法可以确保每个优先级级别的请求都能得到一定处理，同时又可以限制低优先级请求对系统的影响
-    private boolean stochasticShed(WorkloadPriority priority) {
+    private boolean stochasticAdmit(WorkloadPriority priority) {
         int P = priority.P();
         if (false) {
             Map<Integer, Integer> weights = new HashMap<>();
@@ -223,7 +223,7 @@ abstract class FairShedder {
             final double probability = weight / (weight + rejectProbability);
             return ThreadLocalRandom.current().nextDouble() < probability;
         }
-        return true;
+        return false;
     }
 
     @VisibleForTesting
