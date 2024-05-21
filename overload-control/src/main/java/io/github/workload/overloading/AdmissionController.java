@@ -66,7 +66,7 @@ public interface AdmissionController {
          * 反馈当前工作负荷的排队时长：隐式过载检测.
          *
          * <p>是请求在处理前排队时间，而不是RTT，why?</p>
-         * <p>在微服务架构下，RTT受到下游影响，下游慢了RTT也慢，even though the server itself is not overloaded.</p>
+         * <p>在微服务架构下，RTT受到下游影响，even though the server itself is not overloaded.</p>
          * <p>This provides a strong evidence that the queuing time can reflect the actual load status of a server, whereas RTT is prone to false positives of overload.</p>
          *
          * @param queuedNs queued duration in nano seconds
