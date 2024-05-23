@@ -1,4 +1,4 @@
-package io.github.workload.aqm;
+package io.github.workload.overloading.control;
 
 import io.github.workload.annotations.ThreadSafe;
 

@@ -4,7 +4,7 @@ import io.github.workload.HyperParameter;
 import io.github.workload.WorkloadPriority;
 import io.github.workload.annotations.ThreadSafe;
 import io.github.workload.annotations.VisibleForTesting;
-import io.github.workload.aqm.PIDController;
+import io.github.workload.overloading.control.PIDController;
 import io.github.workload.metrics.tumbling.CountAndTimeRolloverStrategy;
 import io.github.workload.metrics.tumbling.CountAndTimeWindowState;
 import io.github.workload.metrics.tumbling.TumblingWindow;
