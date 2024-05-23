@@ -41,6 +41,28 @@ class WorkloadPriorityTest {
     }
 
     @Test
+    void tuneU() {
+        WorkloadPriority priority = WorkloadPriority.of(WorkloadPriority.B_CRITICAL, 100);
+        assertEquals(priority.B(), priority.tuneU(100).B());
+        assertSame(priority, priority.tuneU(0));
+
+        assertEquals(126, priority.tuneU(26).U());
+        assertEquals(127, priority.tuneU(27).U());
+        assertEquals(127, priority.tuneU(28).U());
+        assertEquals(127, priority.tuneU(100).U());
+        assertEquals(127, priority.tuneU(Integer.MAX_VALUE - 100).U());
+
+        assertEquals(0, priority.tuneU(Integer.MAX_VALUE).U()); // overflow
+        assertEquals(priority.B(), priority.tuneU(Integer.MAX_VALUE).B()); // overflow
+
+        assertEquals(98, priority.tuneU(-2).U());
+        assertEquals(80, priority.tuneU(-20).U());
+        assertEquals(0, priority.tuneU(-100).U());
+        assertEquals(0, priority.tuneU(-101).U());
+        assertEquals(0, priority.tuneU(Integer.MIN_VALUE).U());
+    }
+
+    @Test
     void P() {
         WorkloadPriority p1 = WorkloadPriority.of(7, 3);
         WorkloadPriority p2 = WorkloadPriority.of(8, 10);

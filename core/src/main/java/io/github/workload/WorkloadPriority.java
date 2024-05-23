@@ -238,6 +238,19 @@ public class WorkloadPriority {
         return fromP(targetP);
     }
 
+    /**
+     * 保持{@link #B}不变，调整{@link #U}：微调.
+     *
+     * @param delta 变化值，正则增负则减
+     */
+    public WorkloadPriority tuneU(int delta) {
+        if (delta == 0) {
+            return this;
+        }
+
+        return of(B, Math.min(MAX_7BIT_VALUE, Math.max(0, U + delta)));
+    }
+
     @Override
     public boolean equals(Object o) {
         if (o == this) {
