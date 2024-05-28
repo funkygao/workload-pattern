@@ -4,18 +4,16 @@ import io.github.workload.HyperParameter;
 import io.github.workload.WorkloadPriority;
 import io.github.workload.annotations.ThreadSafe;
 import io.github.workload.annotations.VisibleForTesting;
-import io.github.workload.overloading.control.PIDController;
 import io.github.workload.metrics.tumbling.CountAndTimeRolloverStrategy;
 import io.github.workload.metrics.tumbling.CountAndTimeWindowState;
 import io.github.workload.metrics.tumbling.TumblingWindow;
 import io.github.workload.metrics.tumbling.WindowConfig;
+import io.github.workload.overloading.control.PIDController;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -28,7 +26,6 @@ import java.util.concurrent.atomic.AtomicReference;
 @ThreadSafe
 abstract class FairShedder {
     private static final boolean PID_CONTROL = false;
-    private static final boolean STOCHASTIC = false;
     private static final int PID_TARGET_IGNORED = 0;
 
     protected final double GRADIENT_HEALTHY = 1d;
@@ -44,6 +41,7 @@ abstract class FairShedder {
     // 准入等级水位线/准入门槛，其优先级越高则准入控制越严格，即门槛越高.
     private final AtomicReference<WorkloadPriority> watermark = new AtomicReference<>(WorkloadPriority.ofLowest());
 
+    private final ShedStochastic stochastic;
     private final PIDController pidController;
     private final AtomicInteger lastTargetCount = new AtomicInteger(PID_TARGET_IGNORED);
 
@@ -59,6 +57,10 @@ abstract class FairShedder {
     protected abstract double overloadGradient(long nowNs, CountAndTimeWindowState snapshot);
 
     protected FairShedder(String name) {
+        this(name, ShedStochastic.newDefault());
+    }
+
+    protected FairShedder(String name, ShedStochastic shedStochastic) {
         this.name = name;
         WindowConfig<CountAndTimeWindowState> config = WindowConfig.create(
                 new CountAndTimeRolloverStrategy() {
@@ -70,12 +72,13 @@ abstract class FairShedder {
         );
         this.window = new TumblingWindow<>(config, name, System.nanoTime());
         this.pidController = new PIDController(0.1, 0.01, 0.05);
+        this.stochastic = shedStochastic;
     }
 
     boolean admit(@NonNull WorkloadPriority priority) {
         boolean admitted = satisfyWatermark(priority);
-        if (!admitted) {
-            admitted = stochasticAdmit(priority);
+        if (!admitted && stochastic != null) {
+            admitted = !stochastic.shouldShed(priority);
         }
         window.advance(priority, admitted, System.nanoTime());
         return admitted;
@@ -97,7 +100,7 @@ abstract class FairShedder {
 
         pidControlWatermark(lastWindow, nowNs, overloaded);
 
-        // 动态调整窗口大小：根据系统的负载情况动态调整窗口的大小。当系统负载较高时，缩小窗口大小，以更快地响应负载变化
+        // 动态调整窗口大小：根据系统的负载情况动态调整窗口的大小
     }
 
     // 确保在精准提高 watermark 时不会因为过度抛弃低优先级请求而影响服务的整体可用性，尽可能保持高 goodput
@@ -229,22 +232,6 @@ abstract class FairShedder {
     private boolean satisfyWatermark(WorkloadPriority priority) {
         // 在水位线(含)以下的请求都放行
         return priority.P() <= watermark().P();
-    }
-
-    // 概率拒绝：一种简单且有效解决请求优先级分布不均的方法
-    // 对于低优先级请求，不是完全拒绝，而是按一定的概率拒绝
-    // 这种方法可以确保每个优先级级别的请求都能得到一定处理，同时又可以限制低优先级请求对系统的影响
-    private boolean stochasticAdmit(WorkloadPriority priority) {
-        if (STOCHASTIC) {
-            final int P = priority.P();
-            Map<Integer, Integer> weights = new HashMap<>();
-            Map<Integer, Double> rejectProbabilities = new HashMap<>();
-            final int weight = weights.get(P);
-            final double rejectProbability = rejectProbabilities.get(P);
-            final double probability = weight / (weight + rejectProbability);
-            return ThreadLocalRandom.current().nextDouble() < probability;
-        }
-        return false;
     }
 
     private void ignorePIDControl() {

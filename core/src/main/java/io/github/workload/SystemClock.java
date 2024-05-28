@@ -67,9 +67,9 @@ public class SystemClock {
         if (clock == null) {
             clock = instances.computeIfAbsent(precisionMs, precision -> {
                 if (instances.isEmpty()) {
-                    log.info("[{}] register first precision:{}ms timer", who, precision);
+                    log.info("{} register first precision:{}ms timer", who, precision);
                 } else {
-                    log.info("[{}] register {}nd precision:{}ms timer", who, instances.size() + 1, precision);
+                    log.info("{} register {}nd precision:{}ms timer", who, instances.size() + 1, precision);
                 }
 
                 rescheduleTimerIfNec(precision, who);
@@ -92,16 +92,16 @@ public class SystemClock {
     private static void rescheduleTimerIfNec(long newPrecisionMs, String who) {
         final long currentMinPrecision = minPrecisionMs.get();
         if (newPrecisionMs == 0 || newPrecisionMs >= currentMinPrecision) {
-            log.info("[{}] precision:{}ms need not reschedule timer", who, newPrecisionMs);
+            log.info("{} precision:{}ms need not reschedule timer", who, newPrecisionMs);
             return;
         }
 
         if (minPrecisionMs.compareAndSet(currentMinPrecision, newPrecisionMs)) {
             if (timerTask != null) {
                 timerTask.cancel(false);
-                log.info("[{}] reschedule timer: {} -> {}ms", who, currentMinPrecision, newPrecisionMs);
+                log.info("{} reschedule timer: {} -> {}ms", who, currentMinPrecision, newPrecisionMs);
             } else {
-                log.info("[{}] schedule first timer, interval:{}ms", who, newPrecisionMs);
+                log.info("{} schedule first timer, interval:{}ms", who, newPrecisionMs);
             }
 
             // 受CAS保护，确保了timerTask赋值操作的原子性和可见性，因此它没有volatile修饰
