@@ -79,7 +79,7 @@ public class TumblingWindow<S extends WindowState> {
         currentWindow.logRollover(name, nowNs, nextWindow, config); // 打日志
         current.set(nextWindow); // 没必要CAS；此后，采样数据都进入新窗口，currentWindow 内部状态不会再变化
         config.getRolloverStrategy().onRollover(nowNs, currentWindow, this);
-        currentWindow.cleanup(); // TODO async?
+        currentWindow.cleanup();
     }
 
 }

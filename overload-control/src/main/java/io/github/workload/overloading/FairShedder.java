@@ -42,6 +42,7 @@ abstract class FairShedder {
     private final AtomicReference<WorkloadPriority> watermark = new AtomicReference<>(WorkloadPriority.ofLowest());
 
     private final ShedStochastic stochastic;
+    private final WatermarkHistory history = new WatermarkHistory();
     private final PIDController pidController;
     private final AtomicInteger lastTargetCount = new AtomicInteger(PID_TARGET_IGNORED);
 
@@ -90,7 +91,12 @@ abstract class FairShedder {
 
     @VisibleForTesting
     void predictWatermark(CountAndTimeWindowState lastWindow, double gradient, long nowNs) {
-        log.trace("[{}] predict with lastWindow workload({}/{}), grad:{}", name, lastWindow.admitted(), lastWindow.requested(), gradient);
+        final double shedRatio = lastWindow.shedRatio();
+        history.addHistory(shedRatio, watermark());
+        if (log.isTraceEnabled()) {
+            log.trace("[{}] predict with lastWindow workload({}/{}), grad:{}, shedRatio:{}", name, lastWindow.admitted(), lastWindow.requested(), gradient, shedRatio);
+        }
+
         final boolean overloaded = isOverloaded(gradient);
         if (overloaded) {
             penalizeFutureLowPriorities(lastWindow, gradient);

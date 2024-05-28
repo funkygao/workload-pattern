@@ -1,5 +1,7 @@
 package io.github.workload.metrics.tumbling;
 
+import io.github.workload.annotations.ThreadSafe;
+
 /**
  * 窗口滚动策略.
  *
@@ -32,5 +34,6 @@ public interface WindowRolloverStrategy<S extends WindowState> {
      * @param snapshot the last immutable window state snapshot
      * @param window   the tumbling window, owner of the state
      */
+    @ThreadSafe
     void onRollover(long nowNs, S snapshot, TumblingWindow<S> window);
 }

@@ -62,6 +62,13 @@ public class CountAndTimeWindowState extends WindowState {
         return requested() - admitted();
     }
 
+    /**
+     * 窗口期内请求削减率：[0, 1).
+     */
+    public double shedRatio() {
+        return (double) shedded() / (requested() + 1); // 避免除以零
+    }
+
     public void waitNs(long waitingNs) {
         if (waitingNs > 0) {
             accumulatedQueuedNs.add(waitingNs);
