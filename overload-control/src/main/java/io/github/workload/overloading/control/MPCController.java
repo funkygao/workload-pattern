@@ -10,10 +10,11 @@ import java.util.concurrent.ThreadLocalRandom;
  */
 @NotThreadSafe
 class MPCController {
-    private final ArrayDeque<Double> predictions = new ArrayDeque<>();
+    private final ArrayDeque<Double> predictions;
     private double shedProbability = 1d;
 
     public MPCController(int queueLength) {
+        predictions = new ArrayDeque<>(queueLength);
         for (int i = 0; i < queueLength; i++) {
             predictions.addLast(1d);
         }

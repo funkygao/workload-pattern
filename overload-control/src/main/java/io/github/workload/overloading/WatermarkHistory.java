@@ -2,21 +2,27 @@ package io.github.workload.overloading;
 
 import io.github.workload.WorkloadPriority;
 
-import java.util.LinkedList;
-import java.util.Queue;
+import java.util.ArrayDeque;
 
 class WatermarkHistory {
-    static final int MAX_HISTORY_SIZE = 5; // 保存最近5个周期的历史数据
-    Queue<Double> shedRatios = new LinkedList<>();
-    Queue<WorkloadPriority> watermarks = new LinkedList<>();
+    private final ArrayDeque<Double> shedRatios;
+    private final ArrayDeque<WorkloadPriority> watermarks;
+
+    WatermarkHistory(int histories) {
+        shedRatios = new ArrayDeque<>(histories);
+        watermarks = new ArrayDeque<>(histories);
+        for (int i = 0; i < histories; i++) {
+            shedRatios.addLast(1d);
+            watermarks.addLast(WorkloadPriority.ofLowest());
+        }
+    }
 
     void addHistory(double shedRatio, WorkloadPriority watermark) {
-        if (shedRatios.size() >= MAX_HISTORY_SIZE) {
-            shedRatios.poll();
-            watermarks.poll();
-        }
-        shedRatios.add(shedRatio);
-        watermarks.add(watermark);
+        shedRatios.pollFirst();
+        shedRatios.addLast(shedRatio);
+
+        watermarks.pollFirst();
+        watermarks.addLast(watermark);
     }
 
     double averageShedRatio() {
@@ -24,6 +30,6 @@ class WatermarkHistory {
     }
 
     WorkloadPriority lastWatermark() {
-        return watermarks.peek();
+        return watermarks.peekFirst();
     }
 }

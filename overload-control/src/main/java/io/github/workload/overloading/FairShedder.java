@@ -42,7 +42,7 @@ abstract class FairShedder {
     private final AtomicReference<WorkloadPriority> watermark = new AtomicReference<>(WorkloadPriority.ofLowest());
 
     private final ShedStochastic stochastic;
-    private final WatermarkHistory history = new WatermarkHistory();
+    private final WatermarkHistory history = new WatermarkHistory(20);
     private final PIDController pidController;
     private final AtomicInteger lastTargetCount = new AtomicInteger(PID_TARGET_IGNORED);
 
