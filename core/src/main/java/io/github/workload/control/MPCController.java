@@ -1,4 +1,4 @@
-package io.github.workload.overloading.control;
+package io.github.workload.control;
 
 import io.github.workload.annotations.NotThreadSafe;
 
@@ -7,6 +7,10 @@ import java.util.concurrent.ThreadLocalRandom;
 
 /**
  * Model Predictive Control.
+ *
+ * <ul>vs PID
+ * <li>模型预测控制善于处理多输入多输出系统</li>
+ * </ul>
  */
 @NotThreadSafe
 class MPCController {

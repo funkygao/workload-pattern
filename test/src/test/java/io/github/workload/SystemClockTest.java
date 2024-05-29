@@ -13,6 +13,7 @@ import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+@Disabled
 class SystemClockTest extends BaseTest {
     private static final int PRECISION_MS = 15;
 

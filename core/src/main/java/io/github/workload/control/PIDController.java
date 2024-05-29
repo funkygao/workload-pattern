@@ -1,4 +1,4 @@
-package io.github.workload.overloading.control;
+package io.github.workload.control;
 
 import io.github.workload.annotations.ThreadSafe;
 

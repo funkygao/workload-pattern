@@ -8,7 +8,7 @@ import io.github.workload.metrics.tumbling.CountAndTimeRolloverStrategy;
 import io.github.workload.metrics.tumbling.CountAndTimeWindowState;
 import io.github.workload.metrics.tumbling.TumblingWindow;
 import io.github.workload.metrics.tumbling.WindowConfig;
-import io.github.workload.overloading.control.PIDController;
+import io.github.workload.control.PIDController;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 

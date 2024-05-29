@@ -1,4 +1,4 @@
-package io.github.workload.overloading.detect;
+package io.github.workload.detect;
 
 import io.github.workload.annotations.Heuristics;
 import io.github.workload.annotations.PoC;
