@@ -146,6 +146,7 @@ abstract class FairShedder {
                     targetP = higherPriorities.next().getKey();
                     steps++;
                 } else {
+                    // TODO 线性插值
                     targetP = candidateP; // this candidate wil not shed workload
                     accDrop -= candidateR; // 候选项并没有被shed，提前加上去的退回来
                     errorRate = (double) (accDrop - targetDrop) / targetDrop; // 重新计算误差率
@@ -199,7 +200,7 @@ abstract class FairShedder {
         }
 
         lastTargetCount.set(targetAdmit);
-        int steps = 0; // 迈了几步
+        int steps = 0;
         while (lowerPriorities.hasNext()) {
             final Map.Entry<Integer, AtomicInteger> entry = lowerPriorities.next();
             final int candidateP = entry.getKey();
