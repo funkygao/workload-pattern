@@ -25,12 +25,16 @@ import java.util.concurrent.atomic.AtomicReference;
 @Slf4j
 @ThreadSafe
 abstract class FairShedder {
+    // PID控制
     private static final boolean PID_CONTROL = false;
     private static final int PID_TARGET_IGNORED = 0;
 
-    protected final double GRADIENT_HEALTHY = 1d;
-    static final double GRADIENT_IDLEST = HyperParameter.getDouble(Empirical.GRADIENT_IDLEST, 1.2d);
+    // 梯度
+    protected final double GRADIENT_HEALTHY = 1d; // will never change
+    static final double GRADIENT_IDLEST = HyperParameter.getDouble(Empirical.GRADIENT_IDLEST, 1.5d);
     static final double GRADIENT_BUSIEST = HyperParameter.getDouble(Empirical.GRADIENT_BUSIEST, 0.5d);
+
+    // 经验值
     static final double OVER_SHED_BOUND = HyperParameter.getDouble(Empirical.OVER_SHED_BOUND, 1.01d);
     static final double DROP_RATE_BASE = HyperParameter.getDouble(Empirical.SHED_DROP_RATE, 0.05d);
     static final double RECOVER_RATE_BASE = HyperParameter.getDouble(Empirical.SHED_RECOVER_RATE, 0.03d);
@@ -79,6 +83,7 @@ abstract class FairShedder {
     boolean admit(@NonNull WorkloadPriority priority) {
         boolean admitted = satisfyWatermark(priority);
         if (!admitted && stochastic != null) {
+            // 基于概率的削减策略：即使系统压力大，不同优先级请求的削减概率依然不同，这需要人工经验
             admitted = !stochastic.shouldShed(priority);
         }
         window.advance(priority, admitted, System.nanoTime());
@@ -257,9 +262,9 @@ abstract class FairShedder {
         } else {
             actual = lastWindow.admitted();
         }
-        final double error = actual - target;
-        final double pidOutput = pidController.getOutput(error, nowNs);
-        log.trace("[{}] PID({})={}, actual:{}, target:{}", name, error, pidOutput, actual, target);
+        final double err = actual - target; // 偏差
+        final double pidOutput = pidController.getOutput(err, nowNs);
+        log.trace("[{}] PID({})={}, actual:{}, target:{}", name, err, pidOutput, actual, target);
 
         if (PID_CONTROL) {
             final WorkloadPriority current = watermark();
