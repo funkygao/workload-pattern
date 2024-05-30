@@ -10,9 +10,9 @@ import io.github.workload.annotations.ThreadSafe;
  * {@code
  * OverloadHandler handler = OverloadHandler.ofRetryBudget(5 * 60);
  *
- * ResponseMessage responseMessage = getNext().invoke(requestMessage);
  * String service = requestMessage.getInvocationBody().getClazzName();
  * handler.recordRequest(service);
+ * ResponseMessage responseMessage = getNext().invoke(requestMessage); // RPC call
  * if (responseMessage.isOverloaded() && handler.canRetry(service, 0.1)) {
  *     // retry the request: SLB might dispatch it to another idle server node
  * }
