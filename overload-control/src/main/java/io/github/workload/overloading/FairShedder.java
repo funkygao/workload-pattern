@@ -83,7 +83,6 @@ abstract class FairShedder {
     boolean admit(@NonNull WorkloadPriority priority) {
         boolean admitted = satisfyWatermark(priority);
         if (!admitted && stochastic != null) {
-            // 基于概率的削减策略：即使系统压力大，不同优先级请求的削减概率依然不同，这需要人工经验
             admitted = !stochastic.shouldShed(priority);
         }
         window.advance(priority, admitted, System.nanoTime());
@@ -94,7 +93,6 @@ abstract class FairShedder {
         return watermark.get();
     }
 
-    @VisibleForTesting
     void predictWatermark(CountAndTimeWindowState lastWindow, double gradient, long nowNs) {
         final double shedRatio = lastWindow.shedRatio();
         history.addHistory(shedRatio, watermark());
