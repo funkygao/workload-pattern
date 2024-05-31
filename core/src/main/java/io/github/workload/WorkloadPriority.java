@@ -81,6 +81,7 @@ public class WorkloadPriority {
                 warmPool.put(bu2p(b, u), new WorkloadPriority(b, u));
             }
         }
+        log.info("warmPool built, size: {}", 4 * MAX_7BIT_VALUE);
     }
 
     // at most 128 keys, periodic consistent cohorting
@@ -200,7 +201,6 @@ public class WorkloadPriority {
         UState us = uStates.compute(normalizedStableU, (key, presentValue) -> {
             if (presentValue == null || nowMs - presentValue.createdAtMs > timeWindowMs) {
                 int randomU = ThreadLocalRandom.current().nextInt(MAX_7BIT_VALUE);
-                log.trace("b:{}, create random U:{} for uid:{}", b, randomU, uid);
                 return new UState(randomU, nowMs);
             } else {
                 return presentValue;

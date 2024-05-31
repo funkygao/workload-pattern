@@ -97,7 +97,7 @@ abstract class FairShedder {
         final double shedRatio = lastWindow.shedRatio();
         history.addHistory(shedRatio, watermark());
         if (log.isTraceEnabled()) {
-            log.trace("[{}] predict with lastWindow workload({}/{}), grad:{}, shedRatio:{}", name, lastWindow.admitted(), lastWindow.requested(), gradient, shedRatio);
+            log.trace("[{}] predict with lastWindow workload admitted({}/{}), grad:{}, shedRatio:{}", name, lastWindow.admitted(), lastWindow.requested(), gradient, shedRatio);
         }
 
         final boolean overloaded = isOverloaded(gradient);

@@ -66,12 +66,7 @@ public class SystemClock {
         SystemClock clock = instances.get(precisionMs);
         if (clock == null) {
             clock = instances.computeIfAbsent(precisionMs, precision -> {
-                if (instances.isEmpty()) {
-                    log.info("{} register first precision:{}ms timer", who, precision);
-                } else {
-                    log.info("{} register {}nd precision:{}ms timer", who, instances.size() + 1, precision);
-                }
-
+                log.info("{} register timer, precision:{}ms", who, precision);
                 rescheduleTimerIfNec(precision, who);
                 return new SystemClock(precision);
             });
