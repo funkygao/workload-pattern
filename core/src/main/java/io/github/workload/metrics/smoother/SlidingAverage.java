@@ -1,5 +1,7 @@
 package io.github.workload.metrics.smoother;
 
+import java.util.concurrent.atomic.AtomicReference;
+
 /**
  * 简单移动平均算法.
  */
@@ -16,7 +18,7 @@ class SlidingAverage implements ValueSmoother {
      */
     private final double beta;
 
-    private volatile Double curr;
+    private final AtomicReference<Double> curr;
 
     SlidingAverage(double beta) {
         if (beta < 0 || beta >= 1) {
@@ -24,16 +26,12 @@ class SlidingAverage implements ValueSmoother {
         }
 
         this.beta = beta;
-        this.curr = null;
+        this.curr = new AtomicReference<>(null);
     }
 
     @Override
     public SlidingAverage update(double sample) {
-        if (curr == null) {
-            curr = sample;
-        } else {
-            curr = beta * curr + (1 - beta) * sample;
-        }
+        curr.updateAndGet(current -> current == null ? sample : beta * current + (1 - beta) * sample);
         return this;
     }
 
@@ -44,11 +42,12 @@ class SlidingAverage implements ValueSmoother {
      */
     @Override
     public double smoothedValue() throws IllegalStateException {
-        if (curr == null) {
+        Double current = curr.get();
+        if (current == null) {
             throw new IllegalStateException("MUST call update() before getting value!");
         }
 
-        return curr;
+        return current;
     }
 
 }
