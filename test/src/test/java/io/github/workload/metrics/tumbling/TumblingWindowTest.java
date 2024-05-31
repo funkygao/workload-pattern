@@ -64,14 +64,14 @@ class TumblingWindowTest extends BaseTest {
         window.zoomTimeCycle(1);
         assertEquals(old, timeCycle.get());
 
-        // 最大3倍
+        // 最大2倍
         window.zoomTimeCycle(100);
-        assertEquals(old * 3,timeCycle.get());
+        assertEquals(old * 2, timeCycle.get());
         timeCycle.set(old);
 
-        // 最小 1/2
+        // 最小 1/5
         window.zoomTimeCycle(0);
-        assertEquals(old / 2, timeCycle.get());
+        assertEquals(old / 5, timeCycle.get());
         timeCycle.set(old);
 
         window.zoomTimeCycle((1.5));
