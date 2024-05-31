@@ -14,6 +14,7 @@ import java.util.concurrent.atomic.AtomicReference;
  */
 @ThreadSafe
 public class PIDController {
+    // Ziegler-Nichols方法调整增益参数，过载保护的起始值：(0.5, 0.01, 0.1)
     private final double kp; // 比例增益
     private final double ki; // 积分增益
     private final double kd; // 微分增益
@@ -31,7 +32,6 @@ public class PIDController {
      * @param kd 微分增益，控制偏差变化率的响应
      */
     public PIDController(double kp, double ki, double kd) {
-        // Ziegler-Nichols方法调整增益参数，过载保护的起始值：(0.5, 0.01, 0.1)
         this(kp, ki, kd, false);
     }
 
@@ -51,16 +51,12 @@ public class PIDController {
      * @return 控制器输出，用于调整控制量
      */
     public double getOutput(double error, long nowNs) {
-        integral.updateAndGet(value -> value + error);
-
-        // 时间维度
+        // 计算时间间隔dt
         double dt;
         if (ignoreDt) {
             dt = 1;
         } else {
-            final long lastNs = lastTimeNs.get();
-            lastTimeNs.set(nowNs);
-            // 第一次调用不计算dt
+            final long lastNs = lastTimeNs.getAndSet(nowNs);
             dt = (lastNs == -1) ? 0 : (nowNs - lastNs) / 1e9; // 将纳秒转换为秒
         }
 
