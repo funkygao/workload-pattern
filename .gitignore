@@ -31,3 +31,5 @@ test/log
 test/*.bench
 *.jfr
 flamegraph.html
+.ipynb_checkpoints/
+*.ipynb
