@@ -25,7 +25,7 @@ class FairShedderTest extends BaseTest {
 
     @Test
     void ConcurrentSkipListMap_headMap() {
-        ConcurrentSkipListMap<Integer, String> histogram = new ConcurrentSkipListMap();
+        ConcurrentSkipListMap<Integer, String> histogram = new ConcurrentSkipListMap<>();
         assertFalse(histogram.headMap(1, true).descendingKeySet().iterator().hasNext());
 
         histogram.put(8, "");
@@ -88,7 +88,7 @@ class FairShedderTest extends BaseTest {
 
     @Test
     void ConcurrentSkipListMap_tailMap() {
-        ConcurrentSkipListMap<Integer, String> histogram = new ConcurrentSkipListMap();
+        ConcurrentSkipListMap<Integer, String> histogram = new ConcurrentSkipListMap<>();
         histogram.put(8, "");
         histogram.put(10, "");
         for (int i = 0; i <= 5; i++) {
@@ -103,6 +103,31 @@ class FairShedderTest extends BaseTest {
         assertTrue(histogram.tailMap(0, false).keySet().iterator().hasNext());
 
         assertEquals("[8, 10]", histogram.tailMap(5, false).keySet().toString());
+    }
+
+    @Test
+    void relu_cpu_load() {
+        AdmissionControllerFactory.resetForTesting();
+        FairSafeAdmissionController admissionController = (FairSafeAdmissionController) AdmissionController.getInstance("RPC");
+        final FairShedder shedder = admissionController.fairQueue();
+
+        final double cpuThreshold = 0.8 * 100;
+        for (double cpuUsage : new double[]{0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1}) {
+            cpuUsage *= 100;
+            log.info("cpu relu({}): {}", cpuUsage, shedder.relu(cpuUsage, cpuThreshold));
+        }
+    }
+
+    @Test
+    void relu_watermark() {
+        AdmissionControllerFactory.resetForTesting();
+        FairSafeAdmissionController admissionController = (FairSafeAdmissionController) AdmissionController.getInstance("RPC");
+        final FairShedder shedder = admissionController.fairQueue();
+
+        for (double lastWindowShedRatio : new double[]{0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8}) {
+            lastWindowShedRatio *= 100;
+            log.info("shed relu({}): {}", lastWindowShedRatio, shedder.relu(lastWindowShedRatio, 60));
+        }
     }
 
     /**

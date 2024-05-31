@@ -113,6 +113,11 @@ abstract class FairShedder {
         window.zoomTimeCycle(1);
     }
 
+    // 类ReLU的激活函数
+    double relu(double value, double threshold) {
+        return Math.max(0.1, (1000 - value) / (1000 - threshold));
+    }
+
     // 确保在精准提高 watermark 时不会因为过度抛弃低优先级请求而影响服务的整体可用性，尽可能保持高 goodput
     private void penalizeFutureLowPriorities(CountAndTimeWindowState lastWindow, double gradient) {
         final int requested = lastWindow.requested();
