@@ -6,6 +6,7 @@ import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NonNull;
+import lombok.extern.slf4j.Slf4j;
 
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
@@ -18,13 +19,14 @@ import java.util.concurrent.atomic.AtomicLong;
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 @Immutable
 @Getter(AccessLevel.PACKAGE)
+@Slf4j
 public class WindowConfig<S extends WindowState> {
-    static final long MIN_TIME_CYCLE_NS = TimeUnit.MILLISECONDS.toNanos(500);
-    static final long MAX_TIME_CYCLE_NS = TimeUnit.SECONDS.toNanos(5);
-
     public static final long NS_PER_MS = TimeUnit.MILLISECONDS.toNanos(1);
     public static final long DEFAULT_TIME_CYCLE_NS = TimeUnit.MILLISECONDS.toNanos(HyperParameter.getLong(HyperParameter.WINDOW_TIME_CYCLE_MS, 1000)); // 1s
     public static final int DEFAULT_REQUEST_CYCLE = HyperParameter.getInt(HyperParameter.WINDOW_REQUEST_CYCLE, 1 << 10);
+
+    static final long MIN_TIME_CYCLE_NS = DEFAULT_TIME_CYCLE_NS / 5;
+    static final long MAX_TIME_CYCLE_NS = DEFAULT_TIME_CYCLE_NS * 2;
 
     /**
      * 时间周期.
@@ -77,10 +79,12 @@ public class WindowConfig<S extends WindowState> {
             return;
         }
 
-        final double effectiveFactor = Math.max(0.5, Math.min(3, factor));
+        final double effectiveFactor = Math.max(0.2, Math.min(2, factor));
         timeCycleNs.updateAndGet(current -> {
             long newValue = (long) (current * effectiveFactor);
-            return Math.max(MIN_TIME_CYCLE_NS, Math.min(newValue, MAX_TIME_CYCLE_NS));
+            newValue = Math.max(MIN_TIME_CYCLE_NS, Math.min(newValue, MAX_TIME_CYCLE_NS));
+            log.info("timeCycleNs zoom factor {}: {} -> {}", factor, current, newValue);
+            return newValue;
         });
     }
 
