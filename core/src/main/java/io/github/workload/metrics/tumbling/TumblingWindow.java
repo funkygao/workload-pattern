@@ -63,6 +63,15 @@ public class TumblingWindow<S extends WindowState> {
         }
     }
 
+    /**
+     * 缩放时间窗口大小.
+     *
+     * @param factor 缩放因子，大于1表示放大，小于1则缩小
+     */
+    public void zoomTimeCycle(double factor) {
+        config.zoomTimeCycle(factor);
+    }
+
     private void tryRollover(long nowNs, S currentWindow) {
         if (!currentWindow.tryAcquireRolloverLock()) {
             // offers an early exit to avoid unnecessary preparation for the swap

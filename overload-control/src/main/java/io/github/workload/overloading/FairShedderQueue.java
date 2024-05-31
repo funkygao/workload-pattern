@@ -8,27 +8,28 @@ import lombok.Generated;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.atomic.AtomicLong;
 
 @Slf4j
 class FairShedderQueue extends FairShedder {
     static final long AVG_QUEUED_MS_UPPER_BOUND = HyperParameter.getLong(Empirical.AVG_QUEUED_MS_UPPER_BOUND, 20);
 
     private volatile long lastOverloadNs = 0;
-    private final long timeCycleNs;
+    private final AtomicLong timeCycleNs;
 
     FairShedderQueue(String name) {
         super(name);
         this.timeCycleNs = windowConfig().getTimeCycleNs();
-        log.info("[{}] created with timeCycle:{}ms, AVG_QUEUED_MS_UPPER_BOUND:{}", name, timeCycleNs / WindowConfig.NS_PER_MS, AVG_QUEUED_MS_UPPER_BOUND);
+        log.info("[{}] created with timeCycle:{}ms, AVG_QUEUED_MS_UPPER_BOUND:{}", name, timeCycleNs.get() / WindowConfig.NS_PER_MS, AVG_QUEUED_MS_UPPER_BOUND);
     }
 
     @Override
     protected double overloadGradient(long nowNs, CountAndTimeWindowState snapshot) {
         boolean stillExplicitOverloaded = nowNs > 0 && lastOverloadNs > 0
-                && (nowNs - lastOverloadNs) <= timeCycleNs;
+                && (nowNs - lastOverloadNs) <= timeCycleNs.get();
         if (stillExplicitOverloaded) {
             double grad = explicitOverloadGradient();
-            log.warn("[{}] within explicit overload period:{}ms, rand grad:{}", name, timeCycleNs / WindowConfig.NS_PER_MS, grad);
+            log.warn("[{}] within explicit overload period:{}ms, rand grad:{}", name, timeCycleNs.get() / WindowConfig.NS_PER_MS, grad);
             return grad;
         }
 

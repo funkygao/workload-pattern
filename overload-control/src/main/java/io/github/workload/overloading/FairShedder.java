@@ -112,6 +112,7 @@ abstract class FairShedder {
         pidControlWatermark(lastWindow, nowNs, overloaded);
 
         // 根据系统的负载情况动态调整窗口的大小
+        window.zoomTimeCycle(1);
     }
 
     // 确保在精准提高 watermark 时不会因为过度抛弃低优先级请求而影响服务的整体可用性，尽可能保持高 goodput
