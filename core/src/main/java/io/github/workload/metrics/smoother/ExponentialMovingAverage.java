@@ -1,5 +1,7 @@
 package io.github.workload.metrics.smoother;
 
+import java.util.concurrent.atomic.AtomicReference;
+
 /**
  * 指数移动平均(EMA)算法.
  */
@@ -13,7 +15,7 @@ class ExponentialMovingAverage implements ValueSmoother {
      */
     private final double alpha;
 
-    private volatile Double curr;
+    private final AtomicReference<Double> curr;
 
     ExponentialMovingAverage(double alpha) {
         if (alpha <= 0 || alpha > 1) {
@@ -21,16 +23,18 @@ class ExponentialMovingAverage implements ValueSmoother {
         }
 
         this.alpha = alpha;
-        this.curr = null;
+        this.curr = new AtomicReference<>(null);
     }
 
     @Override
     public ExponentialMovingAverage update(double sample) {
-        if (curr == null) {
-            curr = sample;
-        } else {
-            curr = alpha * sample + (1 - alpha) * curr;
-        }
+        curr.updateAndGet(current -> {
+            if (current == null) {
+                return sample;
+            } else {
+                return alpha * sample + (1 - alpha) * current;
+            }
+        });
         return this;
     }
 
@@ -41,11 +45,11 @@ class ExponentialMovingAverage implements ValueSmoother {
      */
     @Override
     public double smoothedValue() throws IllegalStateException {
-        if (curr == null) {
+        Double value = curr.get();
+        if (value == null) {
             throw new IllegalStateException("MUST call update() before getting value!");
         }
-
-        return curr;
+        return value;
     }
 
 }

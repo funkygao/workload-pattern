@@ -38,9 +38,7 @@ class ExponentialMovingAverageTest extends BaseTest {
     @Test
     void getValueBeforeUpdate() {
         final ExponentialMovingAverage ema = new ExponentialMovingAverage(0.4);
-        Exception expected = assertThrows(IllegalStateException.class, () -> {
-            ema.smoothedValue();
-        });
+        Exception expected = assertThrows(IllegalStateException.class, ema::smoothedValue);
         assertEquals("MUST call update() before getting value!", expected.getMessage());
     }
 
