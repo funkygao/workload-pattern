@@ -1,8 +1,8 @@
 package io.github.workload.metrics.tumbling;
 
+import io.github.workload.WorkloadPriority;
 import io.github.workload.annotations.ThreadSafe;
 import io.github.workload.annotations.VisibleForTesting;
-import io.github.workload.WorkloadPriority;
 import lombok.Generated;
 
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -49,13 +49,6 @@ public abstract class WindowState {
         // leave for children
     }
 
-    @VisibleForTesting
-    @Generated
-    protected synchronized void resetForTesting() {
-        requestCounter.reset();
-        rolloverLock.set(false);
-    }
-
     /**
      * 当前线程获取窗口切换权.
      *
@@ -74,5 +67,12 @@ public abstract class WindowState {
 
     public final int requested() {
         return requestCounter.intValue();
+    }
+
+    @VisibleForTesting
+    @Generated
+    protected synchronized void resetForTesting() {
+        requestCounter.reset();
+        rolloverLock.set(false);
     }
 }

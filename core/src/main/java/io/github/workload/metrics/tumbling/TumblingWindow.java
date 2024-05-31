@@ -1,8 +1,8 @@
 package io.github.workload.metrics.tumbling;
 
+import io.github.workload.WorkloadPriority;
 import io.github.workload.annotations.ThreadSafe;
 import io.github.workload.annotations.VisibleForTesting;
-import io.github.workload.WorkloadPriority;
 import lombok.Generated;
 import lombok.Getter;
 import lombok.NonNull;
@@ -43,12 +43,6 @@ public class TumblingWindow<S extends WindowState> {
         return current.get();
     }
 
-    @VisibleForTesting
-    @Generated
-    public void resetForTesting() {
-        current().resetForTesting();
-    }
-
     /**
      * 采样工作负荷，推动窗口前进.
      */
@@ -81,5 +75,12 @@ public class TumblingWindow<S extends WindowState> {
         config.getRolloverStrategy().onRollover(nowNs, currentWindow, this);
         currentWindow.cleanup();
     }
+
+    @VisibleForTesting
+    @Generated
+    public synchronized void resetForTesting() {
+        current().resetForTesting();
+    }
+
 
 }

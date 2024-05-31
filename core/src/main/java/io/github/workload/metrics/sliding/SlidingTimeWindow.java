@@ -2,7 +2,6 @@ package io.github.workload.metrics.sliding;
 
 import io.github.workload.annotations.NotThreadSafe;
 import io.github.workload.annotations.ThreadSafe;
-import io.github.workload.annotations.VisibleForTesting;
 import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
 
@@ -139,7 +138,6 @@ public abstract class SlidingTimeWindow<StatisticData> {
         return values(System.currentTimeMillis());
     }
 
-    @VisibleForTesting
     List<StatisticData> values(long timeMillis) {
         List<StatisticData> result = new ArrayList<>(bucketCount);
         for (int i = 0; i < bucketCount; i++) {
@@ -153,7 +151,6 @@ public abstract class SlidingTimeWindow<StatisticData> {
         return result;
     }
 
-    @VisibleForTesting
     int calculateBucketIdx(long timeMillis) {
         long timeId = timeMillis / bucketDurationMs;
         return (int) (timeId % bucketCount);

@@ -94,7 +94,6 @@ public class WorkloadPriority {
         U = u;
     }
 
-    @VisibleForTesting
     static WorkloadPriority of(int b, int u) throws IllegalArgumentException {
         if (b > MAX_7BIT_VALUE || u > MAX_7BIT_VALUE || b < 0 || u < 0) {
             throw new IllegalArgumentException("Out of range for B or U");
@@ -195,7 +194,6 @@ public class WorkloadPriority {
         return "priority(P=" + P() + ",B=" + B + ")";
     }
 
-    @VisibleForTesting
     static WorkloadPriority ofPeriodicRandomFromUID(int b, int uid, long timeWindowMs) {
         int normalizedStableU = (uid & Integer.MAX_VALUE) % MAX_7BIT_VALUE;
         long nowMs = SystemClock.ofPrecisionMs(timeWindowMs, CLOCK_WHO).currentTimeMillis();
