@@ -15,21 +15,22 @@ class FairShedderQueue extends FairShedder {
     static final long AVG_QUEUED_MS_UPPER_BOUND = HyperParameter.getLong(Empirical.AVG_QUEUED_MS_UPPER_BOUND, 50);
 
     private volatile long lastOverloadNs = 0;
-    private final AtomicLong timeCycleNs;
+    private final AtomicLong lastOverloadTtlNs;
 
     FairShedderQueue(String name) {
         super(name);
-        this.timeCycleNs = windowConfig().getTimeCycleNs();
-        log.info("[{}] created with timeCycle:{}ms, AVG_QUEUED_MS_UPPER_BOUND:{}", name, timeCycleNs.get() / WindowConfig.NS_PER_MS, AVG_QUEUED_MS_UPPER_BOUND);
+        this.lastOverloadTtlNs = windowConfig().getTimeCycleNs();
+        log.info("[{}] created with AVG_QUEUED_MS_UPPER_BOUND:{}, explicit overload signal ttl:{}ms", name, AVG_QUEUED_MS_UPPER_BOUND, lastOverloadTtlNs.get() / WindowConfig.NS_PER_MS);
     }
 
     @Override
     protected double overloadGradient(long nowNs, CountAndTimeWindowState snapshot) {
+        final long ttlNs = lastOverloadTtlNs.get();
         boolean stillExplicitOverloaded = nowNs > 0 && lastOverloadNs > 0
-                && (nowNs - lastOverloadNs) <= timeCycleNs.get();
+                && (nowNs - lastOverloadNs) <= ttlNs;
         if (stillExplicitOverloaded) {
             double grad = explicitOverloadGradient();
-            log.warn("[{}] within explicit overload period:{}ms, rand grad:{}", name, timeCycleNs.get() / WindowConfig.NS_PER_MS, grad);
+            log.info("[{}] within explicit overload period:{}ms, rand grad:{}", name, ttlNs / WindowConfig.NS_PER_MS, grad);
             return grad;
         }
 
