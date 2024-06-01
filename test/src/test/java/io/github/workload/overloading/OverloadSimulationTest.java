@@ -30,8 +30,6 @@ class OverloadSimulationTest extends BaseTest {
     @DisplayName("压力维持在CPU阈值附近")
     @Test
     void case_continuous_busy() {
-        setLogLevel(Level.TRACE);
-
         Config c = new Config();
         c.N = 4 << 10;
         c.maxConcurrency = 400;
@@ -39,6 +37,7 @@ class OverloadSimulationTest extends BaseTest {
         c.latencyLow = 20;
         c.latencyHigh = 400;
         c.latencySteepness = 0.5;
+        c.level = Level.DEBUG;
 
         SimulatorRecorder recorder = new SimulatorRecorder();
         simulate(c, recorder);
@@ -48,8 +47,6 @@ class OverloadSimulationTest extends BaseTest {
     @DisplayName("请求少，但导致CPU飙升，而滚动窗口可shed数量少的降级场景")
     @Test
     void case_idle_greedy() {
-        setLogLevel(Level.TRACE);
-
         Config c = new Config();
         c.exhaustedFactor = 0.1;
         c.N = 1 << 10;
@@ -67,8 +64,6 @@ class OverloadSimulationTest extends BaseTest {
     @DisplayName("脉冲式请求压力")
     @Test
     void case_lazy_jitter() {
-        setLogLevel(Level.TRACE);
-
         Config c = new Config();
         c.N = 8 << 10;
         c.maxConcurrency = 400;
@@ -84,6 +79,8 @@ class OverloadSimulationTest extends BaseTest {
     }
 
     private void simulate(@NonNull Config c, @NonNull SimulatorRecorder recorder) {
+        setLogLevel(c.level);
+
         final FairSafeAdmissionController http = (FairSafeAdmissionController) AdmissionController.getInstance("HTTP");
         final SysloadAdaptiveSimulator sysload = new SysloadAdaptiveSimulator(0.05, c.exhaustedFactor, c.maxConcurrency, FairShedderCpu.CPU_USAGE_UPPER_BOUND)
                 .withRecorder(recorder)
@@ -179,5 +176,6 @@ class OverloadSimulationTest extends BaseTest {
         double latencySteepness;
         int latencySleepFactor = 1;
         double laziness = 0;
+        Level level = Level.TRACE;
     }
 }

@@ -79,7 +79,7 @@ class FairSafeAdmissionController implements AdmissionController {
         // JVM范围内共享的CPU准入机制：GC压力会自动隐式转化为CPU压力
         if (!fairCpu.admit(priority)) {
             if (log.isDebugEnabled()) {
-                log.debug("[{}] shared CPU saturated, shed {}, watermark {}", fairQueue.name, priority.simpleString(), fairCpu.watermark().simpleString());
+                log.debug("[{}] busy CPU shed workload:{}, watermark:{}", fairQueue.name, priority.simpleString(), fairCpu.watermark().simpleString());
             }
 
             metricsTracker.shedByCpu(priority);

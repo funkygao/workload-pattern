@@ -51,7 +51,7 @@ class FairShedderQueue extends FairShedder {
         if (isOverloaded(grad)) {
             log.warn("[{}] buffer bloat, avg:{} > {}, grad:{}", name, avgQueuedMs, upperBound, grad);
         } else {
-            log.debug("[{}] avg queuing ms:{} < {}", name, avgQueuedMs, upperBound);
+            log.trace("[{}] avg queuing ms:{} < {}, grad:{}", name, avgQueuedMs, upperBound, grad);
         }
         return grad;
     }
