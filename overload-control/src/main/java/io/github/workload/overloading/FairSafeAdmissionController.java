@@ -90,7 +90,7 @@ class FairSafeAdmissionController implements AdmissionController {
         boolean ok = fairQueue.admit(priority);
         if (!ok) {
             if (log.isDebugEnabled()) {
-                log.debug("[{}] queue busy, shed {}, watermark {}", fairQueue.name, priority.simpleString(), fairQueue.watermark().simpleString());
+                log.debug("[{}] busy queue shed workload:{}, watermark:{}", fairQueue.name, priority.simpleString(), fairQueue.watermark().simpleString());
             }
 
             metricsTracker.shedByQueue(priority);
