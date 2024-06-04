@@ -24,6 +24,7 @@ import java.util.function.Consumer;
  */
 @UtilityClass
 @Slf4j
+@Deprecated
 public class GreedySafe {
 
     /**

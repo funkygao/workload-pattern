@@ -1,7 +1,9 @@
 package io.github.workload.minibatch;
 
 import com.google.common.collect.Lists;
+import io.github.workload.CostAware;
 import io.github.workload.greedy.GreedyConfig;
+import io.github.workload.greedy.GreedyException;
 import lombok.Getter;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
@@ -52,8 +54,19 @@ public class SafeBatch<T> implements Iterable<SafeBatch.Batch<T>> {
             this.items = items; // 不进行深拷贝，但使用者要确保原始数据不会被意外修改
         }
 
-        public int size() {
+        int size() {
             return items.size();
+        }
+
+        private int costs() {
+            int costs = 0;
+            if (items != null && !items.isEmpty() && items.get(0) instanceof CostAware) {
+                for (IN item : items) {
+                    CostAware costAware = (CostAware) item;
+                    costs += costAware.cost();
+                }
+            }
+            return costs;
         }
     }
 
@@ -61,6 +74,7 @@ public class SafeBatch<T> implements Iterable<SafeBatch.Batch<T>> {
         private final Iterator<SafeBatch.Batch<IN>> iterator;
         private final GreedyConfig config;
         private int totalItemsProcessed = 0;
+        private int totalCosts = 0;
 
         BatchesIterator(List<SafeBatch.Batch<IN>> batches, GreedyConfig config) {
             this.iterator = batches.iterator();
@@ -78,8 +92,8 @@ public class SafeBatch<T> implements Iterable<SafeBatch.Batch<T>> {
                 throw new NoSuchElementException();
             }
 
-            final SafeBatch.Batch<IN> next = iterator.next();
-            totalItemsProcessed += next.size();
+            final SafeBatch.Batch<IN> batch = iterator.next();
+            totalItemsProcessed += batch.size();
             if (totalItemsProcessed > config.getItemsLimit()) {
                 if (config.getOnItemsLimitExceed() != null) {
                     config.getOnItemsLimitExceed().accept(totalItemsProcessed);
@@ -87,7 +101,19 @@ public class SafeBatch<T> implements Iterable<SafeBatch.Batch<T>> {
                     log.warn("Unsafe batch iteration: {} > {}", totalItemsProcessed, config.getItemsLimit());
                 }
             }
-            return next;
+
+            if (config.getRateLimiter() != null) {
+                final String key = config.getRateLimiterKey();
+                totalCosts += batch.costs();
+                if (totalCosts > config.getRateLimitOnCostExceed()) {
+                    // 基于成本的有条件限流
+                    if (!config.getRateLimiter().canAcquire(key, 1)) {
+                        log.warn("Fail to acquire limiter token, totalCosts:{} > {}, itemProcessed:{}, key:{}", totalCosts, config.getRateLimitOnCostExceed(), totalItemsProcessed, key);
+                        throw new GreedyException();
+                    }
+                }
+            }
+            return batch;
         }
     }
 }

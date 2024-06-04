@@ -2,12 +2,16 @@ package io.github.workload.minibatch;
 
 import io.github.workload.BaseTest;
 import io.github.workload.greedy.GreedyConfig;
+import io.github.workload.greedy.GreedyException;
+import io.github.workload.greedy.MockGreedyLimiter;
+import io.github.workload.mock.CostAwareDto;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class SafeBatchTest extends BaseTest {
 
@@ -27,6 +31,17 @@ class SafeBatchTest extends BaseTest {
         assertEquals(120, total);
     }
 
+    @Test
+    void cost() {
+        List<CostAwareDto> items = generateCostAwareDtos(1300, 10);
+        GreedyConfig config = GreedyConfig.newDefaultWithLimiter(1000, "cannotAcquire", new MockGreedyLimiter());
+        SafeBatch<CostAwareDto> safeBatch = new SafeBatch<>(items, config);
+        assertThrows(GreedyException.class, () -> {
+            for (SafeBatch.Batch<CostAwareDto> batch : safeBatch) {
+            }
+        });
+    }
+
     private List<String> generateOrderNos(int n) {
         List<String> orderNos = new ArrayList<>(n);
         for (int i = 0; i < n; i++) {
@@ -35,4 +50,11 @@ class SafeBatchTest extends BaseTest {
         return orderNos;
     }
 
+    private List<CostAwareDto> generateCostAwareDtos(int n, int skuCount) {
+        List<CostAwareDto> dtos = new ArrayList<>(n);
+        for (long i = 0; i < n; i++) {
+            dtos.add(CostAwareDto.create(i, skuCount));
+        }
+        return dtos;
+    }
 }
