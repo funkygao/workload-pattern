@@ -1,4 +1,4 @@
-package io.github.workload.minibatch;
+package io.github.workload.safe;
 
 import com.google.common.collect.Lists;
 import io.github.workload.CostAware;

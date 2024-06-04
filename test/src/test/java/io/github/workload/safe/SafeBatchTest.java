@@ -1,4 +1,4 @@
-package io.github.workload.minibatch;
+package io.github.workload.safe;
 
 import io.github.workload.BaseTest;
 import io.github.workload.greedy.GreedyConfig;
