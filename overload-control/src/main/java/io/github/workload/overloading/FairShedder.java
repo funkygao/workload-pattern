@@ -182,6 +182,7 @@ abstract class FairShedder {
             return;
         }
 
+        final WorkloadPriority lowest = WorkloadPriority.ofLowest();
         final int requested = lastWindow.requested();
         final int admitted = lastWindow.admitted();
         boolean degraded = false;
@@ -193,18 +194,18 @@ abstract class FairShedder {
             degraded = true;
         }
         if (targetAdmit == 0) {
-            watermark.set(WorkloadPriority.ofLowest());
+            watermark.set(lowest);
             ignorePIDControl();
-            log.info("[{}] lower bar to 0 for idle window, last drop:{}/{}, grad:{}", name, lastWindow.shedded(), requested, gradient);
+            log.info("[{}] lower bar to {} for idle window, last drop:{}/{}, grad:{}", name, lowest.simpleString(), lastWindow.shedded(), requested, gradient);
             return;
         }
 
         int accAdmit = 0;
         final Iterator<Map.Entry<Integer, AtomicInteger>> lowerPriorities = lastWindow.histogram().tailMap(currentWatermark.P(), false).entrySet().iterator();
         if (!lowerPriorities.hasNext()) {
-            watermark.set(WorkloadPriority.ofLowest());
+            watermark.set(lowest);
             ignorePIDControl();
-            log.info("[{}] lower bar to 0 for being last stop, last drop:{}/{}, grad:{}", name, lastWindow.shedded(), requested, gradient);
+            log.info("[{}] lower bar to {} for being last stop, last drop:{}/{}, grad:{}", name, lowest.simpleString(), lastWindow.shedded(), requested, gradient);
             return;
         }
 
@@ -229,8 +230,8 @@ abstract class FairShedder {
         }
 
         // 凑不够数了
-        log.warn("[{}] lower bar to 0, stop early, last drop:{}/{}, steps:{}, grad:{}", name, lastWindow.shedded(), requested, steps, gradient);
-        watermark.set(WorkloadPriority.ofLowest());
+        log.warn("[{}] lower bar to {}, stop early, last drop:{}/{}, steps:{}, grad:{}", name, lowest.simpleString(), lastWindow.shedded(), requested, steps, gradient);
+        watermark.set(lowest);
     }
 
     protected final CountAndTimeWindowState currentWindow() {

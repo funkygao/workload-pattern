@@ -30,7 +30,7 @@ class FairShedderQueue extends FairShedder {
                 && (nowNs - lastOverloadNs) <= ttlNs;
         if (stillExplicitOverloaded) {
             double grad = explicitOverloadGradient();
-            log.info("[{}] within explicit overload period:{}ms, rand grad:{}", name, ttlNs / WindowConfig.NS_PER_MS, grad);
+            log.info("[{}] within explicit overload ttl:{}ms, rand grad:{}", name, ttlNs / WindowConfig.NS_PER_MS, grad);
             return grad;
         }
 
