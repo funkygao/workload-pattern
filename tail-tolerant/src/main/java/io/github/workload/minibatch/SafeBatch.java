@@ -47,10 +47,10 @@ public class SafeBatch<T> implements Iterable<SafeBatch.Batch<T>> {
     }
 
     @Getter
-    public static class Batch<IN> {
-        private final List<IN> items;
+    public static class Batch<T> {
+        private final List<T> items;
 
-        Batch(List<IN> items) {
+        Batch(List<T> items) {
             this.items = items; // 不进行深拷贝，但使用者要确保原始数据不会被意外修改
         }
 
@@ -61,7 +61,7 @@ public class SafeBatch<T> implements Iterable<SafeBatch.Batch<T>> {
         private int costs() {
             int costs = 0;
             if (items != null && !items.isEmpty() && items.get(0) instanceof CostAware) {
-                for (IN item : items) {
+                for (T item : items) {
                     CostAware costAware = (CostAware) item;
                     costs += costAware.cost();
                 }
@@ -70,13 +70,13 @@ public class SafeBatch<T> implements Iterable<SafeBatch.Batch<T>> {
         }
     }
 
-    private static class BatchesIterator<IN> implements Iterator<SafeBatch.Batch<IN>> {
-        private final Iterator<SafeBatch.Batch<IN>> iterator;
+    private static class BatchesIterator<T> implements Iterator<SafeBatch.Batch<T>> {
+        private final Iterator<SafeBatch.Batch<T>> iterator;
         private final GreedyConfig config;
         private int totalItemsProcessed = 0;
         private int totalCosts = 0;
 
-        BatchesIterator(List<SafeBatch.Batch<IN>> batches, GreedyConfig config) {
+        BatchesIterator(List<SafeBatch.Batch<T>> batches, GreedyConfig config) {
             this.iterator = batches.iterator();
             this.config = config;
         }
@@ -87,12 +87,12 @@ public class SafeBatch<T> implements Iterable<SafeBatch.Batch<T>> {
         }
 
         @Override
-        public SafeBatch.Batch<IN> next() {
+        public SafeBatch.Batch<T> next() {
             if (!hasNext()) {
                 throw new NoSuchElementException();
             }
 
-            final SafeBatch.Batch<IN> batch = iterator.next();
+            final SafeBatch.Batch<T> batch = iterator.next();
             totalItemsProcessed += batch.size();
             if (totalItemsProcessed > config.getItemsLimit()) {
                 if (config.getOnItemsLimitExceed() != null) {
