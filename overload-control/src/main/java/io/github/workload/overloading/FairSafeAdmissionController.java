@@ -76,12 +76,9 @@ class FairSafeAdmissionController implements AdmissionController {
         final WorkloadPriority priority = workload.getPriority();
         metricsTracker.enter(workload.getPriority());
 
-        // JVM范围内共享的CPU准入机制：GC压力会自动隐式转化为CPU压力
+        // JVM范围内共享的CPU准入机制：GC内存压力会隐式表现为CPU压力
         if (!fairCpu.admit(priority)) {
-            if (log.isDebugEnabled()) {
-                log.debug("[{}] BUSY CPU shed workload:{}, watermark:{}", fairQueue.name, priority.simpleString(), fairCpu.watermark().simpleString());
-            }
-
+            log.info("[{}] busy CPU shed workload:{}, watermark:{}", fairQueue.name, priority.simpleString(), fairCpu.watermark().simpleString());
             metricsTracker.shedByCpu(priority);
             return false;
         }
@@ -89,10 +86,7 @@ class FairSafeAdmissionController implements AdmissionController {
         // 基于单独队列的准入机制
         boolean ok = fairQueue.admit(priority);
         if (!ok) {
-            if (log.isDebugEnabled()) {
-                log.debug("[{}] BUSY Queue shed workload:{}, watermark:{}", fairQueue.name, priority.simpleString(), fairQueue.watermark().simpleString());
-            }
-
+            log.info("[{}] busy Queue shed workload:{}, watermark:{}", fairQueue.name, priority.simpleString(), fairQueue.watermark().simpleString());
             metricsTracker.shedByQueue(priority);
         }
         return ok;
