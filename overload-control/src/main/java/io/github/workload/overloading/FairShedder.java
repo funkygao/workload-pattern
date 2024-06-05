@@ -196,7 +196,7 @@ abstract class FairShedder {
         if (targetAdmit == 0) {
             watermark.set(WorkloadPriority.ofLowest());
             ignorePIDControl();
-            log.info("[{}] lower bar for idle window: {} -> {}, last drop:{}/{}, grad:{}", name, currentWatermark.simpleString(), watermark().simpleString(), lastWindow.shedded(), requested, gradient);
+            log.warn("[{}] lower bar for idle window: {} -> {}, last drop:{}/{}, grad:{}", name, currentWatermark.simpleString(), watermark().simpleString(), lastWindow.shedded(), requested, gradient);
             return;
         }
 
@@ -205,7 +205,7 @@ abstract class FairShedder {
         if (!lowerPriorities.hasNext()) {
             watermark.set(WorkloadPriority.ofLowest());
             ignorePIDControl();
-            log.info("[{}] lower bar for being last stop: {} -> {}, last drop:{}/{}, grad:{}", name, currentWatermark.simpleString(), watermark().simpleString(), lastWindow.shedded(), requested, gradient);
+            log.warn("[{}] lower bar for being last stop: {} -> {}, last drop:{}/{}, grad:{}", name, currentWatermark.simpleString(), watermark().simpleString(), lastWindow.shedded(), requested, gradient);
             return;
         }
 

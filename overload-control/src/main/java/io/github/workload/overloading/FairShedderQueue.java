@@ -30,7 +30,7 @@ class FairShedderQueue extends FairShedder {
                 && (nowNs - lastOverloadNs) <= ttlNs;
         if (stillExplicitOverloaded) {
             double grad = explicitOverloadGradient();
-            log.info("[{}] within explicit overload ttl:{}ms, rand grad:{}", name, ttlNs / WindowConfig.NS_PER_MS, grad);
+            log.warn("[{}] within explicit overload ttl:{}ms, rand grad:{}", name, ttlNs / WindowConfig.NS_PER_MS, grad);
             return grad;
         }
 
@@ -49,7 +49,7 @@ class FairShedderQueue extends FairShedder {
         final double rawGradient = upperBound / avgQueuedMs;
         final double grad = Math.min(GRADIENT_IDLEST, Math.max(GRADIENT_BUSIEST, rawGradient));
         if (isOverloaded(grad)) {
-            log.info("[{}] buffer bloat, avg:{} > {}, grad:{}", name, avgQueuedMs, upperBound, grad);
+            log.warn("[{}] buffer bloat, avg:{} > {}, grad:{}", name, avgQueuedMs, upperBound, grad);
         }
         return grad;
     }
