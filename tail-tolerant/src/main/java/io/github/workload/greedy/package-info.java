@@ -7,5 +7,6 @@
  * <li>DB查询，ResultSet结果级很大：可以通过Mybatis Interceptor机制管控</li>
  * <li>方法内部的循环遍历：这是greedy组件主战场.</li>
  * </ul>
+ * @deprecated Use {@link io.github.workload.safe} instead.
  */
 package io.github.workload.greedy;
