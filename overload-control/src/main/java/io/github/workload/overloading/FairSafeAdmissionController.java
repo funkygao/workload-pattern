@@ -53,13 +53,8 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 @Slf4j
 class FairSafeAdmissionController implements AdmissionController {
-
-    // The optimistic throttling, global capacity.
     private static final FairShedderCpu fairCpu = new FairShedderCpu();
-
-    // The pessimistic throttling, local capacity.
     private final FairShedderQueue fairQueue;
-
     private final IMetricsTracker metricsTracker;
 
     FairSafeAdmissionController(String name) {
