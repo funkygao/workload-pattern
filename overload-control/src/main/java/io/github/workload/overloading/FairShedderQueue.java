@@ -49,7 +49,7 @@ class FairShedderQueue extends FairShedder {
         final double rawGradient = upperBound / avgQueuedMs;
         final double grad = Math.min(GRADIENT_IDLEST, Math.max(GRADIENT_BUSIEST, rawGradient));
         if (isOverloaded(grad)) {
-            log.warn("[{}] buffer bloat, avg:{} > {}, grad:{}", name, avgQueuedMs, upperBound, grad);
+            log.info("[{}] buffer bloat, avg:{} > {}, grad:{}", name, avgQueuedMs, upperBound, grad);
         }
         return grad;
     }
