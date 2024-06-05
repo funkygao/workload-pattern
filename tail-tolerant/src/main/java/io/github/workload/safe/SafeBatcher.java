@@ -24,7 +24,7 @@ import java.util.stream.Collectors;
  * @param <T> 数据集的数据类型
  */
 @Slf4j
-public class SafeBatchLoader<T> implements Iterable<SafeBatchLoader.Batch<T>> {
+public class SafeBatcher<T> implements Iterable<SafeBatcher.Batch<T>> {
     private final List<Batch<T>> batches;
     private final Guard guard;
 
@@ -35,7 +35,7 @@ public class SafeBatchLoader<T> implements Iterable<SafeBatchLoader.Batch<T>> {
      * @param batchSize size of each partitioned list
      * @param guard     大报文安全保护参数, null 表示不加保护仅仅分批处理
      */
-    public SafeBatchLoader(@NonNull List<T> dataset, int batchSize, Guard guard) {
+    public SafeBatcher(@NonNull List<T> dataset, int batchSize, Guard guard) {
         validate(batchSize, guard);
 
         this.guard = guard;
