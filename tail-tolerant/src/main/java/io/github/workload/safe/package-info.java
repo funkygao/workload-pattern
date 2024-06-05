@@ -1,4 +1,4 @@
 /**
- * Workload safe regulation.
+ * Workload cost safe regulation.
  */
 package io.github.workload.safe;
