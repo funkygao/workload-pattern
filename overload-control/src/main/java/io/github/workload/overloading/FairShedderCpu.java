@@ -17,7 +17,7 @@ import lombok.extern.slf4j.Slf4j;
 class FairShedderCpu extends FairShedder {
     static final double CPU_EMA_ALPHA = HyperParameter.getDouble(Empirical.CPU_EMA_ALPHA, 0.25d);
     static final long CPU_OVERLOAD_COOL_OFF_SEC = HyperParameter.getLong(Empirical.CPU_OVERLOAD_COOL_OFF_SEC, 10 * 60);
-    static final double CPU_USAGE_UPPER_BOUND = HyperParameter.getDouble(Empirical.CPU_USAGE_UPPER_BOUND, 0.75);
+    static final double CPU_USAGE_UPPER_BOUND = HyperParameter.getDouble(Empirical.CPU_USAGE_UPPER_BOUND, 0.82);
 
     private final double cpuUsageUpperBound;
     private Sysload sysload;

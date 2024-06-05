@@ -26,11 +26,11 @@ class FairShedderQueue extends FairShedder {
     @Override
     protected double overloadGradient(long nowNs, CountAndTimeWindowState snapshot) {
         final long ttlNs = lastOverloadTtlNs.get();
-        boolean stillExplicitOverloaded = nowNs > 0 && lastOverloadNs > 0
+        final boolean stillExplicitOverloaded = nowNs > 0 && lastOverloadNs > 0
                 && (nowNs - lastOverloadNs) <= ttlNs;
         if (stillExplicitOverloaded) {
             double grad = explicitOverloadGradient();
-            log.info("[{}] within explicit overload period:{}ms, rand grad:{}", name, ttlNs / WindowConfig.NS_PER_MS, grad);
+            log.info("[{}] within explicit overload ttl:{}ms, rand grad:{}", name, ttlNs / WindowConfig.NS_PER_MS, grad);
             return grad;
         }
 
@@ -46,12 +46,10 @@ class FairShedderQueue extends FairShedder {
 
     @VisibleForTesting
     double queuingGradient(double avgQueuedMs, double upperBound) {
-        double rawGradient = upperBound / avgQueuedMs;
-        double grad = Math.min(GRADIENT_IDLEST, Math.max(GRADIENT_BUSIEST, rawGradient));
+        final double rawGradient = upperBound / avgQueuedMs;
+        final double grad = Math.min(GRADIENT_IDLEST, Math.max(GRADIENT_BUSIEST, rawGradient));
         if (isOverloaded(grad)) {
             log.warn("[{}] buffer bloat, avg:{} > {}, grad:{}", name, avgQueuedMs, upperBound, grad);
-        } else {
-            log.trace("[{}] avg queuing ms:{} < {}, grad:{}", name, avgQueuedMs, upperBound, grad);
         }
         return grad;
     }

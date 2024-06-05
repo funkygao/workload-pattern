@@ -33,6 +33,7 @@ import java.util.concurrent.TimeUnit;
 @ToString
 @Slf4j
 public class WorkloadPriority {
+    private static final String LOWEST_STRING = "priority(lowest)";
     private static final String CLOCK_WHO = WorkloadPriority.class.getSimpleName();
     private static final long HALF_HOUR_MS = TimeUnit.MILLISECONDS.convert(30, TimeUnit.MINUTES);
 
@@ -191,10 +192,6 @@ public class WorkloadPriority {
         return (b << PRIORITY_BITS) | u;
     }
 
-    public String simpleString() {
-        return "priority(P=" + P() + ",B=" + B + ")";
-    }
-
     static WorkloadPriority ofPeriodicRandomFromUID(int b, int uid, long timeWindowMs) {
         int normalizedStableU = (uid & Integer.MAX_VALUE) % MAX_7BIT_VALUE;
         long nowMs = SystemClock.ofPrecisionMs(timeWindowMs, CLOCK_WHO).currentTimeMillis();
@@ -247,6 +244,15 @@ public class WorkloadPriority {
         }
 
         return of(B, Math.min(MAX_7BIT_VALUE, Math.max(0, U + delta)));
+    }
+
+    public String simpleString() {
+        final int P = P();
+        if (P == MAX_P) {
+            return LOWEST_STRING;
+        }
+
+        return "priority(P=" + P + ",B=" + B + ")";
     }
 
     @Override
