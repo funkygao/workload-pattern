@@ -2,6 +2,7 @@ package io.github.workload.safe;
 
 import com.google.common.collect.Lists;
 import io.github.workload.CostAware;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
@@ -20,12 +21,12 @@ import java.util.stream.Collectors;
  * <li>基于成本的条件式限流</li>
  * </ul>
  *
- * @param <T> 输入数据类型
+ * @param <T> 数据集的数据类型
  */
 @Slf4j
 public class SafeBatchLoader<T> implements Iterable<SafeBatchLoader.Batch<T>> {
     private final List<Batch<T>> batches;
-    private final SafeGuard guard;
+    private final Guard guard;
 
     /**
      * 构造函数.
@@ -34,7 +35,7 @@ public class SafeBatchLoader<T> implements Iterable<SafeBatchLoader.Batch<T>> {
      * @param batchSize size of each partitioned list
      * @param guard     大报文安全保护参数, null 表示不加保护仅仅分批处理
      */
-    public SafeBatchLoader(@NonNull List<T> dataset, int batchSize, SafeGuard guard) {
+    public SafeBatchLoader(@NonNull List<T> dataset, int batchSize, Guard guard) {
         validate(batchSize, guard);
 
         this.guard = guard;
@@ -44,12 +45,12 @@ public class SafeBatchLoader<T> implements Iterable<SafeBatchLoader.Batch<T>> {
                 .collect(Collectors.toList());
     }
 
-    private void validate(int batchSize, SafeGuard guard) {
+    private void validate(int batchSize, Guard guard) {
         if (guard == null) {
             return;
         }
 
-        if (guard.getUnsafeItemsThreshold() < batchSize) {
+        if (guard.getItemsThreshold() < batchSize) {
             throw new IllegalArgumentException("unsafeItemsThreshold must be greater than batchSize");
         }
     }
@@ -87,13 +88,13 @@ public class SafeBatchLoader<T> implements Iterable<SafeBatchLoader.Batch<T>> {
         }
     }
 
-    private static class BatchesIterator<T> implements Iterator<SafeBatchLoader.Batch<T>> {
-        private final Iterator<SafeBatchLoader.Batch<T>> iterator;
-        private final SafeGuard guard;
+    private static class BatchesIterator<T> implements Iterator<Batch<T>> {
+        private final Iterator<Batch<T>> iterator;
+        private final Guard guard;
         private int totalItemsProcessed = 0;
         private int totalCosts = 0;
 
-        BatchesIterator(List<SafeBatchLoader.Batch<T>> batches, SafeGuard guard) {
+        BatchesIterator(List<Batch<T>> batches, Guard guard) {
             this.iterator = batches.iterator();
             this.guard = guard;
         }
@@ -104,26 +105,29 @@ public class SafeBatchLoader<T> implements Iterable<SafeBatchLoader.Batch<T>> {
         }
 
         @Override
-        public SafeBatchLoader.Batch<T> next() {
+        public Batch<T> next() {
             if (!hasNext()) {
                 throw new NoSuchElementException();
             }
 
-            final SafeBatchLoader.Batch<T> batch = iterator.next();
+            final Batch<T> batch = iterator.next();
             if (guard == null) {
                 // 不加保护
                 return batch;
             }
 
             totalItemsProcessed += batch.size();
-            if (totalItemsProcessed > guard.getUnsafeItemsThreshold()) {
-                log.warn("Unsafe items threshold reached: {} > {}", totalItemsProcessed, guard.getUnsafeItemsThreshold());
-            }
-
-            if (guard.getRateLimiter() != null) {
-                totalCosts += batch.costs();
+            if (totalItemsProcessed > guard.getItemsThreshold()) {
+                log.warn("Unsafe items threshold reached: {} > {}", totalItemsProcessed, guard.getItemsThreshold());
             }
             return batch;
         }
+    }
+
+    @Getter
+    @Builder
+    public static class Guard {
+        private final int itemsThreshold;
+        private final int costsThreshold;
     }
 }

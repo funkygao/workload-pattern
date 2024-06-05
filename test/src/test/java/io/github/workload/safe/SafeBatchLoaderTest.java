@@ -25,15 +25,15 @@ class SafeBatchLoaderTest extends BaseTest {
 
     @Test
     void validate() {
-        SafeGuard guard = SafeGuard.builder().unsafeItemsThreshold(50).build();
+        SafeBatchLoader.Guard guard = SafeBatchLoader.Guard.builder().itemsThreshold(50).build();
         assertThrows(IllegalArgumentException.class, () -> new SafeBatchLoader<>(generateOrderNos(10), 100, guard));
     }
 
     @Test
     void basic() {
         List<String> orderNos = generateOrderNos(120);
-        SafeGuard guard = SafeGuard.builder()
-                .unsafeItemsThreshold(110)
+        SafeBatchLoader.Guard guard = SafeBatchLoader.Guard.builder()
+                .itemsThreshold(110)
                 .build();
         SafeBatchLoader<String> safeLoader = new SafeBatchLoader<>(orderNos, 23, guard);
         int total = 0;
@@ -47,7 +47,7 @@ class SafeBatchLoaderTest extends BaseTest {
     @Test
     void real_use_case() {
         List<String> orderNos = generateOrderNos(100);
-        SafeBatchLoader<String> safeBatchLoader = new SafeBatchLoader<>(orderNos, 50, SafeGuard.builder().unsafeItemsThreshold(200).build());
+        SafeBatchLoader<String> safeBatchLoader = new SafeBatchLoader<>(orderNos, 50, SafeBatchLoader.Guard.builder().itemsThreshold(200).build());
         for (SafeBatchLoader.Batch<String> batch : safeBatchLoader) {
             rpcCall(batch.getItems(), "com.foo.service.Foo.getOrders");
             rpcCall(batch.first(), "com.bar.OrderService.freeze");
