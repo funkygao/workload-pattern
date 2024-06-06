@@ -25,7 +25,7 @@ class WatermarkHistory {
         watermarks.addLast(watermark);
     }
 
-    double averageShedRatio() {
+    double avgShedRatio() {
         return shedRatios.stream().mapToDouble(d -> d).average().orElse(0.0);
     }
 

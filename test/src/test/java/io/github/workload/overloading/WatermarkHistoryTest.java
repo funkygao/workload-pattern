@@ -7,10 +7,10 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class WatermarkHistoryTest extends BaseTest {
-    WatermarkHistory history = new WatermarkHistory(4);
 
     @Test
     void basic() {
+        WatermarkHistory history = new WatermarkHistory(4);
         for (int i = 0; i < 1 << 20; i++) {
             double[] shedRatios = new double[]{0.1, 0.15, 0.08, 0, 0, 0.01, 0.21, 0.3, 0.31, 0.23};
             int[] watermarkPs = new int[]{4590, 3456, 8988, 8763, 9999, 345, 2345, 5698, 4521, 321};
@@ -20,5 +20,10 @@ class WatermarkHistoryTest extends BaseTest {
             }
             assertEquals(2345, history.lastWatermark().P());
         }
+    }
+
+    @Test
+    void avgShedRatio() {
+        // TODO
     }
 }
