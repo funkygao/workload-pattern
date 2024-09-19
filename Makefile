@@ -1,4 +1,5 @@
 .SILENT:
+.PHONY: package clean javadoc test install
 
 BRANCH := $(shell git rev-parse --abbrev-ref HEAD)
 
