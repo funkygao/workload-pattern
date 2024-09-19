@@ -1,3 +1,5 @@
+.SILENT:
+
 BRANCH := $(shell git rev-parse --abbrev-ref HEAD)
 
 define visualize_cmd
