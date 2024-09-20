@@ -12,27 +12,14 @@
     <name>Workload :: GPU Boost</name>
 
     <properties>
-        <dlj.version>0.30.0</dlj.version>
-        <pytorch.auto.version>1.9.1</pytorch.auto.version>
+        <aparapi.version>3.0.0</aparapi.version>
     </properties>
 
     <dependencies>
         <dependency>
-            <groupId>ai.djl</groupId>
-            <artifactId>api</artifactId>
-            <version>${dlj.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>ai.djl.pytorch</groupId>
-            <artifactId>pytorch-engine</artifactId>
-            <version>${dlj.version}</version>
-            <scope>runtime</scope>
-        </dependency>
-        <dependency>
-            <groupId>ai.djl.pytorch</groupId>
-            <artifactId>pytorch-native-auto</artifactId>
-            <version>${pytorch.auto.version}</version>
-            <scope>runtime</scope>
+            <groupId>com.aparapi</groupId>
+            <artifactId>aparapi</artifactId>
+            <version>${aparapi.version}</version>
         </dependency>
     </dependencies>
 
