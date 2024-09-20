@@ -1,5 +1,6 @@
 package io.github.workload.boost;
 
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -8,15 +9,15 @@ import java.util.Random;
 class BoosterTest {
 
     @Test
-    void testConsolidatedShipmentCalculation() {
-        int orderCount = 100_000;
-        ConsolidatedShipmentCalculator.Order[] orders = generateRandomOrders(orderCount);
+    @DisplayName("为10万个发货单创建集合单：任务分配")
+    void demoBoost() {
+        // 模拟创建10万个发货单
+        ConsolidatedShipmentCalculator.Order[] orders = generateRandomOrders(100_000);
 
-        // 使用GPU加速计算集合单
+        // 使用GPU加速计算集合单分配
         List<ConsolidatedShipmentCalculator.ConsolidatedShipment> consolidatedShipments =
                 ConsolidatedShipmentCalculator.consolidateShipments(orders);
 
-        // 输出结果和执行时间
         System.out.println("Number of Consolidated Shipments: " + consolidatedShipments.size());
     }
 
@@ -27,9 +28,8 @@ class BoosterTest {
         for (int i = 0; i < count; i++) {
             float weight = random.nextFloat() * 100 + 1; // 重量在 1-101 之间
             String destination = destinations[random.nextInt(destinations.length)];
-            orders[i] = new ConsolidatedShipmentCalculator.Order(i + 1, weight, destination);
+            orders[i] = new ConsolidatedShipmentCalculator.Order(i, weight, destination);
         }
         return orders;
     }
-
 }
