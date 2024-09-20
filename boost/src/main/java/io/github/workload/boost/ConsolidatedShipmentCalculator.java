@@ -3,6 +3,9 @@ package io.github.workload.boost;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * 集合点分配.
+ */
 class ConsolidatedShipmentCalculator {
     private static final float MAX_WEIGHT = 500; // 最大重量限制
 
