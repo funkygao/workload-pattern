@@ -16,6 +16,7 @@ target/
 .checkstyle
 *.log
 id_file
+*.dylib
 *.epoch
 .factorypath
 .pmd

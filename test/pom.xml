@@ -89,6 +89,11 @@
         </dependency>
         <dependency>
             <groupId>io.github.workload</groupId>
+            <artifactId>stream-simd</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.github.workload</groupId>
             <artifactId>workload-simulate</artifactId>
             <version>${project.version}</version>
         </dependency>
@@ -162,6 +167,9 @@
                 <artifactId>maven-surefire-plugin</artifactId>
                 <!-- JUnit 5 requires Surefire version 2.22.0 or higher -->
                 <version>3.0.0-M5</version>
+                <configuration>
+                    <argLine>-Djava.library.path=${project.basedir}/../stream-simd/target/classes</argLine>
+                </configuration>
                 <dependencies>
                     <!--junit5-->
                     <dependency>
