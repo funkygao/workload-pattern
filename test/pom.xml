@@ -167,6 +167,9 @@
                 <artifactId>maven-surefire-plugin</artifactId>
                 <!-- JUnit 5 requires Surefire version 2.22.0 or higher -->
                 <version>3.0.0-M5</version>
+                <configuration>
+                    <argLine>-Djava.library.path=${project.basedir}/../stream-simd/target/classes</argLine>
+                </configuration>
                 <dependencies>
                     <!--junit5-->
                     <dependency>

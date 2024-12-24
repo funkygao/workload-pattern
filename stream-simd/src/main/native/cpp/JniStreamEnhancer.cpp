@@ -1,7 +1,11 @@
+#include "jni_init.h"
 #include <jni.h>
 #include <iostream>
 #include <cpuid.h>
 #include <limits>
+
+extern jint JNI_OnLoad(JavaVM* vm, void* reserved);
+extern void JNI_OnUnload(JavaVM* vm, void* reserved);
 
 jlong avxImplementation(jlong* array, jsize length);
 jlong sse41Implementation(jlong* array, jsize length);

@@ -1,20 +1,27 @@
 JDK_HOME := /usr/local/Cellar/openjdk/23.0.1
 CPP := clang++
-CPP_OPTS := -std=c++11 -O3
-CPP_HOME := cpp
-SHARED_TARGET := $(CPP_HOME)/libjni_stream_enhancer.dylib
+CPP_HOME := src/main/native/cpp
+CPP_FILES := $(CPP_HOME)/*.cpp
+CPP_FLAGS := -std=c++11 -O3 -I$(CPP_HOME)/../include -I"$(JDK_HOME)/include"
+LIB_NAME := libjni_stream_enhancer.dylib
+SHARED_TARGET := target/classes/$(LIB_NAME)
 
 CPU_FEATURES := $(shell sysctl -a | grep machdep.cpu.features)
 ifneq ($(findstring AVX2,$(CPU_FEATURES)),)
-    CPP_OPTS += -mavx2 -D__AVX2__
+    CPP_FLAGS += -mavx2 -D__AVX2__
 endif
 ifneq ($(findstring SSE4.1,$(CPU_FEATURES)),)
-    CPP_OPTS += -msse4.1 -D__SSE4_1__
+    CPP_FLAGS += -msse4.1 -D__SSE4_1__
 endif
 
-build:
-	$(CPP) -shared -fPIC -I"$(JDK_HOME)/include" -I"$(JDK_HOME)/include/darwin" $(CPP_OPTS) -o $(SHARED_TARGET) $(CPP_HOME)/*.cpp
+build: $(SHARED_TARGET)
+
+$(SHARED_TARGET): $(CPP_FILES)
+	mkdir -p target/classes
+	$(CPP) -shared -fPIC $(CPP_FLAGS) -o $@ $^
 
 clean:
 	rm -f $(SHARED_TARGET)
 	mvn clean
+
+.PHONY: build clean

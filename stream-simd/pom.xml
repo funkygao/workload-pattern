@@ -10,4 +10,5 @@
     <artifactId>stream-simd</artifactId>
     <packaging>jar</packaging>
     <name>Workload :: Stream SIMD</name>
+
 </project>

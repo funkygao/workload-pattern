@@ -13,11 +13,11 @@
         <module>core</module>
         <module>boost</module>
         <module>workload-simulate</module>
+        <module>stream-simd</module>
         <module>shuffle-sharding</module>
         <module>overload-control</module>
         <module>tail-tolerant</module>
         <module>workload-sdk</module>
-        <module>stream-simd</module>
     </modules>
 
     <properties>

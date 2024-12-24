@@ -33,6 +33,7 @@ benchmark: ## Show the benchmark result
 	cat test/*.bench
 
 test:clean
+	$(MAKE) -C stream-simd build
 	mvn test -Ptest
 
 coverage:install ## Run unit test and show coverage report
