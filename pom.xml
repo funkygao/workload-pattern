@@ -17,6 +17,7 @@
         <module>overload-control</module>
         <module>tail-tolerant</module>
         <module>workload-sdk</module>
+        <module>stream-simd</module>
     </modules>
 
     <properties>
