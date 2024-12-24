@@ -15,7 +15,7 @@
     <dependencies>
         <dependency>
             <groupId>io.github.workload</groupId>
-            <artifactId>core</artifactId>
+            <artifactId>workload-core</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>

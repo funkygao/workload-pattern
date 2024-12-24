@@ -7,14 +7,14 @@
         <version>1.0.0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>core</artifactId>
+    <artifactId>workload-core</artifactId>
     <packaging>jar</packaging>
     <name>Workload :: Core</name>
 
     <dependencies>
         <dependency>
             <groupId>io.github.workload</groupId>
-            <artifactId>spec</artifactId>
+            <artifactId>workload-spec</artifactId>
             <version>${project.version}</version>
         </dependency>
     </dependencies>

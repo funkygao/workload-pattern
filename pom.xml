@@ -9,9 +9,9 @@
     <version>1.0.0-SNAPSHOT</version>
 
     <modules>
-        <module>spec</module>
-        <module>core</module>
-        <module>boost</module>
+        <module>workload-spec</module>
+        <module>workload-core</module>
+        <module>workload-boost</module>
         <module>workload-simulate</module>
         <module>stream-simd</module>
         <module>shuffle-sharding</module>
