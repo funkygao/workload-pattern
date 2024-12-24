@@ -31,7 +31,6 @@ class StreamEnhancerTest {
     @Test
     void basic() {
         List<Long> numbers = Arrays.asList(10L, 5L, 15L, 20L, 3L, 8L, 25L);
-
         long maxId = StreamEnhancer.enhance(numbers.stream())
                 .mapToLong(Long::longValue)
                 .max()

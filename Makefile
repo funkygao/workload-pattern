@@ -51,6 +51,14 @@ flamegraph:
 	java -cp $(ASYNC_PROFILER_HOME)/lib/converter.jar jfr2flame test/pf.jfr test/flamegraph.html
 	open test/flamegraph.html
 
+##@ SIMD
+
+simd-stream:clean ## Run StreamEnhancerTest
+	rm -f /tmp/jni_output.log
+	$(MAKE) -C stream-simd build
+	mvn -Dtest=io.github.workload.simd.StreamEnhancerTest test -Ptest -Dsurefire.failIfNoSpecifiedTests=false
+	cat /tmp/jni_output.log
+
 ##@ Simulation
 
 overload-busy:clean_generated ## Simulate busy web site

@@ -14,7 +14,7 @@ class JniStreamEnhancer {
             log.info("Attempting to load JNI library: {} in {}", JNI_STREAM_ENHANCER, System.getProperty(PATH_ENV));
             System.loadLibrary(JNI_STREAM_ENHANCER); // -Djava.library.path
             isLoaded = true;
-            log.info("JNI library loaded successfully");
+            log.info("JNI library loaded ok");
         } catch (UnsatisfiedLinkError e) {
             log.error("Failed to load JNI library: {}", e.getMessage());
         }
